@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "monster-agent"
+version = "1.0.0"
+description = "Monster Agent - Omnipotent AI Agent Team on OpenClaw"
+authors = ["jorshimayor <jorshi@mayor.dev>"]
+readme = "README.md"
+packages = [{ include = "src", from = "." }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+fastapi = "^0.115.0"
+uvicorn = { version = "^0.30.0", extras = ["standard"] }
+pydantic = "^2.9.0"
+pydantic-settings = "^2.5.0"
+httpx = "^0.27.0"
+networkx = "^3.3.0"
+structlog = "^24.4.0"
+tenacity = "^9.0.0"
+pybreaker = "^1.1.0"
+numpy = "^1.26.0"
+scikit-learn = "^1.5.0"
+python-dotenv = "^1.0.0"
+python-multipart = "^0.0.9"
+mcp = "^1.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.0"
+pytest-asyncio = "^0.24.0"
+respx = "^0.21.0"
+
+[tool.poetry.scripts]
+dev = "uvicorn src.api.main:app --reload --host 0.0.0.0 --port 8000"
+test = "pytest tests/ -v --asyncio-mode=auto"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+pythonpath = ["src", "."]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

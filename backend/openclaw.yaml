@@ -1,0 +1,122 @@
+version: "1.0"
+project: monster-agent
+description: "Omnipotent AI Agent Team - OpenClaw Configuration"
+
+agents:
+  - name: orchestrator
+    role: ORCHESTRATOR
+    description: "Project Lead Agent - decomposes tasks, builds execution plans, assembles agent teams, and synthesizes final outputs."
+    model_preferences:
+      - nvidia/deepseek-v4-flash
+      - groq/llama-3.3-70b-versatile
+      - google/gemini-2.0-flash-lite
+    tool_allowlist:
+      - github.*
+      - notion.*
+      - google_workspace.*
+      - slack.*
+      - hashnode.*
+    soul_file: "src/souls/orchestrator.md"
+
+  - name: content-web2
+    role: CONTENT_WEB2
+    description: "Web2 Content Builder Agent - drafts blog posts, tutorials, guides, and technical documentation for traditional web audiences."
+    model_preferences:
+      - nvidia/deepseek-v4-flash
+      - groq/llama-3.3-70b-versatile
+      - google/gemini-2.0-flash-lite
+    tool_allowlist:
+      - github.read_file
+      - notion.*
+      - google_workspace.docs_read
+      - hashnode.read_posts
+    soul_file: "src/souls/content_web2.md"
+
+  - name: content-web3
+    role: CONTENT_WEB3
+    description: "Web3 Content Builder Agent - drafts smart contract walkthroughs, DeFi deep-dives, blockchain tutorials, and AI-Web3 bridge explainers."
+    model_preferences:
+      - nvidia/deepseek-v4-flash
+      - groq/llama-3.3-70b-versatile
+      - google/gemini-2.0-flash-lite
+    tool_allowlist:
+      - github.read_file
+      - github.list_commits
+      - notion.*
+      - hashnode.read_posts
+    soul_file: "src/souls/content_web3.md"
+
+  - name: football-analyst
+    role: FOOTBALL
+    description: "Football Data Analyst Agent - produces data-driven match reports, player scouting, tactical analysis, and xG-based assessments."
+    model_preferences:
+      - nvidia/deepseek-v4-flash
+      - groq/llama-3.3-70b-versatile
+      - google/gemini-2.0-flash-lite
+    tool_allowlist:
+      - google_workspace.sheets_write
+      - google_workspace.sheets_read
+      - slack.send_message
+      - notion.*
+    soul_file: "src/souls/football_analyst.md"
+
+  - name: editor-reviewer
+    role: EDITOR
+    description: "Editor & Reviewer Agent - scores content quality (1-10), flags factual/logical gaps, and produces actionable rewrite suggestions."
+    model_preferences:
+      - nvidia/deepseek-v4-flash
+      - groq/llama-3.3-70b-versatile
+      - google/gemini-2.0-flash-lite
+    tool_allowlist:
+      - notion.*
+      - google_workspace.docs_read
+      - hashnode.read_posts
+    soul_file: "src/souls/editor_reviewer.md"
+
+  - name: security-auditor
+    role: SECURITY
+    description: "Security Researcher Agent - audits code, smart contracts, and system architectures. Ranks findings by severity (CVSS 3.1)."
+    model_preferences:
+      - nvidia/deepseek-v4-flash
+      - groq/llama-3.3-70b-versatile
+      - google/gemini-2.0-flash-lite
+    tool_allowlist:
+      - github.read_file
+      - github.list_commits
+      - notion.*
+      - slack.send_message
+    soul_file: "src/souls/security_auditor.md"
+
+  - name: knowledge-crystallizer
+    role: KNOWLEDGE
+    description: "Knowledge Crystallizer Agent - distills completed tasks into reusable entities, strategies, pitfalls, and frameworks stored in the knowledge base."
+    model_preferences:
+      - nvidia/deepseek-v4-flash
+      - groq/llama-3.3-70b-versatile
+      - google/gemini-2.0-flash-lite
+    tool_allowlist:
+      - notion.*
+      - google_workspace.sheets_read
+    soul_file: "src/souls/knowledge_crystallizer.md"
+
+  - name: study-partner
+    role: STUDY
+    description: "Study Partner Agent - builds structured study plans with modules, learning objectives, practice exercises, and comprehension quizzes."
+    model_preferences:
+      - nvidia/deepseek-v4-flash
+      - groq/llama-3.3-70b-versatile
+      - google/gemini-2.0-flash-lite
+    tool_allowlist:
+      - notion.*
+      - google_workspace.*
+      - slack.send_message
+    soul_file: "src/souls/study_partner.md"
+
+knowledge:
+  backend: notion
+  database_id_env: NOTION_DB_ID
+
+pipeline:
+  max_parallel_waves: 4
+  confidence_threshold: 0.75
+  max_rework_attempts: 2

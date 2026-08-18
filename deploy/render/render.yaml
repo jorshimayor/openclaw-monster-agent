@@ -1,0 +1,58 @@
+# Monster Agent Backend · Render Free Tier blueprint
+# Docs: https://render.com/docs/infrastructure-as-code
+
+services:
+  - type: web
+    name: monster-agent-backend
+    region: oregon
+    runtime: python
+    buildCommand: "cd backend && pip install -e . && pip install poetry && poetry install --no-interaction --no-ansi"
+    startCommand: "cd backend && python -m uvicorn src.api.main:app --host 0.0.0.0 --port $PORT"
+    plan: free
+    instanceCount: 1
+    healthCheckPath: /api/health
+    autoDeploy: true
+    branch: main
+    envVars:
+      - key: NVIDIA_NIM_API_KEY
+        sync: false
+      - key: NVIDIA_NIM_BASE_URL
+        sync: false
+        value: https://integrate.api.nvidia.com/v1
+      - key: GROQ_API_KEY
+        sync: false
+      # Google AI / Gemini removed (no billing setup); leave commented if ever re-enabled
+      # - key: GOOGLE_API_KEY
+      #   sync: false
+      - key: GITHUB_TOKEN
+        sync: false
+      - key: NOTION_TOKEN
+        sync: false
+      - key: NOTION_DB_ID
+        sync: false
+      # Slack — BOT token preferred (xoxb-). Set USER token (xoxp-) ONLY if you need
+      # agent actions to run as your user (DMs, private channels bot isn't invited to).
+      - key: SLACK_BOT_TOKEN
+        sync: false
+      - key: SLACK_USER_TOKEN
+        sync: false
+      - key: SLACK_CHANNEL
+        sync: false
+        value: "#agent-updates"
+      - key: GOOGLE_WORKSPACE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_WORKSPACE_CLIENT_SECRET
+        sync: false
+      - key: HASHNODE_TOKEN
+        sync: false
+      - key: HASHNODE_PUBLICATION_ID
+        sync: false
+      - key: LLM_FALLBACK_ORDER
+        sync: false
+        value: '["nvidia_nim","groq"]'
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+        value: '["http://localhost:3000","http://localhost:8080"]'
+      - key: LOG_LEVEL
+        sync: false
+        value: INFO

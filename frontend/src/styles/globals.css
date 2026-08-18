@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-matrix: #00ff41;
+  --color-matrix-dim: #008f20;
+  --color-bg: #0a0a0a;
+  --color-bg-panel: #0f1110;
+  --color-bg-border: #1a1f1c;
+}
+
+body {
+  background-color: #0a0a0a;
+  color: #00ff41;
+  font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #008f20;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff41;
+}
+
+::selection {
+  background: #00ff41;
+  color: #0a0a0a;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.scanlines {
+  position: relative;
+  overflow: hidden;
+}
+
+.scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 255, 65, 0.03) 0px,
+    rgba(0, 255, 65, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
+  z-index: 50;
+}
+
+.glow-text {
+  text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+}
+
+.hud-border {
+  border: 1px solid rgba(0, 255, 65, 0.3);
+  box-shadow:
+    0 0 12px rgba(0, 255, 65, 0.15),
+    inset 0 0 12px rgba(0, 255, 65, 0.05);
+}

@@ -1,0 +1,72 @@
+# ———————————————————————————————————————————————
+# Python
+# ———————————————————————————————————————————————
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+*.egg
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.monster_agent.pth
+
+# ———————————————————————————————————————————————
+# Node / frontend
+# ———————————————————————————————————————————————
+node_modules/
+.next/
+out/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+tsconfig.tsbuildinfo
+
+# ———————————————————————————————————————————————
+# Build artifacts
+# ———————————————————————————————————————————————
+backend/.pytest_cache/
+mcp-servers/hashnode/dist/
+mcp-servers/**/dist/
+*.tsbuildinfo
+
+# ———————————————————————————————————————————————
+# IDE / OS
+# ———————————————————————————————————————————————
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.swp
+
+# ———————————————————————————————————————————————
+# Trae (IDE private state, NOT OSS)
+# ———————————————————————————————————————————————
+.trae/
+
+# ———————————————————————————————————————————————
+# HTTP transient capture artifacts (private)
+# ———————————————————————————————————————————————
+.httpyac/
+*.httpyac/
+
+# ———————————————————————————————————————————————
+# Secrets (MANDATORY — never publish)
+# ———————————————————————————————————————————————
+.env
+.env.*
+!.env.example
+!.env.sample
+backend/.env
+frontend/.env.local
+mcp-servers/hashnode/.env
+*.p12
+*.key
+*.pem

@@ -1,0 +1,373 @@
+@host = http://localhost:8000
+#
+# USAGE IN VS CODE / httpYac (anweber.vscode-httpyac):
+#   Click "▶ Send Request" above any request block.
+#   Every request block is delimited by `###`. Comments starting with `#` are
+#   never sent in the body — safe to keep notes here.
+#
+# IF YOU SEE "Circuit breaker open" AFTER SEVERAL FAILED RUNS:
+#   The in-memory breaker (per provider) latches open after 10 consecutive
+#   failures and auto-half-opens after 15 seconds. If you want to reset it
+#   RIGHT NOW, just restart the uvicorn process.
+#
+# IF YOU SEE 504 "Agent invoke timed out (120s)":
+#   The LLM (typically the 49B nemotron-super) is slow on cold calls.
+#   Retry once — subsequent calls hit warmed-up provider instances faster.
+#
+
+# =========================================================================
+#  1. SYSTEM  —  /api/health  &  /api/llm/test
+# =========================================================================
+
+### 1a. Health check  (no env keys needed, always 200 when uvicorn is up)
+# @name health_check
+GET {{host}}/api/health
+Accept: application/json
+
+# Assert:
+#   response.status === 200
+#   response.body.status === "ok"
+#   response.body.version is present (semver string)
+
+### 1b. LLM probe (short, real external LLM call, ORCHESTRATOR role)
+@prompt = Hello Monster Agent! In one short sentence, what is the capital city of Nigeria?
+
+# @name llm_test_probe
+POST {{host}}/api/llm/test
+Content-Type: application/json
+Accept: application/json
+
+{
+  "prompt": "{{prompt}}"
+}
+
+# Assert:
+#   response.status === 200
+#   response.body.provider !== "error"
+#     → if it IS "error" and says "All LLM providers failed":
+#         * Tried list shows the real fallback order — nvidia_nim first, then groq
+#         * "Circuit breaker open" → wait 15s and retry (or restart uvicorn)
+#         * "X not configured" → env vars still not loading (rare now that
+#                                 Settings uses __file__-absolute path)
+#   response.body.response contains a sentence mentioning "Paris"
+
+### 1c. LLM probe (large prompt — 6-paragraph RAG explainer, ~600 chars)
+# @name llm_test_large
+POST {{host}}/api/llm/test
+Content-Type: application/json
+Accept: application/json
+
+{
+  "prompt": "Explain the concept of Retrieval-Augmented Generation (RAG) in 6 paragraphs, each covering one aspect: (1) naive RAG vs advanced RAG, (2) document chunking strategies, (3) embedding models & vector databases, (4) query rewriting & hyde, (5) reranking with cross-encoders, (6) evaluation frameworks (RAGAS, TruLens). Write clearly for an audience of junior ML engineers."
+}
+
+# Assert:
+#   response.status === 200
+#   response.body.provider !== "error"
+#   response.body.response is >= 400 chars long (genuinely multi-paragraph)
+
+# =========================================================================
+#  2. AGENTS  —  /api/agents
+#  Roles (case-insensitive):  ORCHESTRATOR, CONTENT_WEB2, CONTENT_WEB3,
+#    FOOTBALL, EDITOR, SECURITY, KNOWLEDGE, STUDY
+# =========================================================================
+
+### 2a. List all 8 agents
+# @name agents_list
+GET {{host}}/api/agents
+Accept: application/json
+
+# Assert:
+#   status 200
+#   body.length === 8
+#   every element has status === "READY"
+#   roles sorted in response:
+#     CONTENT_WEB2, CONTENT_WEB3, EDITOR, FOOTBALL,
+#     KNOWLEDGE, ORCHESTRATOR, SECURITY, STUDY
+
+### 2b. Agent detail: ORCHESTRATOR (case-insensitive — "orchestrator" lowercase ok)
+# @name agent_detail_orchestrator
+GET {{host}}/api/agents/orchestrator
+Accept: application/json
+
+# Assert: status 200; body.role === "ORCHESTRATOR"; body.healthy === true
+
+### 2c. Agent detail: FOOTBALL
+# @name agent_detail_football
+GET {{host}}/api/agents/football
+Accept: application/json
+
+### 2d. Agent invoke: EDITOR  —  P6 quality gate on a deliberately-flawed draft
+# @name agent_invoke_editor
+POST {{host}}/api/agents/editor/invoke
+Content-Type: application/json
+Accept: application/json
+
+{
+  "context": {
+    "task_description": "Review a technical blog post draft for factual accuracy, structure, and tone.",
+    "raw_content": "# My First Post\n\nSolana is a layer-2 scaling solution for Bitcoin. It uses proof of stake. The top 3 DeFi protocols are Uniswap, Aave, and something else. TPS is really high, like millions maybe.\n\n## Why it matters\n\nIDK, just write.\n\n## Conclusion\n\nBuy low sell high. Do your own research. Not financial advice.",
+    "scoring_criteria": {
+      "accuracy": 0.30,
+      "structure": 0.25,
+      "depth": 0.20,
+      "tone": 0.15,
+      "actionability": 0.10
+    },
+    "target_audience": "Web3-curious developers"
+  }
+}
+
+# Assert:
+#   status 200
+#   body.agent_role === "EDITOR"
+#   typeof body.confidence === "number"  (0..1)
+#   body.output  (object or string with a score + verdict)
+
+### 2e. Agent invoke: SECURITY  —  audit a Solidity reentrancy bug
+# @name agent_invoke_security
+POST {{host}}/api/agents/security/invoke
+Content-Type: application/json
+Accept: application/json
+
+{
+  "context": {
+    "code": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\ncontract VulnBank {\n  mapping(address => uint) public balances;\n  function deposit() external payable { balances[msg.sender] += msg.value; }\n  function withdrawAll() external {\n    (bool ok,) = msg.sender.call{value: balances[msg.sender]}(\"\");\n    require(ok);\n    balances[msg.sender] = 0;\n  }\n}",
+    "language": "solidity",
+    "scope": "high_severity_only"
+  }
+}
+
+# Assert:
+#   status 200 (NOT 504) — timeout raised to 120s 2026-08-18
+#   body.agent_role === "SECURITY"
+#   body.output / body.summary mention "reentrancy" and the CEI pattern
+#   (Checks → Effects → Interactions)
+
+### 2f. Agent invoke: STUDY  —  LangGraph 2-week syllabus, 6h/week
+# @name agent_invoke_study
+POST {{host}}/api/agents/study/invoke
+Content-Type: application/json
+Accept: application/json
+
+{
+  "context": {
+    "topic": "LangGraph for building stateful multi-agent orchestration",
+    "target_duration_weeks": 2,
+    "hours_per_week": 6,
+    "difficulty": "intermediate_python",
+    "include_quizzes": true,
+    "include_exercises": true
+  }
+}
+
+### 2g. Agent invoke: KNOWLEDGE  —  distill a hypothetical completed audit
+# @name agent_invoke_knowledge
+POST {{host}}/api/agents/knowledge/invoke
+Content-Type: application/json
+Accept: application/json
+
+{
+  "context": {
+    "task_id": "00000000-0000-0000-0000-000000000000",
+    "task_description": "Audit ERC-20 token contract and deliver 3-CVSS findings report",
+    "artifacts": [
+      {"kind": "code_review", "content": "Reentrancy in withdraw(), severity: HIGH, CVSS 8.1"},
+      {"kind": "strategy", "content": "Always run slither + aderyn before starting manual audit"},
+      {"kind": "pitfall", "content": "msg.sender.call{value:X}() BEFORE state write = reentrancy"},
+      {"kind": "framework", "content": "CEI: Checks → Effects → Interactions is mandatory"}
+    ]
+  }
+}
+
+### 2h. Agent invoke: ORCHESTRATOR  —  WARNING: EXPENSIVE, many sequential LLM calls
+# Enable manually only after 2d–2g all return 200.
+# @name agent_invoke_orchestrator
+POST {{host}}/api/agents/orchestrator/invoke
+Content-Type: application/json
+Accept: application/json
+
+{
+  "context": {
+    "task_description": "Draft a 1500-word blog post titled 'Why RAG beats fine-tuning for enterprise chatbots in 2026' with citations, then P6 score it.",
+    "target_audience": "CTO / VP Engineering",
+    "tone": "evidence_based",
+    "expected_steps": ["patterns","experience","team","prompt","execute","verify","quality_gate","fix","synthesize","reflect","crystallize"]
+  }
+}
+
+# =========================================================================
+#  3. TASKS  —  /api/tasks  (the 11-step orchestration pipeline)
+# =========================================================================
+
+### 3a. Create a task  —  kicks off full pipeline in background asyncio task
+# @name tasks_create
+POST {{host}}/api/tasks
+Content-Type: application/json
+Accept: application/json
+
+{
+  "description": "Write a 500-word beginner-friendly tutorial explaining the difference between proof-of-stake and delegated proof-of-stake, with one simple analogy for each. Include 3 concrete real-world chains as examples. At the end P6 score and self-critique the draft."
+}
+
+# Assert:
+#   status 201
+#   body.status === "QUEUED"
+#   body.id is a UUID string
+#
+# HOW TO CAPTURE TASK_ID for 3c/3d:
+#   1. Run this request (3a).
+#   2. Copy the "id" string from the JSON response.
+#   3. Paste it here (uncomment the next line and replace the UUID):
+#
+@TASK_ID = b3bc957e-9b12-4947-bd92-9f4e25808d9c
+#
+#   4. Now 3c (GET task) and 3d (SSE stream) will use the id you set above.
+
+### 3b. List most recent 20 tasks  (reverse chronological by created_at)
+# @name tasks_list
+GET {{host}}/api/tasks?skip=0&limit=20
+Accept: application/json
+
+### 3c. Get one task by id  (uses the uuid captured from 3a above)
+# @name tasks_get
+GET {{host}}/api/tasks/b3bc957e-9b12-4947-bd92-9f4e25808d9c
+Accept: application/json
+
+### 3d. Stream task events (SSE)  —  watch the 11-step pipeline live
+#
+# Best run from CLI so curl can stream line-by-line:
+#   curl -N http://localhost:8000/api/tasks/<uuid>/stream
+#
+# Expected SSE events, in order:
+#   stream_open   → task_id + initial status
+#   step_1        → patterns
+#   step_2        → experience_lookup
+#   step_3        → agent_team_build
+#   step_4        → prompt_strategy
+#   step_5        → content_execute
+#   step_6        → verify_outputs
+#   step_7        → quality_gate
+#   step_8        → fix_iterations (may repeat)
+#   step_9        → synthesis
+#   step_10       → reflect
+#   step_11       → crystallize
+#   stream_end    → final + status===COMPLETED / FAILED / CANCELLED
+#
+# # @name tasks_stream_sse
+# GET {{host}}/api/tasks/{{TASK_ID}}/stream
+# Accept: text/event-stream
+
+### 3e. Cancel a running task  (uncomment and use a live running task id)
+# GET {{host}}/api/tasks/{{TASK_ID}}/cancel
+# Accept: application/json
+#
+# Assert:  body.cancelled === true;  body.status transitions to "CANCELLED"
+
+# =========================================================================
+#  4. KNOWLEDGE  —  /api/knowledge  (crystals from completed tasks)
+# =========================================================================
+
+### 4a. List crystals  (empty array [] is expected on fresh run)
+# @name knowledge_list
+GET {{host}}/api/knowledge?limit=20
+Accept: application/json
+
+### 4b. Semantic query across crystals  (scored match)
+# @name knowledge_query
+POST {{host}}/api/knowledge/query
+Content-Type: application/json
+Accept: application/json
+
+{
+  "query": "How do I prevent reentrancy vulnerabilities in Solidity withdrawals?",
+  "top_k": 5,
+  "category": null
+}
+
+# Assert:
+#   status 200
+#   body.query === the string above
+#   body.took_ms is an integer >= 0
+#   body.results is an array (can be [] when no crystals stored yet)
+
+### 4c. Sync crystals → Notion  (queues asyncio.bg sync task)
+# @name knowledge_sync
+POST {{host}}/api/knowledge/sync
+Accept: application/json
+
+# Assert:
+#   status 200
+#   body.queued === integer count of crystals submitted to sync job
+#   (503 means NOTION_TOKEN / NOTION_DATABASE_ID not configured — safe to ignore
+#    if you haven't set up Notion yet.)
+
+### 4d. Get a single crystal by UUID  (replace with real id from 4a)
+# GET {{host}}/api/knowledge/00000000-0000-0000-0000-000000000000
+# Accept: application/json
+
+### 4e. Delete a single crystal  (replace with real id)
+# DELETE {{host}}/api/knowledge/00000000-0000-0000-0000-000000000000
+# Accept: application/json
+
+# =========================================================================
+#  5. MCP  —  /api/mcp  (external tool integration servers)
+#  Supported: github · notion · google_workspace · slack · hashnode
+#  Typical status values: up · degraded · down
+#    "down" usually just means env key for that service isn't configured,
+#    which is perfectly fine during local dev — not a backend crash.
+# =========================================================================
+
+### 5a. MCP Doctor  —  status of all 5 servers
+# @name mcp_doctor
+GET {{host}}/api/mcp/doctor
+Accept: application/json
+
+### 5b. MCP Probe: github
+# @name mcp_probe_github
+GET {{host}}/api/mcp/doctor/github/probe
+Accept: application/json
+
+### 5c. MCP Probe: slack
+# @name mcp_probe_slack
+GET {{host}}/api/mcp/doctor/slack/probe
+Accept: application/json
+
+### 5d. MCP Probe: notion
+# @name mcp_probe_notion
+GET {{host}}/api/mcp/doctor/notion/probe
+Accept: application/json
+
+### 5e. MCP Probe: google_workspace
+# @name mcp_probe_gws
+GET {{host}}/api/mcp/doctor/google_workspace/probe
+Accept: application/json
+
+### 5f. MCP Probe: hashnode
+# @name mcp_probe_hashnode
+GET {{host}}/api/mcp/doctor/hashnode/probe
+Accept: application/json
+
+# =========================================================================
+#  6. EXPECTED RESPONSE MATRIX  (reference)
+#
+# Endpoint                    | HTTP    | Typical | Notes
+# ----------------------------+---------+---------+---------------------------
+# /api/health                 | GET     | 200     | No keys needed
+# /api/llm/test               | POST    | 200     | Real LLM; fallbacks auto
+# /api/agents                 | GET     | 200     | 8 agents, metadata only
+# /api/agents/{role}          | GET     | 200/404 | case-insensitive role
+# /api/agents/{role}/invoke   | POST    | 200/504 | 120s timeout (raised 8/18)
+# /api/tasks  (POST)          | POST    | 201     | starts 11-step bg pipeline
+# /api/tasks  (GET list)      | GET     | 200     | newest-first
+# /api/tasks/{id}             | GET     | 200/404 |
+# /api/tasks/{id}/stream      | GET     | SSE     | text/event-stream chunks
+# /api/tasks/{id}/cancel      | GET     | 200     | → CANCELLED if live
+# /api/knowledge              | GET     | 200     | [] ok on fresh run
+# /api/knowledge/query        | POST    | 200     | scored match list
+# /api/knowledge/{id}         | GET     | 200/404 | 503 if store not up
+# /api/knowledge/{id}         | DELETE  | 200/404 | 503 if store internals N/A
+# /api/knowledge/sync         | POST    | 200     | queues notion sync
+# /api/mcp/doctor             | GET     | 200     | 5 rows: github notion gws slack hashnode
+# /api/mcp/doctor/{s}/probe   | GET     | 200/404/503 | 503=server not started, 404=unknown name
+# =========================================================================
