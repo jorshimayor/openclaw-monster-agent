@@ -2,19 +2,21 @@
 // Monster Agent Frontend · Cloudflare Pages (PRIMARY host)
 // ═══════════════════════════════════════════════════════════════════════════
 //
-// Build order (3 steps, run in real Terminal.app — sandbox blocks ~/Library paths):
+// 3-step deploy (run in real Terminal.app — sandbox blocks ~/Library paths):
 //   1) cd frontend
-//      export NEXT_PUBLIC_API_BASE_URL=https://monster-agent-backend.vercel.app
+//      export NEXT_PUBLIC_API_BASE_URL=https://monster-agent-backend.YOUR-ACCOUNT.workers.dev
 //      npm run build
 //   2) npx @cloudflare/next-on-pages
-//      → produces frontend/.vercel/output/static/ (Pages assets) + Functions for edge routes
+//      → produces frontend/.vercel/output/static/ (Pages assets + Functions for edge routes)
 //   3) cd .. && npx wrangler pages deploy frontend/.vercel/output/static \
 //              --project-name monster-agent-frontend --branch main
 //
 // [OPT] Hyperdrive (10M q/mo FREE, drops Neon P95 latency 10×):
 //   1) npx wrangler hyperdrive create monster-agent-neon \
 //          --connection-string "$NEON_POOLED_DATABASE_URL"
-//   2) Copy printed hyperdrive.local URL into Vercel backend env → DATABASE_URL
+//   2) Copy printed hyperdrive.local URL into backend worker DATABASE_URL secret:
+//        cd backend-worker
+//        npx wrangler secret put DATABASE_URL    ← paste hyperdrive URL
 //      (sslmode=require works transparently, our engine already strips it + certifi CA)
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
@@ -23,16 +25,25 @@
   "compatibility_flags": ["nodejs_compat"],
   "pages_build_output_dir": "frontend/.vercel/output/static",
   "vars": {
-    "NEXT_PUBLIC_API_BASE_URL": "https://monster-agent-backend.vercel.app"
+    "NEXT_PUBLIC_API_BASE_URL":
+      "https://monster-agent-backend.workers.account-prefix.workers.dev"
   },
   "env": {
     "production": {
       "name": "monster-agent-frontend",
-      "vars": { "ENVIRONMENT": "production" }
+      "vars": {
+        "ENVIRONMENT": "production",
+        "NEXT_PUBLIC_API_BASE_URL":
+          "https://monster-agent-backend.workers.account-prefix.workers.dev"
+      }
     },
     "preview": {
       "name": "monster-agent-frontend-preview",
-      "vars": { "ENVIRONMENT": "preview" }
+      "vars": {
+        "ENVIRONMENT": "preview",
+        "NEXT_PUBLIC_API_BASE_URL":
+          "https://monster-agent-backend.workers.account-prefix.workers.dev"
+      }
     }
   }
 }

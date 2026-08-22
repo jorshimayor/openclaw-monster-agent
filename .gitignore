@@ -39,6 +39,8 @@ mcp-servers/**/dist/
 # Cloudflare / Vercel build caches
 .vercel/
 frontend/.vercel/
+.wrangler/
+backend-worker/node_modules/
 
 # Deprecated / retired Render artifacts
 deploy/render/

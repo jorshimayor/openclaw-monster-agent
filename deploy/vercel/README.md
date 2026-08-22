@@ -1,161 +1,229 @@
-# Monster Agent · All on Cloudflare + Vercel (FREE tier, no Render)
+# Monster Agent · 100% Cloudflare stack (Pages + Containers, FREE tier)
 
-> **✅ Ditch Render — 100% Cloudflare + Vercel today. Both are FREE tier, no credit card needed.**
+> **Architecture: Frontend on Cloudflare Pages · Backend on Cloudflare Containers (via Worker)**
 >
-> **Verified live (done, no action needed):**
+> Zero Vercel, zero Render. Everything runs on Cloudflare's global edge network.
+>
+> ✅ Verified in repo:
 > - Neon Postgres `monster-agent` (aws-us-east-2, PG 18.6) connected
-> - DB schema LIVE on Neon (verified via Python smoke test)
-> - GitHub `main` pushed: new backend Vercel handler, Cloudflare Pages build config, frontend next-on-pages edge build succeeded ✅
-> - Google Workspace: 10 tools wired (Calendar/Docs/Sheets/Gmail send+list+read), fallback `_DirectGoogleClient` works without MCP subprocess
+> - DB schema LIVE (tasks + knowledge_crystals tables)
+> - Frontend `npm run build` → `npx @cloudflare/next-on-pages` **Build completed in 1.33s**
+> - Container Dockerfile + backend Worker scaffolded + dependencies installed
+> - Google Workspace: 10 tools wired (Calendar / Docs / Sheets / Gmail send+list+read)
+> - GitHub main: pushed
 
 ---
 
-## Stack (all FREE tier)
+## Stack (all on Cloudflare)
 
-| Layer | Host | Runtime | Free Limits |
+| Layer | Host | Runtime | Free limits |
 |---|---|---|---|
-| 🎯 **Frontend** (Next.js 15 / React 19) | **Cloudflare Pages** ✅ PRIMARY | Edge Runtime (Workers) | Unlimited bandwidth, 500 builds/month, always-on edge |
-| ⚙️ **Backend API** (FastAPI + Python/ASGI) | **Vercel Hobby** | @vercel/python (Lambda) | 100 GB bandwidth, 6000 build-min, 10s max/request (Hobby) / **90s** on Vercel Pro |
-| 🗄️ **Database** (Postgres 18.6) | **Neon Free** | Serverless | 0.5 GB, 1 GB RAM, autowakes ~500 ms |
-| ⚡ **DB cache** (optional) | **Cloudflare Hyperdrive** | Edge cache | 10,000,000 queries/month FREE → P95 50 ms reads |
+| 🎯 **Frontend** (Next.js 15 / React 19) | **Cloudflare Pages** | Edge Runtime (Workers) | Unlimited bandwidth, 500 builds/month |
+| ⚙️ **Backend API** (FastAPI + Python) | **Cloudflare Containers** + Worker reverse proxy | Docker (python:3.12-slim) | Usage-based billing, 15m idle = scale-to-zero ($0 most months for dev) |
+| 🗄️ **Database** (Postgres 18.6) | **Neon Free** | Serverless | 0.5 GB, autowakes ~500 ms |
+| ⚡ **DB cache (optional)** | **Cloudflare Hyperdrive** | Edge cache | 10,000,000 queries/month FREE → P95 50 ms |
 | 📅 **Google Workspace** | Your account | OAuth refresh token | Whatever your Workspace plan includes |
 
+### Architecture diagram
+
+```
+┌──────────────────────┐       ┌──────────────────────────────┐       ┌───────────────────────┐
+│ Cloudflare Pages     │──────▶│ Backend Worker (TS @ Worker) │──────▶│  Cloudflare Container │
+│  *.pages.dev         │       │  CORS · load-balance · DO    │       │  uvicorn + FastAPI    │
+│  @cloudflare/next-…  │       │  BACKEND_CONTAINER binding  │       │  ↘ Neon / Hyperdrive  │
+└──────────────────────┘       └──────────────────────────────┘       └───────────────────────┘
+     (repo-root wrangler.jsonc)        (backend-worker/)                   (containers/backend/)
+```
+
 ---
 
-## ① FRONTEND → Cloudflare Pages (3 minutes)
+## Prerequisites (your machine)
 
-Build and deploy from a **real Terminal window** (sandbox blocks Wrangler auth ~/Library paths):
+1. **Cloudflare account** — free tier works.
+2. **Docker Desktop** running (for `wrangler containers build`, which calls `docker`).
+3. **A real Terminal.app window** — Trae sandbox blocks `~/Library/Preferences/.wrangler` auth paths.
+
+---
+
+## ① BACKEND — Cloudflare Containers (5–10 minutes)
+
+### Step 1. Install deps + auth
+
+```bash
+cd /Users/Apple/Code/zc-ai-assistant/backend-worker
+npm install --legacy-peer-deps         # already done in this repo
+npx wrangler login                    # one-time browser OAuth
+```
+
+### Step 2. Store all secrets as encrypted Worker secrets
+
+Run **each** line once (Cloudflare prompts interactively for the value — never paste secret values directly into shell history):
+
+```bash
+# Mandatory — values from backend/.env, keep exact casing:
+npx wrangler secret put DATABASE_URL
+#   ← paste Neon pooled URL: postgresql+asyncpg://neondb_owner:...@ep-tiny-math-ay0wdkeo-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require
+#   OR paste Hyperdrive URL (after step ③): *.hyperdrive.local?sslmode=require
+
+npx wrangler secret put NVIDIA_NIM_API_KEY
+npx wrangler secret put GROQ_API_KEY
+npx wrangler secret put GITHUB_TOKEN
+npx wrangler secret put NOTION_TOKEN
+npx wrangler secret put NOTION_DB_ID                    # use printf '' | npx wrangler secret put NOTION_DB_ID  if blank
+npx wrangler secret put SLACK_BOT_TOKEN
+npx wrangler secret put SLACK_USER_TOKEN               # (optional) blank via printf '' | ...
+npx wrangler secret put HASHNODE_TOKEN                 # (optional) blank
+npx wrangler secret put HASHNODE_PUBLICATION_ID        # (optional) blank
+
+# Google Workspace — all 4 together (see step ④ to obtain):
+npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_ID
+npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_SECRET
+npx wrangler secret put GOOGLE_WORKSPACE_REFRESH_TOKEN
+npx wrangler secret put GOOGLE_WORKSPACE_SUBJECT_EMAIL
+```
+
+Non-secret defaults (safe defaults, override only if you need different values) — already set in `backend-worker/wrangler.jsonc` `vars`:
+
+| Key | Default |
+|---|---|
+| NVIDIA_NIM_BASE_URL | `https://integrate.api.nvidia.com/v1` |
+| SLACK_CHANNEL | `#agent-updates` |
+| LLM_FALLBACK_ORDER | `["nvidia_nim","groq"]` |
+| LOG_LEVEL | `INFO` |
+| BACKEND_CORS_ORIGINS | `["http://localhost:3000","http://localhost:8080","*"]` |
+
+To change non-secret defaults after deploy:
+```bash
+# Edit vars in backend-worker/wrangler.jsonc then re-deploy:
+cd backend-worker && npx wrangler deploy
+```
+
+### Step 3. Build container image + push + deploy Worker (one command)
+
+```bash
+cd /Users/Apple/Code/zc-ai-assistant/backend-worker
+npm run container:deploy
+#  → builds Docker image (calls docker build with context=repo root)
+#  → pushes image to Cloudflare managed registry
+#  → deploys Backend Worker + registers Durable Object + Container binding
+```
+
+**Expected success output:**
+```
+📦 Built image monster-agent-backend:latest
+📤 Pushed to Cloudflare registry
+🌩️  wrangler 4.125.0
+...
+✨ Compiled Worker successfully
+✅ Published monster-agent-backend (xxxx)
+     https://monster-agent-backend.YOUR_ACCOUNT_PREFIX.workers.dev   ← 🎯 COPY THIS URL
+```
+
+### Step 4. Verify backend live
+
+First request can take 10–20 s because Cloudflare boots the Docker container (cold start). Subsequent requests within 15 minutes return in ~200 ms.
+
+```bash
+curl -sS https://monster-agent-backend.YOUR_ACCOUNT_PREFIX.workers.dev/api/health \
+     | python3 -m json.tool
+# Expected:
+#   {
+#     "status": "ok",
+#     "version": "1.0.0",
+#     "db_ok": true    (or false until Neon wakes)
+#   }
+```
+
+If `db_ok` is false the very first curl, wait 5–10 seconds and retry (Neon free-tier autowake; Hyperdrive eliminates this step if you use it).
+
+---
+
+## ② FRONTEND — Cloudflare Pages (3 minutes)
+
+### Step 1. Point frontend at your backend
+
+Replace the **placeholder** URL in these two locations:
+
+1. **Build-time env var** (for `next-on-pages` bundle):
+```bash
+export NEXT_PUBLIC_API_BASE_URL=https://monster-agent-backend.YOUR_ACCOUNT_PREFIX.workers.dev
+```
+
+2. **`wrangler.jsonc`** at repo root — edit all 4 occurrences of the placeholder:
+```
+"NEXT_PUBLIC_API_BASE_URL":
+    "https://monster-agent-backend.workers.account-prefix.workers.dev"
+                                    ^^^^^^^^^^^^^^^^^^^^^ → replace with YOUR_ACCOUNT_PREFIX
+```
+
+### Step 2. Build + deploy Pages
 
 ```bash
 cd /Users/Apple/Code/zc-ai-assistant/frontend
+export NEXT_PUBLIC_API_BASE_URL=https://monster-agent-backend.YOUR_ACCOUNT_PREFIX.workers.dev
 
-# 1. Auth (runs browser OAuth → login to Cloudflare):
-npx wrangler login
-
-# 2. Set your backend URL (step ② produces this — use placeholder for now):
-export NEXT_PUBLIC_API_BASE_URL=https://monster-agent-backend.vercel.app
-
-# 3. Build Next.js + adapt it for Cloudflare Pages with edge runtime:
 npm run build
-# Expected output: "Route (app): ○ 6 static + ƒ /tasks/[id] dynamic"
-npx @cloudflare/next-on-pages
-# Expected SUCCESS line:
-#   "⚡️ Build completed in X.XXs"
+#   Expected: 6 ○ static + ƒ /tasks/[id] dynamic
 
-# 4. Deploy! (Creates Pages project if it doesn't exist yet)
+npx @cloudflare/next-on-pages
+#   Expected last line: "⚡️ Build completed in X.XXs"
+
 cd ..
 npx wrangler pages deploy frontend/.vercel/output/static \
   --project-name monster-agent-frontend \
   --branch main
 ```
 
-Prints a Cloudflare Pages URL like:
+Prints your Pages URL:
 ```
-https://monster-agent-frontend-xxxx.pages.dev
+✨ Deployment complete!
+🔍 https://monster-agent-frontend-xxxx.pages.dev  ← 🎯 YOUR LIVE UI
 ```
 
-### Update backend CORS whitelist with your Pages URL (step ②)
-Copy the `*.pages.dev` URL and paste it in step ②'s `BACKEND_CORS_ORIGINS` env var.
+### Step 3. Tighten CORS (recommended)
+
+Your backend currently accepts origins `["localhost...", "*"]`. Once you know the real Pages URL and any custom domains, tighten it:
+
+```bash
+# Edit backend-worker/wrangler.jsonc → vars.BACKEND_CORS_ORIGINS:
+#   '["https://monster-agent-frontend-xxxx.pages.dev", "http://localhost:3000"]'
+# Then re-deploy backend Worker:
+cd backend-worker && npx wrangler deploy
+```
 
 ---
 
-## ② BACKEND → Vercel Python (5 minutes)
+## ③ [OPT] Hyperdrive — drop Neon latency 10× (FREE 10M q/mo)
 
-Again **in a real Terminal** (sandbox blocks ~/Library/Application Support/com.vercel.cli):
-
-```bash
-cd /Users/Apple/Code/zc-ai-assistant/backend
-
-# 1. Auth (one-time browser OAuth)
-vercel login
-
-# 2. Link to new Vercel project (backend-only)
-vercel link --project monster-agent-backend --scope jorshimayor
-#   "Set up & develop with Vercel?": Y
-#   "Link to existing project?": N (creates new)
-#   Project name: monster-agent-backend
-
-# 3. Paste ALL 17 env vars one-by-one. For each line, run:
-#    vercel env add <KEY>         (choose production)
-#    vercel env add <KEY>         (choose preview)
-#
-#  Values you MUST paste (copy from backend/.env — keep exact casing):
-#
-#  · Secrets (real keys):
-#    DATABASE_URL                    postgresql+asyncpg://neondb_owner:...@ep-tiny-math-ay0wdkeo-pooler.c-5.us-east-2.aws.neon.tech/neondb?sslmode=require
-#    NVIDIA_NIM_API_KEY              (from backend/.env)
-#    GROQ_API_KEY                    (from backend/.env)
-#    GITHUB_TOKEN                    (from backend/.env)
-#    NOTION_TOKEN                    (from backend/.env)
-#    NOTION_DB_ID                    (blank if unused)
-#    SLACK_BOT_TOKEN                 (from backend/.env)
-#    SLACK_USER_TOKEN                (blank if unused)
-#    HASHNODE_TOKEN                  (blank if unused)
-#    HASHNODE_PUBLICATION_ID         (blank if unused)
-#    GOOGLE_WORKSPACE_CLIENT_ID      (see step ④ Google setup)
-#    GOOGLE_WORKSPACE_CLIENT_SECRET  (see step ④)
-#    GOOGLE_WORKSPACE_REFRESH_TOKEN  (see step ④)
-#    GOOGLE_WORKSPACE_SUBJECT_EMAIL  (your email for calendar/docs/email)
-#
-#  · Values (sensible defaults — can set later):
-#    NVIDIA_NIM_BASE_URL             https://integrate.api.nvidia.com/v1
-#    SLACK_CHANNEL                   "#agent-updates"
-#    LLM_FALLBACK_ORDER              '["nvidia_nim","groq"]'
-#    LOG_LEVEL                       INFO
-#    PYTHONUNBUFFERED                1
-#
-#    BACKEND_CORS_ORIGINS            '["http://localhost:3000","http://localhost:8080","https://monster-agent-frontend-xxxx.pages.dev","https://monster-agent-frontend-xxxx.vercel.app"]'
-#                                     ↑↑ Put your real Cloudflare Pages and/or Vercel frontend URLs here
-
-# 4. Deploy prod:
-vercel --prod
-```
-
-Output prints a URL like:
-```
-✅ Production: https://monster-agent-backend.vercel.app
-```
-
-### Verify backend live:
-```bash
-curl -sS https://monster-agent-backend.vercel.app/api/health | python3 -m json.tool
-```
-
-Expected JSON includes `"db_ok": true` (or `"db_ok": false` until Neon wake completes — retry after 5 seconds).
-
-### If you upgrade to **Vercel Pro** ($20/mo later):
-Edit `backend/vercel.json` `"maxDuration": 60` → `300`. Long LLM calls (70B multi-role pipelines) complete 99.9% of the time inside 90s. For Hobby (10s), short prompts + Groq fast models (Llama-3.1-8B-instant) will complete ~90% of pipelines; heavier calls may time out with a retry message.
-
----
-
-## ③ [OPT] Hyperdrive — drop Neon wake latency 10× (FREE, 2 min)
-
-Cloudflare Hyperdrive caches Neon connection pool + query cache at 300+ edge PoPs.
-10 million queries/month FREE.
+Cloudflare Hyperdrive caches Neon connection pool + query result cache at the edge.
 
 ```bash
-cd /Users/Apple/Code/zc-ai-assistant/frontend
+cd /Users/Apple/Code/zc-ai-assistant
 npx wrangler hyperdrive create monster-agent-neon \
-  --connection-string "COPY_POOLED_NEON_URL_FROM_backend/.env_HERE"
+  --connection-string "PASTE_NEON_POOLED_DATABASE_URL_HERE"
 ```
 
-Output looks like:
+Output:
 ```
 ✅ Created hyperdrive config 'monster-agent-neon' with id='abcd1234-hyperdrive'
-   origin: ep-tiny-math-ay0wdkeo-pooler.c-5.us-east-2.aws.neon.tech
-   user  : neondb_owner
-   database: neondb
-   Access via: postgresql://user:pass@abcd1234-hyperdrive.hyperdrive.local/neondb?sslmode=require
+   Access via: postgresql://user:pwd@abcd1234-hyperdrive.hyperdrive.local/neondb?sslmode=require
 ```
 
-Copy the `hyperdrive.local` URL into Vercel env **`DATABASE_URL`** (replace the Neon pooled URL). Vercel redeploys automatically.
+Replace the backend `DATABASE_URL` secret with the printed `hyperdrive.local` URL:
+
+```bash
+cd backend-worker
+npx wrangler secret put DATABASE_URL   # paste hyperdrive URL here
+npx wrangler deploy    # reboots Worker; containers pick up new env on next (re)start
+```
 
 ---
 
 ## ④ Google Workspace — Calendar / Docs / Sheets / Gmail (10 minutes)
 
-### One-time OAuth credential setup:
-1. https://console.cloud.google.com/ → new project
+### One-time OAuth credential setup
+
+1. https://console.cloud.google.com → new project.
 2. **APIs & Services → Enable APIs** — enable each:
    - Google Calendar API
    - Google Docs API
@@ -163,8 +231,8 @@ Copy the `hyperdrive.local` URL into Vercel env **`DATABASE_URL`** (replace the 
    - Google Drive API
    - Gmail API
 3. **OAuth Consent Screen**:
-   - User Type: **External** (for personal `@gmail.com`) · **Internal** (Workspace domain)
-   - Scopes → paste these 6 (exactly):
+   - User Type: **External** (for `@gmail.com`) · **Internal** (Workspace domain)
+   - Scopes → paste exactly these 6:
      ```
      https://www.googleapis.com/auth/calendar
      https://www.googleapis.com/auth/documents
@@ -173,15 +241,17 @@ Copy the `hyperdrive.local` URL into Vercel env **`DATABASE_URL`** (replace the 
      https://www.googleapis.com/auth/gmail.send
      https://www.googleapis.com/auth/gmail.readonly
      ```
-   - **Test users** → add `obafemijoshua2020@gmail.com` (or your Workspace email)
+   - **Test users** → add your real email (the one you'll use in monster-agent).
 4. **Credentials → Create Credentials → OAuth client ID**:
    - Application type: **Desktop app**
-   - Download JSON → save to `backend/client_secret.json`
+   - Download JSON → save as `backend/client_secret.json`.
 
-### Generate refresh_token (run outside sandbox):
+### Generate refresh_token (run on your Mac, once)
+
 ```bash
 cd /Users/Apple/Code/zc-ai-assistant/backend
-pip3 install --quiet google-auth-oauthlib google-auth-httplib2 google-api-python-client python-dotenv
+source .venv/bin/activate 2>/dev/null || python3 -m venv .venv && source .venv/bin/activate
+pip install -q 'google-auth-oauthlib>=1.2' 'google-api-python-client>=2.150' python-dotenv
 
 python3 <<'PY'
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -195,30 +265,31 @@ SCOPES = [
 ]
 flow = InstalledAppFlow.from_client_secrets_file("client_secret.json", SCOPES)
 creds = flow.run_local_server(port=0)
-print("\n>>> PASTE INTO VERCEL ENVIRONMENT (step ② above):")
+print("\n>>> PASTE THESE 4 INTO 'npx wrangler secret put' COMMANDS (backend-worker dir):")
 print("GOOGLE_WORKSPACE_CLIENT_ID       =", flow.client_config["client_id"])
 print("GOOGLE_WORKSPACE_CLIENT_SECRET   =", flow.client_config["client_secret"])
 print("GOOGLE_WORKSPACE_REFRESH_TOKEN   =", creds.refresh_token)
-print("GOOGLE_WORKSPACE_SUBJECT_EMAIL   = <the email you authenticated in the browser>")
+print("GOOGLE_WORKSPACE_SUBJECT_EMAIL   = <your-email@domain.com>")
 PY
 ```
 
-### Paste the 4 values into Vercel backend env:
+### Store values as encrypted Worker secrets (back in Terminal):
+
 ```bash
-cd /Users/Apple/Code/zc-ai-assistant/backend
-vercel env add GOOGLE_WORKSPACE_CLIENT_ID production
-vercel env add GOOGLE_WORKSPACE_CLIENT_SECRET production
-vercel env add GOOGLE_WORKSPACE_REFRESH_TOKEN production
-vercel env add GOOGLE_WORKSPACE_SUBJECT_EMAIL production
-# → then for preview too, or run again with 'preview' instead of production
-vercel --prod  # redeploys with new secrets
+cd /Users/Apple/Code/zc-ai-assistant/backend-worker
+npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_ID
+npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_SECRET
+npx wrangler secret put GOOGLE_WORKSPACE_REFRESH_TOKEN
+npx wrangler secret put GOOGLE_WORKSPACE_SUBJECT_EMAIL
+npx wrangler deploy
 ```
 
-### Smoke-test Google tools locally:
+### Smoke test Google tools locally (optional)
+
+With your 4 values still in `backend/.env`:
 ```bash
-cd backend
-python3 <<'PY'
-import asyncio, os, sys, pathlib
+cd backend && .venv/bin/python <<'PY'
+import asyncio, os, pathlib, sys
 sys.path.insert(0, str(pathlib.Path(".").resolve() / "src"))
 from dotenv import load_dotenv; load_dotenv(".env")
 from src.mcp.servers.google_workspace import GoogleWorkspaceMcpServer
@@ -235,70 +306,48 @@ async def main():
     if isinstance(r, list):
         print("✅ list_emails returned:", len(r), "emails")
         if r:
-            print("   sample:", r[0].get("subject") or r[0].get("snippet"))
-    else:
-        print("list_emails result type:", type(r).__name__)
+            print("   sample subject:", (r[0].get("subject") or r[0].get("snippet"))[:80])
 asyncio.run(main())
 PY
 ```
 
 ---
 
-## ⑤ CORS finalization (2 minutes)
-
-Once you have both URLs:
-```
-Frontend:  https://monster-agent-frontend-xxxx.pages.dev
-Backend:   https://monster-agent-backend.vercel.app
-[opt]:     https://monster-agent-frontend-xxxx.vercel.app  (Vercel frontend fallback if you want it)
-```
-
-Update Vercel env for the backend:
-```bash
-cd /Users/Apple/Code/zc-ai-assistant/backend
-vercel env rm BACKEND_CORS_ORIGINS production   # delete old value
-vercel env add BACKEND_CORS_ORIGINS production
-# Paste (use your real domains):
-'["http://localhost:3000","http://localhost:8080","https://monster-agent-frontend-xxxx.pages.dev","https://monster-agent-frontend-xxxx.vercel.app"]'
-vercel --prod   # redeploys, picks up new CORS whitelist (2 min)
-```
-
-**Verify CORS in browser:**
-Open Cloudflare Pages URL → DevTools Network tab → click Tasks/Knowledge → look for OPTIONS preflight:
-```
-HTTP/1.1 204 No Content
-access-control-allow-origin:  https://monster-agent-frontend-xxxx.pages.dev
-access-control-allow-methods: GET, POST, PUT, DELETE, OPTIONS, PATCH
-```
-And the actual GET / POST /api/tasks returns 2xx.
-
----
-
-## ⑥ Dashboard & production URLs
+## ⑤ Dashboard URLs
 
 Open these daily:
 
 | URL | Purpose |
 |---|---|
-| `https://monster-agent-frontend-xxxx.pages.dev` | 🎯 **Main UI** (always-on edge) |
-| `https://monster-agent-backend.vercel.app/api/health` | Backend health → `db_ok:true` |
-| https://dash.cloudflare.com → Pages → monster-agent-frontend | CF Pages deploys, logs |
-| https://vercel.com/jorshimayor/monster-agent-backend | Vercel backend deploys, env, logs |
-| https://console.neon.tech/app/projects/super-rain-76741199 | Neon DB: tables, query editor, branches |
+| `https://monster-agent-frontend-xxxx.pages.dev` | 🎯 Main UI (Cloudflare Pages) |
+| `https://monster-agent-backend.xxxx.workers.dev/api/health` | Backend health → `db_ok:true` |
+| https://dash.cloudflare.com → Pages → monster-agent-frontend | Pages: deploys, env, custom domains |
+| https://dash.cloudflare.com → Workers & Pages → monster-agent-backend | Backend Worker: secrets, logs, Containers tab (SSH, list instances), Metrics |
+| https://dash.cloudflare.com → Hyperdrive → monster-agent-neon | Hyperdrive: queries served, latency, hit rate |
+| https://console.neon.tech/app/projects/super-rain-76741199 | Neon DB: query editor, branches, autoscaling |
 
 ---
 
-## Appendix A: Deployed files (what we just changed)
+## Appendix A: Deployed files (what we changed for Cloudflare-only)
 
-- **[backend/api/index.py](file:///Users/Apple/Code/zc-ai-assistant/backend/api/index.py)** — Vercel Python function entry point (Mangum ASGI → Lambda adapter wrapping FastAPI app at `src.api.main:app`)
-- **[backend/vercel.json](file:///Users/Apple/Code/zc-ai-assistant/backend/vercel.json)** — Backend-only Vercel config: runtime `@vercel/python@latest`, `maxDuration: 60`, rewrites `/api/(.*)` → `/api/index`, global CORS headers
-- **[backend/requirements.txt](file:///Users/Apple/Code/zc-ai-assistant/backend/requirements.txt)** — `@vercel/python` installs from this (fastapi, uvicorn, SQLAlchemy[asyncio], asyncpg, mangum, google-api-python-client, etc.)
-- **[backend/pyproject.toml](file:///Users/Apple/Code/zc-ai-assistant/backend/pyproject.toml#L29-L32)** — added `mangum` dep
-- **[wrangler.jsonc](file:///Users/Apple/Code/zc-ai-assistant/wrangler.jsonc)** — Cloudflare Pages project config: edge runtime, `pages_build_output_dir: frontend/.vercel/output/static`, Hyperdrive setup steps
-- **[frontend/next.config.mjs](file:///Users/Apple/Code/zc-ai-assistant/frontend/next.config.mjs)** — standard Next.js config (no static export; next-on-pages builds edge functions for dynamic routes)
-- **[frontend/.npmrc](file:///Users/Apple/Code/zc-ai-assistant/frontend/.npmrc)** — `legacy-peer-deps=true` (avoids next-on-pages peer dep pin for next@15.5.23)
-- **[frontend/package.json](file:///Users/Apple/Code/zc-ai-assistant/frontend/package.json#L24-L35)** — added devDeps: `wrangler@latest`, `@cloudflare/next-on-pages@latest`
-- **[frontend/src/app/tasks/[id]/page.tsx](file:///Users/Apple/Code/zc-ai-assistant/frontend/src/app/tasks/[id]/page.tsx#L3)** — added `export const runtime = "edge"` (required by next-on-pages for dynamic routes)
+### Backend (Cloudflare Containers + Worker proxy)
+- **[containers/backend/Dockerfile](file:///Users/Apple/Code/zc-ai-assistant/containers/backend/Dockerfile)** — `python:3.12-slim` image, pip install `backend/requirements.txt`, uvicorn listens on 0.0.0.0:8000
+- **[containers/backend/start.sh](file:///Users/Apple/Code/zc-ai-assistant/containers/backend/start.sh)** — uvicorn entrypoint, loads `.env` if present for local dev
+- **[backend-worker/src/index.ts](file:///Users/Apple/Code/zc-ai-assistant/backend-worker/src/index.ts)** — Worker entrypoint: CORS, getRandom() load-balances across 2 container DOs, forwards all HTTP to container port 8000, injects env vars on first start
+- **[backend-worker/package.json](file:///Users/Apple/Code/zc-ai-assistant/backend-worker/package.json)** — `@cloudflare/containers ^0.3.7` + `wrangler ^4.125` + scripts: `deploy`, `container:build`, `container:push`, `container:deploy`
+- **[backend-worker/wrangler.jsonc](file:///Users/Apple/Code/zc-ai-assistant/backend-worker/wrangler.jsonc)** — `containers[{ name, class_name, image, image_build_context, instance_type:basic, max_instances:4 }]` + `exports.BACKEND_CONTAINER` durable-object export w/ `container:monster-agent-api` + migration
+- **[backend-worker/tsconfig.json](file:///Users/Apple/Code/zc-ai-assistant/backend-worker/tsconfig.json)** — strict TS with `@cloudflare/workers-types`
+
+### Frontend (Cloudflare Pages)
+- **[wrangler.jsonc](file:///Users/Apple/Code/zc-ai-assistant/wrangler.jsonc)** — Pages config: `pages_build_output_dir: frontend/.vercel/output/static`, `vars.NEXT_PUBLIC_API_BASE_URL` points to backend worker, env.production + env.preview (Pages-only named envs)
+- **[frontend/.npmrc](file:///Users/Apple/Code/zc-ai-assistant/frontend/.npmrc)** — `legacy-peer-deps=true` (avoids next-on-pages peer pin lag)
+- **[frontend/package.json](file:///Users/Apple/Code/zc-ai-assistant/frontend/package.json)** — devDeps `wrangler` + `@cloudflare/next-on-pages`
+- **[frontend/src/app/tasks/[id]/page.tsx](file:///Users/Apple/Code/zc-ai-assistant/frontend/src/app/tasks/[id]/page.tsx#L3)** — `export const runtime = "edge"` (mandatory for next-on-pages dynamic routes)
+
+### Retired Vercel files (deleted)
+- `backend/vercel.json` — previously configured Vercel @vercel/python runtime + rewrites
+- `backend/api/index.py` — Mangum ASGI→Lambda entrypoint (Vercel-specific)
+- `deploy/render/*` — all Render artifacts (deleted in prior commit)
 
 ---
 
@@ -306,34 +355,35 @@ Open these daily:
 
 | Symptom | Fix |
 |---|---|
-| `wrangler login` / `vercel login` fails with `err: value out of range (1)` in sandbox | The Trae sandbox blocks the auth JSON in `~/Library`. Open a **real macOS Terminal.app** window and run commands there. |
-| Backend /api/health returns 500 / `"db_ok": false` first try | Neon's free tier auto-suspends; retry after 5–10 seconds (backoff + retry in engine is enabled via `pool_pre_ping`). |
-| Backend timed out after 10 seconds doing long LLM pipeline | Vercel Hobby limit is 10s. Use shorter prompts + Groq `llama-3.1-8b-instant`. Upgrade to Vercel Pro ($20/mo) for 300s max durations. |
-| Neon `SSL: CERTIFICATE_VERIFY_FAILED` on local macOS Python | Fixed in [db.py](file:///Users/Apple/Code/zc-ai-assistant/backend/src/core/db.py#L18-L57) engine builder — loads `certifi.where()` CA bundle; confirm `certifi` in requirements.txt. |
-| Neon `invalid input value for enum taskstatus: "pending"` | Permanently fixed: `tasks.status` is TEXT column + Python `@validates` enum coercion (not PG ENUM). |
-| `@cloudflare/next-on-pages` npm install peer-dep conflict | Fixed with `frontend/.npmrc` setting `legacy-peer-deps=true` (runtime compatible; pin is outdated in package). |
-| `/tasks/[id]` route is missing `runtime = "edge"` | Already applied to [tasks/[id]/page.tsx](file:///Users/Apple/Code/zc-ai-assistant/frontend/src/app/tasks/[id]/page.tsx#L3). |
-| Google Workspace OAuth `access_denied` | Confirm 6 scopes are pasted in the consent screen AND your email is added in Test Users. |
-| CORS `Access-Control-Allow-Origin` error in browser | Paste your frontend domain into Vercel env `BACKEND_CORS_ORIGINS` for backend, run `vercel --prod`, wait redeploy (2 min). |
-| Vercel `vercel link` "No existing project" | Type `N` to create new one named `monster-agent-backend`. |
+| Sandbox: `EPERM open /Users/Apple/Library/Preferences/.wrangler/...` | Trae sandbox blocks Library paths. Run commands in **real Terminal.app**. |
+| Backend first request /api/health times out (10–20 s) | Expected for first container cold start. Retry. Later requests < 500 ms for 15 min window. |
+| `db_ok: false` first try | Neon's free tier auto-suspends. Retry after 5–10 s or enable Hyperdrive (step ③). |
+| Neon SSL `CERTIFICATE_VERIFY_FAILED` locally | Already fixed in [db.py](file:///Users/Apple/Code/zc-ai-assistant/backend/src/core/db.py#L18-L57) engine builder via `certifi` CA bundle. Container image installs `certifi`. |
+| `asyncpg` PG enum error `invalid input value for enum taskstatus: "pending"` | Permanently fixed — `tasks.status` now TEXT + Python `@validates` coercion. |
+| `@cloudflare/next-on-pages` peer-dep conflict | Fixed by `frontend/.npmrc` `legacy-peer-deps=true`. |
+| `/tasks/[id]` route ERROR: not configured for Edge Runtime | Already applied to [tasks/[id]/page.tsx](file:///Users/Apple/Code/zc-ai-assistant/frontend/src/app/tasks/[id]/page.tsx#L3) — rerun `npm run build` before next-on-pages. |
+| Google Workspace OAuth `access_denied` | Confirm 6 scopes in consent screen + your email in **Test users** (External apps). |
+| Browser CORS `Access-Control-Allow-Origin` error | Tighten `BACKEND_CORS_ORIGINS` in `backend-worker/wrangler.jsonc` → include your real Pages origin → `npx wrangler deploy`. Worker OPTIONS handler mirrors origin for you in the interim. |
+| Docker daemon not running during `npm run container:deploy` | Start Docker Desktop; wrangler containers build requires `docker` on $PATH. |
+| `getRandom` errors / `Durable Object not found` | Run migration once: `cd backend-worker && npx wrangler deploy`. Migration registers `BackendContainer` class as `new_sqlite_classes`. |
 
 ---
 
-## Appendix C: 10 Exposed Google Workspace Tools
+## Appendix C: 10 Exposed Google Workspace tools
 
-MCP server at [google_workspace.py](file:///Users/Apple/Code/zc-ai-assistant/backend/src/mcp/servers/google_workspace.py) exposes:
+Server: [google_workspace.py](file:///Users/Apple/Code/zc-ai-assistant/backend/src/mcp/servers/google_workspace.py)
 
 | Tool | Inputs | Purpose |
 |---|---|---|
-| `create_doc` | `title`, `content?`, `folder_id?` | Create new Google Doc with optional text |
-| `read_doc` | `doc_id` | Read contents of any Google Doc |
+| `create_doc` | `title`, `content?`, `folder_id?` | New Google Doc with optional text content |
+| `read_doc` | `doc_id` | Read the full contents of any Google Doc |
 | `append_to_doc` | `doc_id`, `content` | Append plain text to a doc |
-| `read_calendar` | `time_min`, `time_max`, `calendar_id?`, `max_results?` | List calendar events in RFC3339 window |
-| `create_calendar_event` | `summary`, `start_time`, `end_time`, `description?`, `attendees?`, `calendar_id?` | Insert new calendar event |
+| `read_calendar` | `time_min`, `time_max`, `calendar_id?`, `max_results?` | List calendar events in an RFC3339 window |
+| `create_calendar_event` | `summary`, `start_time`, `end_time`, `description?`, `attendees?`, `calendar_id?` | Insert a new calendar event |
 | `write_sheet` | `spreadsheet_id`, `range`, `values[][]` | Write 2D array to `Sheet1!A1:C10` range |
 | `read_sheet` | `spreadsheet_id`, `range` | Read 2D values from any Sheets range |
 | **`send_email`** | `to`, `subject`, `body_text`, `cc?`, `bcc?` | Send email via Gmail as `subject_email` |
-| **`list_emails`** | `max_results?`, `query?` | List Gmail message metadata (id, from, subject, date, snippet) |
-| **`read_email`** | `message_id`, `format?="full"` | Read Gmail body → returns `{ plain, html, headers, parts[] }` extracted from multipart payload. |
+| **`list_emails`** | `max_results?`, `query?` | List Gmail metadata (id, from, subject, date, snippet) |
+| **`read_email`** | `message_id`, `format?="full"` | Read Gmail body → `{ plain, html, headers, parts[] }` from multipart payload |
 
-All 10 callable via agent AND via direct `await GoogleWorkspaceMcpServer(...).invoke_direct(tool, kwargs)`.
+All 10 tools callable from the agent, **and** directly via `await GoogleWorkspaceMcpServer(...).invoke_direct(tool, kwargs)`.

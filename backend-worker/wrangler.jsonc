@@ -1,0 +1,103 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Monster Agent BACKEND Worker · Cloudflare Containers
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Worker + Container architecture for a 100% Cloudflare-only backend:
+//   ┌──────────────────┐    ┌───────────────────────┐    ┌────────────────┐
+//   │ Pages (*.pages)  │───▶│ Backend Worker (this) │───▶│  Docker Cont.  │
+//   │  NEXT_PUBLIC_API │    │  CORS + load-balance   │    │  uvicorn+Fast  │
+//   └──────────────────┘    └───────────┬───────────┘    └────────┬───────┘
+//                                       │                         │
+//                                       ▼                         ▼
+//                              DurableObject              Postgres (Neon) via
+//                            (BACKEND_CONTAINER)          Hyperdrive optional
+//
+// RUN THIS in real Terminal.app — sandbox blocks ~/Library auth paths:
+//   cd backend-worker
+//   npm install --legacy-peer-deps
+//   npx wrangler login
+//
+//   # Paste secrets:
+//   npx wrangler secret put DATABASE_URL                 ← Neon pooled OR Hyperdrive
+//   npx wrangler secret put NVIDIA_NIM_API_KEY
+//   npx wrangler secret put GROQ_API_KEY
+//   npx wrangler secret put GITHUB_TOKEN
+//   npx wrangler secret put NOTION_TOKEN
+//   npx wrangler secret put NOTION_DB_ID                 (or empty string via printf '' |wrangler secret put …)
+//   npx wrangler secret put SLACK_BOT_TOKEN
+//   npx wrangler secret put SLACK_USER_TOKEN             (optional: empty)
+//   npx wrangler secret put HASHNODE_TOKEN               (optional: empty)
+//   npx wrangler secret put HASHNODE_PUBLICATION_ID      (optional: empty)
+//   npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_ID
+//   npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_SECRET
+//   npx wrangler secret put GOOGLE_WORKSPACE_REFRESH_TOKEN
+//   npx wrangler secret put GOOGLE_WORKSPACE_SUBJECT_EMAIL
+//
+//   # Build + push Docker image to Cloudflare registry, then deploy Worker:
+//   npm run container:deploy
+//
+// Expect to see:
+//   Published monster-agent-backend (....)
+//     https://monster-agent-backend.<yourname>.workers.dev
+//
+// Then copy that URL into the Pages frontend's NEXT_PUBLIC_API_BASE_URL env
+// (wrangler.jsonc at repo root) and re-deploy Pages (see README §).
+//
+// Container details:
+//   image:            containers/backend/Dockerfile  (python:3.12-slim + uvicorn)
+//   context:          repo root (copies backend/src, backend/requirements.txt)
+//   container_port:   8000    (uvicorn default; defaultPort in BackendContainer class)
+//   instance_type:    basic   (1/4 vCPU · 1 GiB RAM · 4 GiB disk — $0 for idle)
+//   max_instances:    4
+//   sleepAfter idle:  15m     (Container class config)
+{
+  "$schema": "../frontend/node_modules/wrangler/config-schema.json",
+  "name": "monster-agent-backend",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-22",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // ——— Container application (Docker image) ————————————————————————————————
+  // One entry in `containers[]` per Dockerized service. The `name` field is
+  // referenced by the Durable Object export `container:` field below.
+  "containers": [
+    {
+      "name": "monster-agent-api",
+      "class_name": "BackendContainer",
+      "image": "./containers/backend/Dockerfile",
+      "image_build_context": "..",
+      "max_instances": 4,
+      "instance_type": "basic",
+      "image_vars": {}
+    }
+  ],
+
+  // ——— Declarative Durable Object exports ——————————————————————————————————
+  // This is how the Worker exposes `BackendContainer` as a DO named
+  // `BACKEND_CONTAINER` and attaches the container defined above to it.
+  "exports": {
+    "BACKEND_CONTAINER": {
+      "type": "durable-object",
+      "state": "created",
+      "storage": "sqlite",
+      "container": "monster-agent-api"
+    }
+  },
+
+  // ——— Non-secret defaults (override via secret put for production) ————————
+  "vars": {
+    "NVIDIA_NIM_BASE_URL": "https://integrate.api.nvidia.com/v1",
+    "SLACK_CHANNEL": "#agent-updates",
+    "LLM_FALLBACK_ORDER": "[\"nvidia_nim\",\"groq\"]",
+    "LOG_LEVEL": "INFO",
+    "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\",\"http://localhost:8080\",\"*\"]"
+  },
+
+  // ——— Migration for initial durable object registration ———————————————————
+  "migrations": [
+    {
+      "tag": "v1-backend-container",
+      "new_sqlite_classes": ["BackendContainer"]
+    }
+  ]
+}
