@@ -31,9 +31,18 @@ tsconfig.tsbuildinfo
 # Build artifacts
 # ———————————————————————————————————————————————
 backend/.pytest_cache/
+backend/_smoke_mangum.py
 mcp-servers/hashnode/dist/
 mcp-servers/**/dist/
 *.tsbuildinfo
+
+# Cloudflare / Vercel build caches
+.vercel/
+frontend/.vercel/
+
+# Deprecated / retired Render artifacts
+deploy/render/
+render.yaml
 
 # ———————————————————————————————————————————————
 # IDE / OS
@@ -56,6 +65,7 @@ Thumbs.db
 # ———————————————————————————————————————————————
 .neon-config/
 .vercel-config/
+.render-config/
 .render/
 
 # ———————————————————————————————————————————————

@@ -1,7 +1,7 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "monster-agent-frontend",
-  "compatibility_date": "2026-08-01",
+  "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
   "pages_build_output_dir": "frontend/.vercel/output/static",
   "observability": {
@@ -9,25 +9,30 @@
     "head_sampling_rate": 1
   },
   "vars": {
-    "NEXT_PUBLIC_API_BASE_URL": "https://api.monster-agent.example.com"
+    "NEXT_PUBLIC_API_BASE_URL": "https://monster-agent-backend.vercel.app"
   },
   "env": {
     "production": {
-      "vars": {
-        "ENVIRONMENT": "production"
-      }
+      "name": "monster-agent-frontend",
+      "vars": { "ENVIRONMENT": "production" }
     },
     "staging": {
       "name": "monster-agent-frontend-staging",
-      "vars": {
-        "ENVIRONMENT": "staging"
-      }
+      "vars": { "ENVIRONMENT": "staging" }
     }
   },
-  "_hyperdrive_note": "To accelerate Neon Postgres from Cloudflare Workers/Pages Functions:",
+  "_build_order": "1) cd frontend; NEXT_PUBLIC_API_BASE_URL=<backend> npm run build → 2) npx @cloudflare/next-on-pages → produces frontend/.vercel/output/static → 3) wrangler pages deploy frontend/.vercel/output/static",
+  "_commands_short": [
+    "cd /Users/Apple/Code/zc-ai-assistant/frontend",
+    "export NEXT_PUBLIC_API_BASE_URL=https://monster-agent-backend.vercel.app",
+    "npm run build",
+    "npx @cloudflare/next-on-pages",
+    "cd .. && npx wrangler pages deploy frontend/.vercel/output/static --project-name monster-agent-frontend --branch main"
+  ],
   "_hyperdrive_setup": [
-    "1. npx wrangler hyperdrive create monster-agent-neon --connection-string \"$DATABASE_URL\"",
-    "2. Add to bindings: hyperdrive: [{ binding: 'HYPERDRIVE', id: '<hyperdrive-id>' }]",
-    "3. Use env.HYPERDRIVE.connectionString from Pages Functions"
+    "1. cd frontend && npm run build && npx @cloudflare/next-on-pages (above)",
+    "2. npx wrangler hyperdrive create monster-agent-neon --connection-string \"$NEON_POOLED_DATABASE_URL\"",
+    "3. Copy printed Hyperdrive endpoint into backend DATABASE_URL (sslmode=require still works; URL pattern: postgres://user:pass@hyperdrive-id.hyperdrive.local/db?sslmode=require)",
+    "4. Hyperdrive free tier: 10M q/mo, 50 ms P95 vs Neon 500 ms wake latency"
   ]
 }

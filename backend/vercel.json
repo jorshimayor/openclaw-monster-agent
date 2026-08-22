@@ -1,0 +1,39 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "python -m pip install --quiet -r requirements.txt",
+  "buildCommand": "python -m compileall -q src/ api/ || true",
+  "outputDirectory": ".vercel/output",
+  "cleanUrls": true,
+  "regions": ["iad1"],
+  "functions": {
+    "api/index.py": {
+      "runtime": "@vercel/python@latest",
+      "maxDuration": 60
+    }
+  },
+  "rewrites": [
+    { "source": "/api/health",              "destination": "/api/index" },
+    { "source": "/api/tasks",               "destination": "/api/index" },
+    { "source": "/api/tasks/:match*",       "destination": "/api/index" },
+    { "source": "/api/knowledge",           "destination": "/api/index" },
+    { "source": "/api/knowledge/:match*",   "destination": "/api/index" },
+    { "source": "/api/llm/:match*",         "destination": "/api/index" },
+    { "source": "/api/chat/:match*",        "destination": "/api/index" },
+    { "source": "/api/mcp/:match*",         "destination": "/api/index" },
+    { "source": "/api/(.*)",                "destination": "/api/index" },
+    { "source": "/",                        "destination": "/api/index" },
+    { "source": "/(.*)",                    "destination": "/api/index" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",  "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, DELETE, OPTIONS, PATCH" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, Accept, Origin, X-Requested-With" },
+        { "key": "Access-Control-Max-Age",       "value": "86400" }
+      ]
+    }
+  ]
+}
