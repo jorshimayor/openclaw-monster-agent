@@ -25,6 +25,7 @@ mcp = "^1.0.0"
 SQLAlchemy = { version = "^2.0.36", extras = ["asyncio"] }
 asyncpg = "^0.29.0"
 alembic = "^1.13.3"
+certifi = "^2024.8.30"
 google-api-python-client = "^2.151.0"
 google-auth-httplib2 = "^0.2.0"
 google-auth-oauthlib = "^1.2.1"

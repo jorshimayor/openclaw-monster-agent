@@ -26,15 +26,42 @@ _session_factory: Optional[async_sessionmaker[AsyncSession]] = None
 
 
 def _build_engine(url: str) -> AsyncEngine:
+    import re
+    # Some Neon connection strings carry query-param sslmode=require which asyncpg
+    # doesn't accept as a URL query param; translate it into explicit ssl
+    # connect_args and strip from the URL.
+    ssl_flag = False
+    if "sslmode=require" in url or "sslmode=verify" in url:
+        ssl_flag = True
+    clean_url = re.sub(r"[?&]sslmode=[^&]+", "", url)
+    # If we stripped the only query param, fix trailing ? or &
+    clean_url = re.sub(r"[?&]$", "", clean_url)
+
+    connect_args: dict = {"server_settings": {"jit": "off"}}
+    if ssl_flag:
+        try:
+            import ssl as _ssl
+            try:
+                import certifi  # type: ignore
+                cafile = certifi.where()
+            except Exception:
+                cafile = None
+            ctx = _ssl.create_default_context(
+                purpose=_ssl.Purpose.SERVER_AUTH,
+                cafile=cafile,
+            )
+            ctx.check_hostname = True
+            ctx.verify_mode = _ssl.CERT_REQUIRED
+            connect_args["ssl"] = ctx
+        except Exception:
+            connect_args["ssl"] = "require"
     return create_async_engine(
-        url,
+        clean_url,
         pool_pre_ping=True,
         pool_recycle=1800,
         pool_size=5,
         max_overflow=10,
-        connect_args={
-            "server_settings": {"jit": "off"},
-        },
+        connect_args=connect_args,
     )
 
 

@@ -5,9 +5,9 @@ from enum import Enum
 from typing import Any, Dict, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum as SAEnum, String, Text
+from sqlalchemy import DateTime, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID as PGUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from ..core.db import Base
 
@@ -27,9 +27,9 @@ class TaskDB(Base):
         PGUUID(as_uuid=True), primary_key=True, default=uuid4
     )
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    status: Mapped[TaskStatus] = mapped_column(
-        SAEnum(TaskStatus, name="task_status_enum", create_constraint=False),
-        default=TaskStatus.PENDING,
+    status: Mapped[str] = mapped_column(
+        Text,
+        default=TaskStatus.PENDING.value,
         index=True,
     )
     plan: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB, nullable=True)
@@ -53,3 +53,14 @@ class TaskDB(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    @validates("status")
+    def _validate_status(self, _key: str, value: Any) -> str:
+        if isinstance(value, TaskStatus):
+            return value.value
+        if isinstance(value, str):
+            allowed = {s.value for s in TaskStatus}
+            if value not in allowed:
+                raise ValueError(f"invalid task status: {value!r} not in {sorted(allowed)}")
+            return value
+        raise TypeError(f"status must be TaskStatus or str, got {type(value).__name__}")
