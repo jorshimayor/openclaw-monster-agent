@@ -3,11 +3,16 @@ from __future__ import annotations
 import asyncio
 from typing import List, Optional, Tuple
 
+from sqlalchemy import select, or_, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from tenacity import AsyncRetrying, stop_after_attempt, wait_exponential
 
 from ..core.config import Settings
+from ..core.db import get_session, is_db_available
 from ..core.logging import get_logger
 from ..core.types import KnowledgeCrystals
+from ..models.knowledge import KnowledgeCrystalDB
 from .memory import ExperienceMemory
 from .extractor import KnowledgeExtractor
 
@@ -28,6 +33,38 @@ class CrystallizedKnowledgeStore:
         self._notion_enabled = bool(settings.notion_token)
         self._notion_queue: "asyncio.Queue[KnowledgeCrystals]" = asyncio.Queue()
         self._notion_worker_task: Optional[asyncio.Task] = None
+        self._db_enabled = False
+
+    async def bootstrap(self) -> None:
+        self._db_enabled = is_db_available()
+        if self._db_enabled:
+            try:
+                loaded = await self._load_all_from_db(limit=500)
+                self._crystals = loaded
+                logger.info(
+                    "knowledge_store_bootstrapped_from_db",
+                    loaded_count=len(self._crystals),
+                )
+                return
+            except Exception as exc:
+                logger.warning(
+                    "knowledge_store_db_bootstrap_failed_fallback_to_memory",
+                    error=str(exc),
+                )
+                self._db_enabled = False
+        self._crystals = []
+
+    async def _load_all_from_db(self, limit: int = 500) -> List[KnowledgeCrystals]:
+        async with get_session() as session:
+            session: AsyncSession
+            stmt = (
+                select(KnowledgeCrystalDB)
+                .order_by(KnowledgeCrystalDB.created_at.desc())
+                .limit(limit)
+            )
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+        return [row.to_domain() for row in rows]
 
     async def _notion_worker(self) -> None:
         logger.info("notion_worker_started", queue_size=self._notion_queue.qsize())
@@ -65,10 +102,38 @@ class CrystallizedKnowledgeStore:
         )
         return None
 
+    async def _persist_to_db(self, crystal: KnowledgeCrystals) -> None:
+        if not self._db_enabled:
+            return
+        row = KnowledgeCrystalDB.from_domain(crystal)
+        async with get_session() as session:
+            session: AsyncSession
+            existing = await session.get(KnowledgeCrystalDB, crystal.id)
+            if existing is None:
+                session.add(row)
+            else:
+                existing.entities = row.entities
+                existing.strategies = row.strategies
+                existing.pitfalls = row.pitfalls
+                existing.frameworks = row.frameworks
+                existing.summary = row.summary
+                existing.category = row.category
+                existing.raw_extras = row.raw_extras
+
     async def add(self, crystal: KnowledgeCrystals) -> str:
         KnowledgeCrystals.model_validate(crystal.model_dump())
         self._crystals.append(crystal)
         crystal_id = str(crystal.id)
+
+        if self._db_enabled:
+            try:
+                await self._persist_to_db(crystal)
+            except Exception as exc:
+                logger.warning(
+                    "knowledge_crystal_db_persist_failed",
+                    crystal_id=crystal_id,
+                    error=str(exc),
+                )
 
         if self._notion_enabled:
             if self._notion_worker_task is None or self._notion_worker_task.done():
@@ -81,16 +146,40 @@ class CrystallizedKnowledgeStore:
             source_task_id=str(crystal.source_task_id),
             total_crystals=len(self._crystals),
             notion_enabled=self._notion_enabled,
+            db_enabled=self._db_enabled,
         )
         return crystal_id
 
-    def list(
+    async def list(
         self,
         category: Optional[str] = None,
         limit: int = 50,
     ) -> List[KnowledgeCrystals]:
         if limit <= 0:
             return []
+        if self._db_enabled:
+            try:
+                async with get_session() as session:
+                    session: AsyncSession
+                    stmt = select(KnowledgeCrystalDB)
+                    if category:
+                        cat_lower = category.lower()
+                        pattern = f"%{cat_lower}%"
+                        stmt = stmt.where(
+                            or_(
+                                func.lower(KnowledgeCrystalDB.category).like(pattern),
+                                func.array_to_string(KnowledgeCrystalDB.entities, '|').ilike(pattern),
+                                func.array_to_string(KnowledgeCrystalDB.strategies, '|').ilike(pattern),
+                                func.array_to_string(KnowledgeCrystalDB.pitfalls, '|').ilike(pattern),
+                                func.array_to_string(KnowledgeCrystalDB.frameworks, '|').ilike(pattern),
+                            )
+                        )
+                    stmt = stmt.order_by(KnowledgeCrystalDB.created_at.desc()).limit(limit)
+                    result = await session.execute(stmt)
+                    rows = result.scalars().all()
+                    return [row.to_domain() for row in rows]
+            except Exception as exc:
+                logger.warning("knowledge_list_db_failed_fallback", error=str(exc))
         crystals = self._crystals
         if category:
             cat_lower = category.lower()
@@ -120,19 +209,20 @@ class CrystallizedKnowledgeStore:
         text: str,
         top_k: int = 10,
     ) -> List[Tuple[KnowledgeCrystals, float]]:
-        if not text or not self._crystals:
+        if not text:
+            return []
+        crystals = await self.list(limit=max(200, top_k * 10))
+        if not crystals:
             return []
         if top_k <= 0:
             return []
-
         query_emb = self.memory._embed_simple(text)
         scored: List[Tuple[float, KnowledgeCrystals]] = []
-        for crystal in self._crystals:
+        for crystal in crystals:
             content = self._crystal_content(crystal)
             content_emb = self.memory._embed_simple(content)
             sim = self.memory._cosine(query_emb, content_emb)
             scored.append((sim, crystal))
-
         scored.sort(key=lambda t: t[0], reverse=True)
         top = scored[:top_k]
         return [(crystal, sim) for sim, crystal in top]
@@ -145,3 +235,43 @@ class CrystallizedKnowledgeStore:
             enabled=self._notion_enabled,
         )
         return 0
+
+    async def delete(self, crystal_id: str) -> bool:
+        removed = False
+        kept: List[KnowledgeCrystals] = []
+        for c in self._crystals:
+            if str(c.id) == crystal_id:
+                removed = True
+            else:
+                kept.append(c)
+        self._crystals = kept
+        if self._db_enabled:
+            try:
+                async with get_session() as session:
+                    session: AsyncSession
+                    from uuid import UUID as _UUID
+                    row = await session.get(KnowledgeCrystalDB, _UUID(crystal_id))
+                    if row is not None:
+                        await session.delete(row)
+                        removed = True
+            except Exception as exc:
+                logger.warning("knowledge_delete_db_failed", error=str(exc))
+        if removed:
+            logger.info("knowledge_crystal_deleted", crystal_id=crystal_id)
+        return removed
+
+    async def get(self, crystal_id: str) -> Optional[KnowledgeCrystals]:
+        if self._db_enabled:
+            try:
+                async with get_session() as session:
+                    session: AsyncSession
+                    from uuid import UUID as _UUID
+                    row = await session.get(KnowledgeCrystalDB, _UUID(crystal_id))
+                    if row is not None:
+                        return row.to_domain()
+            except Exception as exc:
+                logger.warning("knowledge_get_db_failed", error=str(exc))
+        for c in self._crystals:
+            if str(c.id) == crystal_id:
+                return c
+        return None

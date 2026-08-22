@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "monster-agent-frontend",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "pages_build_output_dir": "frontend/.vercel/output/static",
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1
+  },
+  "vars": {
+    "NEXT_PUBLIC_API_BASE_URL": "https://api.monster-agent.example.com"
+  },
+  "env": {
+    "production": {
+      "vars": {
+        "ENVIRONMENT": "production"
+      }
+    },
+    "staging": {
+      "name": "monster-agent-frontend-staging",
+      "vars": {
+        "ENVIRONMENT": "staging"
+      }
+    }
+  },
+  "_hyperdrive_note": "To accelerate Neon Postgres from Cloudflare Workers/Pages Functions:",
+  "_hyperdrive_setup": [
+    "1. npx wrangler hyperdrive create monster-agent-neon --connection-string \"$DATABASE_URL\"",
+    "2. Add to bindings: hyperdrive: [{ binding: 'HYPERDRIVE', id: '<hyperdrive-id>' }]",
+    "3. Use env.HYPERDRIVE.connectionString from Pages Functions"
+  ]
+}

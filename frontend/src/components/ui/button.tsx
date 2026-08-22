@@ -14,7 +14,11 @@ const buttonVariants = cva(
         ghost:
           "text-matrix border border-transparent hover:bg-matrix/10 hover:border-matrix/20",
         matrix:
-          "bg-matrix/15 text-matrix border border-matrix/50 hover:bg-matrix/25 shadow-matrix-glow hover:shadow-[0_0_20px_rgba(0,255,65,0.45)]"
+          "bg-matrix/15 text-matrix border border-matrix/50 hover:bg-matrix/25 shadow-matrix-glow hover:shadow-[0_0_20px_rgba(0,255,65,0.45)]",
+        outline:
+          "bg-transparent text-matrix border border-matrix/40 hover:bg-matrix/10",
+        destructive:
+          "bg-red-500/15 text-red-400 border border-red-500/40 hover:bg-red-500/25"
       },
       size: {
         sm: "h-8 px-3 text-xs",

@@ -158,6 +158,8 @@ class McpServerManager:
                 "instance": GoogleWorkspaceMcpServer(
                     client_id=self.settings.google_workspace_client_id,
                     client_secret=self.settings.google_workspace_client_secret,
+                    refresh_token=self.settings.google_workspace_refresh_token,
+                    subject_email=self.settings.google_workspace_subject_email,
                 ),
             },
             "slack": {

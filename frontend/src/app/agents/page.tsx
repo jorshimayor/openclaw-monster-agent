@@ -355,7 +355,11 @@ export default function AgentsPage() {
                             key={i}
                             variant={tc.success ? "success" : "warning"}
                             className="text-[9px] font-mono tracking-wider"
-                            title={tc.error || tc.result || tc.name}
+                            title={
+                              (typeof tc.error === "string" && tc.error) ||
+                              (typeof tc.result === "string" && tc.result) ||
+                              String(tc.name ?? "")
+                            }
                           >
                             {tc.name}
                           </Badge>

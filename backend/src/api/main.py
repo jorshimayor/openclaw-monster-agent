@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from ..core.config import get_settings
+from ..core.db import create_all_tables, dispose_db, init_db
 from ..core.logging import configure_logging, get_logger
 from ..knowledge.memory import ExperienceMemory
 from ..knowledge.store import CrystallizedKnowledgeStore
@@ -49,12 +50,28 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("knowledge_memory_init_failed", error=str(e))
         knowledge_memory = ExperienceMemory()
+    db_ok = False
+    try:
+        db_ok = init_db(settings.database_url)
+        if db_ok:
+            try:
+                await create_all_tables()
+            except Exception as e:
+                logger.warning("db_create_tables_failed", error=str(e))
+    except Exception as e:
+        logger.warning("db_init_failed", error=str(e))
+        db_ok = False
     try:
         knowledge_store = CrystallizedKnowledgeStore(
             settings,
             memory=knowledge_memory,
             extractor=None,
         )
+        if db_ok:
+            try:
+                await knowledge_store.bootstrap()
+            except Exception as e:
+                logger.warning("knowledge_store_bootstrap_failed", error=str(e))
     except Exception as e:
         logger.warning("knowledge_store_init_failed", error=str(e))
         knowledge_store = CrystallizedKnowledgeStore(settings)
@@ -91,6 +108,7 @@ async def lifespan(app: FastAPI):
         mcp_manager_ok=mcp_manager is not None,
         knowledge_store_ok=knowledge_store is not None,
         pipeline_executor_ok=pipeline_executor is not None,
+        db_ok=db_ok,
     )
     yield
     if mcp_manager is not None:
@@ -98,6 +116,10 @@ async def lifespan(app: FastAPI):
             await mcp_manager.stop_all()
         except Exception as e:
             logger.error("mcp_manager_shutdown_failed", error=str(e))
+    try:
+        await dispose_db()
+    except Exception as e:
+        logger.error("db_dispose_failed", error=str(e))
     logger.info("api_shutdown")
 
 

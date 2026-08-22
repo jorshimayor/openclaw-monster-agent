@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import type { McpServerStatus } from "@/lib/types";
 import { Github, BookOpen, FolderKanban, MessageSquare, Hash } from "lucide-react";
-import { api } from "@/lib/api";
 import { useIsHydrated } from "@/lib/hydration";
 
 interface IntegrationRow extends McpServerStatus {

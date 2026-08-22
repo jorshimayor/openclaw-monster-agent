@@ -72,6 +72,19 @@ class Settings(BaseSettings):
         default="",
         validation_alias=AliasChoices("google_workspace_client_secret", "GOOGLE_WORKSPACE_CLIENT_SECRET"),
     )
+    google_workspace_refresh_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("google_workspace_refresh_token", "GOOGLE_WORKSPACE_REFRESH_TOKEN"),
+    )
+    google_workspace_subject_email: str = Field(
+        default="",
+        validation_alias=AliasChoices("google_workspace_subject_email", "GOOGLE_WORKSPACE_SUBJECT_EMAIL"),
+    )
+
+    database_url: str = Field(
+        default="",
+        validation_alias=AliasChoices("database_url", "DATABASE_URL"),
+    )
 
     hashnode_token: str = Field(default="", validation_alias=AliasChoices("hashnode_token", "HASHNODE_TOKEN"))
     hashnode_publication_id: str = Field(
@@ -183,6 +196,9 @@ class Settings(BaseSettings):
                 "NOTION_TOKEN": flag(self.notion_token),
                 "SLACK_BOT_TOKEN": flag(self.slack_bot_token),
                 "SLACK_USER_TOKEN": flag(self.slack_user_token),
+                "GOOGLE_WORKSPACE_CLIENT_ID": flag(self.google_workspace_client_id),
+                "GOOGLE_WORKSPACE_REFRESH_TOKEN": flag(self.google_workspace_refresh_token),
+                "DATABASE_URL": flag(self.database_url),
             },
             "cwd": str(Path.cwd()),
         }

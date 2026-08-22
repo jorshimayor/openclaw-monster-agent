@@ -79,7 +79,7 @@ async def list_knowledge(
 ):
     store = _get_store(request)
     try:
-        crystals = store.list(category=category, limit=max(1, limit + skip))
+        crystals = await store.list(category=category, limit=max(1, limit + skip))
         if skip > 0:
             crystals = crystals[skip:]
         crystals = crystals[:limit]
@@ -138,11 +138,10 @@ async def query_knowledge(
 async def get_knowledge(request: Request, id: UUID):
     store = _get_store(request)
     try:
-        all_crystals = store.list(limit=10000)
-        for c in all_crystals:
-            if c.id == id:
-                return KnowledgeCrystalResponse.from_model(c)
-        raise HTTPException(status_code=404, detail=f"Knowledge crystal not found: {id}")
+        crystal = await store.get(str(id))
+        if crystal is None:
+            raise HTTPException(status_code=404, detail=f"Knowledge crystal not found: {id}")
+        return KnowledgeCrystalResponse.from_model(crystal)
     except HTTPException:
         raise
     except Exception as exc:
@@ -154,13 +153,8 @@ async def get_knowledge(request: Request, id: UUID):
 async def delete_knowledge(request: Request, id: UUID):
     store = _get_store(request)
     try:
-        crystals = getattr(store, "_crystals", None)
-        if crystals is None:
-            raise HTTPException(status_code=503, detail="Store internal storage unavailable")
-        original_len = len(crystals)
-        store._crystals = [c for c in crystals if c.id != id]
-        removed = original_len - len(store._crystals)
-        if removed == 0:
+        removed = await store.delete(str(id))
+        if not removed:
             raise HTTPException(status_code=404, detail=f"Knowledge crystal not found: {id}")
         logger.info("knowledge_deleted", id=str(id))
         return KnowledgeDeleteResponse(success=True, id=id)

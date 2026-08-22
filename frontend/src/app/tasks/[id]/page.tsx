@@ -104,11 +104,23 @@ export default function TaskDetailPage() {
       } else if (type === "agent_output") {
         const out = parsed.output as AgentResult | undefined;
         if (out) {
+          const head = (v: unknown) =>
+            typeof v === "string"
+              ? v.slice(0, 40)
+              : typeof v === "object" && v !== null
+                ? JSON.stringify(v).slice(0, 40)
+                : String(v ?? "").slice(0, 40);
+          const len = (v: unknown) =>
+            typeof v === "string"
+              ? v.length
+              : typeof v === "object" && v !== null
+                ? JSON.stringify(v).length
+                : String(v ?? "").length;
           setOutputs((prev) => {
             const exists = prev.some(
               (p) =>
                 p.agent_role === out.agent_role &&
-                p.output.slice(0, 40) === out.output.slice(0, 40)
+                head(p.output) === head(out.output)
             );
             if (exists) return prev;
             return [...prev, out];
@@ -117,7 +129,7 @@ export default function TaskDetailPage() {
             time: timestamp.slice(11, 19),
             step: "OUTPUT",
             agent: String(out.agent_role).slice(0, 12).toUpperCase(),
-            msg: `agent_output confidence=${(out.confidence * 100).toFixed(0)}% chars=${out.output.length}`,
+            msg: `agent_output confidence=${(out.confidence * 100).toFixed(0)}% chars=${len(out.output)}`,
             shade: 0
           });
         }
@@ -336,7 +348,11 @@ export default function TaskDetailPage() {
                       </div>
                     </div>
                     <pre className="text-xs text-matrix/90 whitespace-pre-wrap leading-relaxed max-h-[420px] overflow-auto">
-                      {o.output}
+                      {typeof o.output === "string"
+                        ? o.output
+                        : typeof o.output === "object" && o.output !== null
+                          ? JSON.stringify(o.output, null, 2)
+                          : String(o.output ?? "")}
                     </pre>
                     {o.errors && o.errors.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-matrix/20 text-red-400 text-xs">
