@@ -52,6 +52,13 @@ Thumbs.db
 .trae/
 
 # ———————————————————————————————————————————————
+# Local service configs / auth state (private, NOT OSS)
+# ———————————————————————————————————————————————
+.neon-config/
+.vercel-config/
+.render/
+
+# ———————————————————————————————————————————————
 # HTTP transient capture artifacts (private)
 # ———————————————————————————————————————————————
 .httpyac/

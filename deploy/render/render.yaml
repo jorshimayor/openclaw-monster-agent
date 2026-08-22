@@ -16,6 +16,7 @@ services:
     name: monster-agent-backend
     region: oregon
     runtime: python
+    repo: https://github.com/jorshimayor/openclaw-monster-agent.git
     buildCommand: |
       cd backend
       python -m pip install --upgrade pip
@@ -27,17 +28,14 @@ services:
       cd backend
       python -m uvicorn src.api.main:app --host 0.0.0.0 --port $PORT --timeout-keep-alive 600 --timeout-graceful-shutdown 30
     plan: free
-    instanceCount: 1
     healthCheckPath: /api/health
     autoDeploy: true
     branch: main
-    numReplicas: 1
     pullRequestPreviewsEnabled: false
     envVars:
       - key: NVIDIA_NIM_API_KEY
         sync: false
       - key: NVIDIA_NIM_BASE_URL
-        sync: false
         value: https://integrate.api.nvidia.com/v1
       - key: GROQ_API_KEY
         sync: false
@@ -52,7 +50,6 @@ services:
       - key: SLACK_USER_TOKEN
         sync: false
       - key: SLACK_CHANNEL
-        sync: false
         value: "#agent-updates"
       - key: GOOGLE_WORKSPACE_CLIENT_ID
         sync: false
@@ -69,14 +66,10 @@ services:
       - key: HASHNODE_PUBLICATION_ID
         sync: false
       - key: LLM_FALLBACK_ORDER
-        sync: false
         value: '["nvidia_nim","groq"]'
       - key: BACKEND_CORS_ORIGINS
-        sync: false
         value: '["http://localhost:3000","http://localhost:8080","https://monster-agent-frontend.vercel.app","https://monster-agent-frontend.pages.dev"]'
       - key: LOG_LEVEL
-        sync: false
         value: INFO
       - key: PYTHONUNBUFFERED
-        sync: false
         value: "1"
