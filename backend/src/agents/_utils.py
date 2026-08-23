@@ -28,6 +28,12 @@ async def _call_tool(
     if transport is None:
         return {"skipped": True, "reason": "no_mcp_transport"}
 
+    # RoutingMcpTransport (production path): server-prefix routing + the
+    # direct Google client. Raw stdio transports keep the legacy path below.
+    route = getattr(transport, "route_tool_call", None)
+    if route is not None:
+        return await route(tool_name, arguments or {})
+
     msg_id = str(uuid.uuid4())
     payload: Dict[str, Any] = {
         "jsonrpc": "2.0",

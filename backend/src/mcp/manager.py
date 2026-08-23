@@ -31,6 +31,59 @@ SUPPORTED_SERVERS: List[str] = [
 ]
 
 
+class RoutingMcpTransport:
+    """Routes agent tool calls ("server.tool") to the right MCP server.
+
+    Agents call tools with a server prefix (e.g. "github.get_file_contents").
+    This router splits the prefix, strips it, and dispatches:
+      - google_workspace → the in-process direct Google client (the npx
+        workspace-mcp package does not exist on npm, so stdio never works)
+      - everything else  → that server's stdio transport via tools/call
+
+    Passed to agents as context["mcp_transport"]; agents/_utils._call_tool
+    prefers route_tool_call() when present.
+    """
+
+    def __init__(self, manager: "McpServerManager") -> None:
+        self._manager = manager
+        self._log = get_logger("mcp.routing_transport")
+
+    async def route_tool_call(self, tool_name: str, arguments: dict) -> dict:
+        server, _, bare = tool_name.partition(".")
+        if not bare:
+            return {"skipped": True, "reason": f"tool '{tool_name}' has no server prefix"}
+        if server not in SUPPORTED_SERVERS:
+            return {"skipped": True, "reason": f"unknown server '{server}'"}
+        try:
+            if server == "google_workspace":
+                instance = self._manager._specs.get(server, {}).get("instance")
+                if instance is None:
+                    return {"skipped": True, "reason": "google_workspace not configured"}
+                return await instance.invoke_direct(bare, arguments or {})
+            transport = self._manager._transports.get(server)
+            if transport is None:
+                return {"skipped": True, "reason": f"{server} server not running"}
+            result = await transport.call(
+                "tools/call", {"name": bare, "arguments": arguments or {}}
+            )
+            return result if isinstance(result, dict) else {"result": result}
+        except Exception as exc:
+            self._log.warning("route_tool_call_failed", tool=tool_name, error=str(exc))
+            return {"skipped": True, "reason": str(exc)}
+
+
+_GLOBAL_ROUTER: Optional[RoutingMcpTransport] = None
+
+
+def set_global_router(router: Optional[RoutingMcpTransport]) -> None:
+    global _GLOBAL_ROUTER
+    _GLOBAL_ROUTER = router
+
+
+def get_global_router() -> Optional[RoutingMcpTransport]:
+    return _GLOBAL_ROUTER
+
+
 class McpServerStatus(BaseModel):
     name: str
     status: str

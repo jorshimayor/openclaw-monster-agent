@@ -147,6 +147,41 @@ export default {
       );
 
     switch (event.cron) {
+      // Saturday 07:00 UTC = 08:00 WAT — weekly market RESEARCH digest
+      // (educational research only — explicitly not investment advice)
+      case "0 7 * * 6": {
+        const facts: string[] = [];
+        const grab = async (label: string, url: string, pick: (j: any) => string) => {
+          try {
+            const r = await fetch(url, { headers: { "User-Agent": "openclaw-digest/1.0" } });
+            if (r.ok) facts.push(`${label}: ${pick(await r.json())}`);
+          } catch {
+            /* a missing source is fine — the prompt forbids inventing numbers */
+          }
+        };
+        await grab("FX (per 1 USD)", "https://open.er-api.com/v6/latest/USD", (j) =>
+          `NGN ${j.rates?.NGN} · EUR ${j.rates?.EUR} · GBP ${j.rates?.GBP} (as of ${j.time_last_update_utc})`
+        );
+        await grab(
+          "Crypto (USD)",
+          "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true",
+          (j) =>
+            `BTC $${j.bitcoin?.usd} (${j.bitcoin?.usd_24h_change?.toFixed(1)}% 24h) · ETH $${j.ethereum?.usd} (${j.ethereum?.usd_24h_change?.toFixed(1)}% 24h)`
+        );
+        await submit(
+          "Weekly market research digest (scheduled — RESEARCH ONLY, NOT investment advice; I am not " +
+            "seeking recommendations and none should be given). Write a scannable digest for a reader in " +
+            "Lagos covering: 1) global markets — the week's major themes in US/European equities and rates, " +
+            "2) Nigerian markets — naira/FX picture, NGX and Nigerian macro (inflation, MPC) described " +
+            "QUALITATIVELY with pointers to ngxgroup.com and cbn.gov.ng for current figures, 3) crypto, " +
+            "4) three things to watch next week. HARD RULES: never invent a price, rate, or figure — the " +
+            "ONLY numbers you may quote are in the verified data below or figures you are certain of with " +
+            "their date; anything else say 'check source'. End with: 'Research digest — not investment " +
+            "advice.'\n\nVerified data fetched just now:\n" +
+            (facts.length ? facts.map((f) => `- ${f}`).join("\n") : "- (live sources unavailable this run — write the digest fully qualitatively)")
+        );
+        break;
+      }
       // Monday 06:00 UTC = 07:00 WAT — week planning brief
       case "0 6 * * 1":
         await submit(

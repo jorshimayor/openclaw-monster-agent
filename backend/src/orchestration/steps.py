@@ -358,25 +358,25 @@ async def _invoke_agent(
     llm: Optional["LLMRouter"],
     factory: Optional[Callable],
 ) -> AgentResult:
+    from ..mcp.manager import get_global_router
+
+    context = {
+        "context_str": prompt,
+        "task_description": prompt,
+        # Live tool access — without this every agent tool call is skipped.
+        "mcp_transport": get_global_router(),
+    }
     if factory is not None:
         try:
             agent = factory(role)
-            return await agent.invoke(
-                {"context_str": prompt, "task_description": prompt},
-                tools,
-                llm,
-            )
+            return await agent.invoke(context, tools, llm)
         except Exception as exc:
             logger.warning("factory_agent_failed", role=role, error=str(exc))
     cls = _lookup_agent_class(role)
     if cls is not None and llm is not None:
         try:
             agent = cls()
-            return await agent.invoke(
-                {"context_str": prompt, "task_description": prompt},
-                tools,
-                llm,
-            )
+            return await agent.invoke(context, tools, llm)
         except Exception as exc:
             logger.warning("agent_class_failed", role=role, error=str(exc))
     if llm is not None:

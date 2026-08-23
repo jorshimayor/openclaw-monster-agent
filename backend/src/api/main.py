@@ -49,6 +49,9 @@ async def lifespan(app: FastAPI):
     try:
         mcp_manager = McpServerManager(settings)
         await mcp_manager.start_all()
+        from ..mcp.manager import RoutingMcpTransport, set_global_router
+
+        set_global_router(RoutingMcpTransport(mcp_manager))
     except Exception as e:
         logger.warning("mcp_manager_init_failed", error=str(e))
         mcp_manager = None
