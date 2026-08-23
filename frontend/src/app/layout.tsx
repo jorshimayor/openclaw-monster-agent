@@ -3,6 +3,7 @@ import { JetBrains_Mono, Inter } from "next/font/google";
 import Link from "next/link";
 import "@/styles/globals.css";
 import { ThemeProvider, themeBootstrapScript } from "@/lib/theme-provider";
+import { ConnLabel } from "@/components/ConnLabel";
 import ThemeSwitcher from "@/components/ui/theme-switcher";
 
 const jb = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
@@ -89,9 +90,7 @@ export default function RootLayout({
                 <span className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-matrix animate-pulse-matrix"></span>
                   <span className="text-matrix-dim shrink-0">CONN:</span>
-                  <span className="tracking-wider truncate">
-                    ws://localhost:8000
-                  </span>
+                  <ConnLabel />
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs text-matrix-dim shrink-0">

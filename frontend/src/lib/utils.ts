@@ -5,8 +5,12 @@ export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));
 }
 
-export function formatDate(date: Date | string): string {
+export function formatDate(date: Date | string | undefined | null): string {
+  if (date === undefined || date === null || date === "") return "—";
   const d = typeof date === "string" ? new Date(date) : date;
+  // Invalid/missing dates render as a dash instead of crashing the page
+  // (production tasks from the API have no top-level createdAt).
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toISOString().replace("T", " ").slice(0, 19);
 }
 

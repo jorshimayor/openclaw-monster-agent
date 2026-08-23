@@ -24,7 +24,6 @@
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
   "pages_build_output_dir": "frontend/.vercel/output/static",
-  "preview_urls": false,
   "vars": {
     "NEXT_PUBLIC_API_BASE_URL":
       "https://monster-agent-backend.joelobafemii.workers.dev",

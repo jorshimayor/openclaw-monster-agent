@@ -83,6 +83,9 @@ Thumbs.db
 .env.*
 !.env.example
 !.env.sample
+# frontend production build config — only a public URL, must be committed
+# so builds can't silently regress to the localhost fallback again
+!frontend/.env.production
 backend/.env
 frontend/.env.local
 mcp-servers/hashnode/.env

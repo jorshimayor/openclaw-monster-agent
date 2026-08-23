@@ -47,7 +47,8 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw new Error(`listTasks failed: ${res.status}`);
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data.map(normalizeTask) : [];
   }
 
   async getTask(id: string): Promise<Task> {
@@ -56,7 +57,7 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw new Error(`getTask failed: ${res.status}`);
-    return res.json();
+    return normalizeTask(await res.json());
   }
 
   async submitTask(description: string): Promise<Task> {
@@ -67,7 +68,7 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw new Error(`submitTask failed: ${res.status}`);
-    return res.json();
+    return normalizeTask(await res.json());
   }
 
   async listKnowledge(category?: string, limit = 50): Promise<KnowledgeCrystal[]> {
@@ -210,6 +211,29 @@ export class ApiClient {
       createdAt: r.created_at ? String(r.created_at) : new Date().toISOString()
     };
   }
+}
+
+/**
+ * Backend tasks are {id, description, status, step, outputs:{…}} — the UI's
+ * Task shape (createdAt, currentStep, finalReport) is derived here so pages
+ * never touch raw API JSON (a missing createdAt crashed the tasks page the
+ * moment production data first loaded).
+ */
+function normalizeTask(raw: any): Task {
+  const outputs =
+    raw && typeof raw.outputs === "object" && !Array.isArray(raw.outputs)
+      ? raw.outputs
+      : {};
+  return {
+    ...raw,
+    id: String(raw?.id ?? ""),
+    description: String(raw?.description ?? ""),
+    status: raw?.status ?? "QUEUED",
+    currentStep: raw?.currentStep ?? raw?.step ?? undefined,
+    createdAt: raw?.createdAt ?? outputs.created_at ?? "",
+    finalReport: raw?.finalReport ?? outputs.final_report ?? undefined,
+    error: raw?.error ?? outputs.error ?? undefined
+  };
 }
 
 const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
