@@ -116,8 +116,8 @@ export default function IntegrationsPage() {
                       s.status === "healthy"
                         ? "bg-matrix animate-pulse"
                         : s.status === "degraded"
-                        ? "bg-yellow-400 animate-pulse"
-                        : "bg-red-500"
+                        ? "bg-warning animate-pulse"
+                        : "bg-danger"
                     }`}
                   />
                   <Badge variant={STATUS_VARIANT[s.status]}>
@@ -127,7 +127,7 @@ export default function IntegrationsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-3 text-xs">
-              <div className="bg-black/40 border border-matrix/20 rounded p-3 space-y-1.5">
+              <div className="bg-bg/50 border border-matrix/20 rounded p-3 space-y-1.5">
                 <div className="flex justify-between">
                   <span className="text-matrix-dim tracking-wider">SERVER</span>
                   <span className="font-mono">{s.name}</span>

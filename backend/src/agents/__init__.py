@@ -14,11 +14,13 @@ from .editor_reviewer import EditorReviewerAgent
 from .security_auditor import SecurityAuditorAgent
 from .knowledge_crystallizer import KnowledgeCrystallizerAgent
 from .study_partner import StudyPartnerAgent
+from .personal_assistant import PersonalAssistantAgent
 
 logger = get_logger(__name__)
 
 
 ROLE_TO_CLASS: Dict[AgentRole, type[Agent]] = {
+    AgentRole.PERSONAL_ASSISTANT: PersonalAssistantAgent,
     AgentRole.ORCHESTRATOR: OrchestratorAgent,
     AgentRole.CONTENT_WEB2: ContentWeb2Agent,
     AgentRole.CONTENT_WEB3: ContentWeb3Agent,
@@ -74,6 +76,7 @@ __all__ = [
     "SecurityAuditorAgent",
     "KnowledgeCrystallizerAgent",
     "StudyPartnerAgent",
+    "PersonalAssistantAgent",
     "get_agent",
     "list_agents",
 ]

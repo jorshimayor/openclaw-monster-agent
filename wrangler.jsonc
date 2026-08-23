@@ -26,7 +26,8 @@
   "pages_build_output_dir": "frontend/.vercel/output/static",
   "vars": {
     "NEXT_PUBLIC_API_BASE_URL":
-      "https://monster-agent-backend.workers.account-prefix.workers.dev"
+      "https://monster-agent-backend.workers.account-prefix.workers.dev",
+    "NEXT_PUBLIC_DEFAULT_THEME": "matrix"
   },
   "env": {
     "production": {
@@ -34,7 +35,8 @@
       "vars": {
         "ENVIRONMENT": "production",
         "NEXT_PUBLIC_API_BASE_URL":
-          "https://monster-agent-backend.workers.account-prefix.workers.dev"
+          "https://monster-agent-backend.workers.account-prefix.workers.dev",
+        "NEXT_PUBLIC_DEFAULT_THEME": "matrix"
       }
     },
     "preview": {
@@ -42,7 +44,8 @@
       "vars": {
         "ENVIRONMENT": "preview",
         "NEXT_PUBLIC_API_BASE_URL":
-          "https://monster-agent-backend.workers.account-prefix.workers.dev"
+          "https://monster-agent-backend.workers.account-prefix.workers.dev",
+        "NEXT_PUBLIC_DEFAULT_THEME": "matrix"
       }
     }
   }

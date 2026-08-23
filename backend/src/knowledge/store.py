@@ -140,6 +140,22 @@ class CrystallizedKnowledgeStore:
                 self._notion_worker_task = asyncio.create_task(self._notion_worker())
             await self._notion_queue.put(crystal)
 
+        try:
+            from ..agents.bus import get_event_bus
+
+            bus = get_event_bus()
+            bus.emit_knowledge_crystal(
+                crystal.id,
+                crystal.summary or (crystal.entities[0] if crystal.entities else "New crystal"),
+                task_id=crystal.source_task_id,
+            )
+        except Exception as exc:
+            logger.warning(
+                "knowledge_crystal_bus_emit_failed",
+                crystal_id=crystal_id,
+                error=str(exc),
+            )
+
         logger.info(
             "crystal_added",
             crystal_id=crystal_id,

@@ -52,7 +52,11 @@
 ```bash
 cd /Users/Apple/Code/zc-ai-assistant/backend-worker
 npm install --legacy-peer-deps         # already done in this repo
-npx wrangler login                    # one-time browser OAuth
+
+# ⚠️  IMPORTANT — run this EXACT LINE with NO flags, one command per paste.
+# Do NOT use --scopes (fails on some wrangler versions). OAuth dialog shows checkboxes,
+# check Workers Write, Pages Write, Account Write, KV/R2/D1 Write, Zone Read → Accept.
+npx wrangler login
 ```
 
 ### Step 2. Store all secrets as encrypted Worker secrets
@@ -72,14 +76,21 @@ npx wrangler secret put NOTION_TOKEN
 npx wrangler secret put NOTION_DB_ID                    # use printf '' | npx wrangler secret put NOTION_DB_ID  if blank
 npx wrangler secret put SLACK_BOT_TOKEN
 npx wrangler secret put SLACK_USER_TOKEN               # (optional) blank via printf '' | ...
-npx wrangler secret put HASHNODE_TOKEN                 # (optional) blank
-npx wrangler secret put HASHNODE_PUBLICATION_ID        # (optional) blank
+
+# ⚠️  RETIRED: Hashnode API now requires Pro. Skip these 2 secrets:
+# npx wrangler secret put HASHNODE_TOKEN
+# npx wrangler secret put HASHNODE_PUBLICATION_ID
 
 # Google Workspace — all 4 together (see step ④ to obtain):
 npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_ID
 npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_SECRET
 npx wrangler secret put GOOGLE_WORKSPACE_REFRESH_TOKEN
 npx wrangler secret put GOOGLE_WORKSPACE_SUBJECT_EMAIL
+
+# Personal Assistant Agent Telegram notifications (3 secrets → 15 total, see section ⑤):
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+npx wrangler secret put TELEGRAM_CHAT_ID
+npx wrangler secret put TELEGRAM_ADMIN_IDS
 ```
 
 Non-secret defaults (safe defaults, override only if you need different values) — already set in `backend-worker/wrangler.jsonc` `vars`:
@@ -313,7 +324,113 @@ PY
 
 ---
 
-## ⑤ Dashboard URLs
+## ⑤ Telegram — Personal Assistant Agent (10 minutes, RECOMMENDED)
+
+All task and integration updates flow through exactly one channel: a Personal Assistant
+agent running in-process that routes everything to **Telegram**. No agent ever contacts
+Slack/email/etc directly — that's the P.A.'s exclusive job. This gives you a single,
+rate-limited, priority-tiered stream you can mute or audit from your phone.
+
+### Priority tiers you'll see
+
+| Tier | Icon | Sound | Pin | Rate limit | Examples |
+|---|---|---|---|---|---|
+| 🔴 **P0 CRITICAL** | 🔴 | 🔔 loud | ✅ auto-pin | unlimited | Task crashed, integration DOWN, DB down |
+| 🟠 **P1 ACTION** | 🟠 | 🔔 | ❌ | 3 / 15 min | Integration DEGRADED, manual approvals |
+| 🟡 **P2 UPDATE** | 🟡 | silent push | ❌ | 12 / hr | Task created/completed, new knowledge crystal |
+| 🔵 **P3 INFO** | 🔵 | never | ❌ | digest only | Routine per-step pipeline progress |
+
+When P.A. decides Telegram spam is starting, it silently drops events into the next
+hourly digest instead. Target: ≤ 3 Telegram messages/day + 1 end-of-day digest =
+**mission success**. 30 messages/day = **mission failure** (use `/mute 4h`).
+
+### Admin commands you can send to the bot in Telegram
+
+- `/mute 4h` — suppress P2/P3 for 4 hours (P0/P1 always alert)
+- `/mute P2` — permanently suppress P2 tier until `/unmute P2`
+- `/unmute` / `/unmute P2` — restore
+- `/digest` — send rolling summary right now
+
+### Step 1. Create the bot via BotFather (3 clicks)
+
+1. Open <https://t.me/BotFather> in Telegram.
+2. Send: `/newbot`
+3. Answer BotFather's prompts (friendly name, username ending in `bot`).
+4. BotFather replies with an HTTP API token that looks like:
+   ```
+   1234567890:ABCdefGhIjkLmnOpQrStUvWxYz0123456789
+   ```
+   **This is `TELEGRAM_BOT_TOKEN`.** Copy it.
+
+### Step 2. Get your private chat id (so bot DMs *you*, not a stranger)
+
+1. BotFather also printed a link: `t.me/<your_bot_username>`. Open it.
+2. Click **START** at the bottom (required — bots can't message you first).
+3. Send any message to your bot, e.g. "hello monster agent".
+4. Visit this URL in a browser:
+   ```
+   https://api.telegram.org/bot<REPLACE_WITH_BOT_TOKEN>/getUpdates
+   ```
+5. Look for `result[0].message.chat.id` — it's a **positive integer** for a private DM
+   (group/channel ids are negative or `@channelname`). Example output:
+   ```json
+   {"ok":true,"result":[{"update_id":1234,
+     "message":{"message_id":1,"chat":{"id":987654321,"first_name":"You","type":"private"},
+                "text":"hello monster agent"}}]}
+   ```
+6. **`987654321` = `TELEGRAM_CHAT_ID`.** Copy it.
+
+### Step 3. Admin ids
+
+- **`TELEGRAM_ADMIN_IDS`** = comma-separated list of Telegram numeric user IDs who are
+  allowed to run `/mute`, `/unmute`, `/digest`. For a single-person deployment it's
+  just your own chat id again:
+  ```
+  TELEGRAM_ADMIN_IDS=987654321
+  ```
+- For a team, append: `TELEGRAM_ADMIN_IDS=987654321,1122334455`
+
+### Step 4. Save as Worker secrets + redeploy (already listed above in ① Step 2)
+
+```bash
+cd /Users/Apple/Code/zc-ai-assistant/backend-worker
+npx wrangler secret put TELEGRAM_BOT_TOKEN
+npx wrangler secret put TELEGRAM_CHAT_ID
+npx wrangler secret put TELEGRAM_ADMIN_IDS
+npx wrangler secret list   # expect 17 rows
+npx wrangler deploy       # restart container with new env
+```
+
+### Step 5. Smoke test Telegram end-to-end (after backend is live)
+
+```bash
+# Trigger a task → you should see a 🟡 P2 "Task created" alert in ~10 s.
+curl -sSX POST https://monster-agent-backend.YOUR_ACCOUNT_PREFIX.workers.dev/api/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{"description":"Smoke test: list 3 low-risk things a personal AI assistant could automate for me today and rank by ROI"}'
+
+# Expected in your Telegram DMs (within ~15 s after task creation):
+#   🟡 [P2 · UPDATE]  Task created  ·  id=7a3f…
+#     Smoke test: list 3 low-risk…
+#
+# ~90 s later (after pipeline finishes):
+#   🟡 [P2 · UPDATE]  Task completed  ·  confidence=96 %
+#     1. Sort Gmail inbox  2. Calendar block  3. Crystalize last week's notes
+#     → /view full report  → /share doc  → /crystalize
+```
+
+**Emergency spam kill switch** — if P.A. misbehaves and spams you:
+1. Send `/mute 8h` in Telegram (immediate).
+2. Or blank out the token + redeploy (stops Telegram cold):
+   ```bash
+   printf '' | npx wrangler secret put TELEGRAM_BOT_TOKEN
+   npx wrangler deploy
+   ```
+   Events still accumulate in the P.A. digest buffer until you re-enable.
+
+---
+
+## ⑥ Dashboard URLs
 
 Open these daily:
 

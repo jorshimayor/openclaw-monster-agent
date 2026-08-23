@@ -17,35 +17,43 @@
 //   npm install --legacy-peer-deps
 //   npx wrangler login
 //
-//   # Paste secrets:
-//   npx wrangler secret put DATABASE_URL                 ← Neon pooled OR Hyperdrive
+//   # Paste secrets (run ONE LINE AT A TIME so zsh doesn't glob comments):
+//   npx wrangler secret put DATABASE_URL
 //   npx wrangler secret put NVIDIA_NIM_API_KEY
 //   npx wrangler secret put GROQ_API_KEY
 //   npx wrangler secret put GITHUB_TOKEN
 //   npx wrangler secret put NOTION_TOKEN
-//   npx wrangler secret put NOTION_DB_ID                 (or empty string via printf '' |wrangler secret put …)
+//   npx wrangler secret put NOTION_DB_ID
 //   npx wrangler secret put SLACK_BOT_TOKEN
-//   npx wrangler secret put SLACK_USER_TOKEN             (optional: empty)
-//   npx wrangler secret put HASHNODE_TOKEN               (optional: empty)
-//   npx wrangler secret put HASHNODE_PUBLICATION_ID      (optional: empty)
+//   npx wrangler secret put SLACK_USER_TOKEN
+//   # ⚠️  HASHNODE RETIRED 2026-08-23: needs Pro. Skip these 2 secrets (14 + 3 Telegram = 15 total).
 //   npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_ID
 //   npx wrangler secret put GOOGLE_WORKSPACE_CLIENT_SECRET
 //   npx wrangler secret put GOOGLE_WORKSPACE_REFRESH_TOKEN
 //   npx wrangler secret put GOOGLE_WORKSPACE_SUBJECT_EMAIL
 //
-//   # Build + push Docker image to Cloudflare registry, then deploy Worker:
-//   npm run container:deploy
+//   # Personal Assistant Telegram notifications (3 secrets → 15 total):
+//   npx wrangler secret put TELEGRAM_BOT_TOKEN
+//   npx wrangler secret put TELEGRAM_CHAT_ID
+//   npx wrangler secret put TELEGRAM_ADMIN_IDS
+//
+//   # Verify: expect 15 rows (12 core + 3 Telegram):
+//   npx wrangler secret list
+//
+//   # Build + push Docker image to Cloudflare registry, then deploy Worker
+//   # (all in one — wrangler deploy builds container automatically):
+//   npx wrangler deploy
 //
 // Expect to see:
 //   Published monster-agent-backend (....)
 //     https://monster-agent-backend.<yourname>.workers.dev
 //
 // Then copy that URL into the Pages frontend's NEXT_PUBLIC_API_BASE_URL env
-// (wrangler.jsonc at repo root) and re-deploy Pages (see README §).
+// (wrangler.jsonc at repo root) and re-deploy Pages (see deploy README).
 //
 // Container details:
-//   image:            containers/backend/Dockerfile  (python:3.12-slim + uvicorn)
-//   context:          repo root (copies backend/src, backend/requirements.txt)
+//   image:            ../containers/backend/Dockerfile  (python:3.12-slim + uvicorn)
+//   context:          repo root (build_context: ..  copies backend/src, backend/requirements.txt)
 //   container_port:   8000    (uvicorn default; defaultPort in BackendContainer class)
 //   instance_type:    basic   (1/4 vCPU · 1 GiB RAM · 4 GiB disk — $0 for idle)
 //   max_instances:    4
@@ -58,31 +66,52 @@
   "compatibility_flags": ["nodejs_compat"],
 
   // ——— Container application (Docker image) ————————————————————————————————
-  // One entry in `containers[]` per Dockerized service. The `name` field is
-  // referenced by the Durable Object export `container:` field below.
+  // One entry in `containers[]` per Dockerized service. The `class_name` links
+  // this container to a Durable Object class exported by src/index.ts.
+  //
+  // `image` can be:
+  //   • a path to a Dockerfile  →  wrangler deploy builds + pushes image for you
+  //   • a path to a directory containing `Dockerfile`
+  //   • a fully qualified registry ref such as registry.cloudflare.com/<id>/<img>:<tag>
+  //
+  // `image_build_context` (optional) is the docker build context root. Relative paths
+  //  are resolved from this file's parent directory (backend-worker/); we use `..`
+  //  (repo root) so the Dockerfile's `COPY backend/src /app/src` and
+  //  `COPY containers/backend/start.sh` can reach both the backend source tree
+  //  and the container helper scripts.
   "containers": [
     {
-      "name": "monster-agent-api",
       "class_name": "BackendContainer",
-      "image": "./containers/backend/Dockerfile",
+      "image": "../containers/backend/Dockerfile",
       "image_build_context": "..",
       "max_instances": 4,
-      "instance_type": "basic",
-      "image_vars": {}
+      "instance_type": "basic"
     }
   ],
 
-  // ——— Declarative Durable Object exports ——————————————————————————————————
-  // This is how the Worker exposes `BackendContainer` as a DO named
-  // `BACKEND_CONTAINER` and attaches the container defined above to it.
-  "exports": {
-    "BACKEND_CONTAINER": {
-      "type": "durable-object",
-      "state": "created",
-      "storage": "sqlite",
-      "container": "monster-agent-api"
-    }
+  // ——— Durable Object binding ——————————————————————————————————————————————
+  // Exposes `BackendContainer` (the class exported from src/index.ts) to the
+  // Worker as the Durable Object namespace `BACKEND_CONTAINER`. Because the
+  // containers[] entry above also declares `class_name = "BackendContainer"`,
+  // Cloudflare wires each DO instance to its own container instance.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "BACKEND_CONTAINER",
+        "class_name": "BackendContainer"
+      }
+    ]
   },
+
+  // ——— Migration registers the Durable Object class on first deploy ————————
+  // After the first successful `wrangler deploy`, the tag is remembered and
+  // this migration is a no-op on subsequent pushes.
+  "migrations": [
+    {
+      "tag": "v1-backend-container",
+      "new_sqlite_classes": ["BackendContainer"]
+    }
+  ],
 
   // ——— Non-secret defaults (override via secret put for production) ————————
   "vars": {
@@ -91,13 +120,5 @@
     "LLM_FALLBACK_ORDER": "[\"nvidia_nim\",\"groq\"]",
     "LOG_LEVEL": "INFO",
     "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\",\"http://localhost:8080\",\"*\"]"
-  },
-
-  // ——— Migration for initial durable object registration ———————————————————
-  "migrations": [
-    {
-      "tag": "v1-backend-container",
-      "new_sqlite_classes": ["BackendContainer"]
-    }
-  ]
+  }
 }

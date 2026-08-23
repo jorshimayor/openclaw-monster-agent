@@ -51,7 +51,7 @@ export function LogPanel({ entries }: LogPanelProps) {
   return (
     <div
       ref={ref}
-      className="h-[420px] overflow-auto bg-black/60 border border-matrix/30 rounded p-4 text-xs font-mono leading-relaxed"
+      className="h-[420px] overflow-auto bg-bg/60 border border-matrix/30 rounded p-4 text-xs font-mono leading-relaxed"
     >
       <div className="space-y-0.5">
         {data.map((l, i) => (

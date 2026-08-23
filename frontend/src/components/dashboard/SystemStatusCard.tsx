@@ -79,8 +79,8 @@ export default function SystemStatusCard() {
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
                   health.status === "online"
-                    ? "bg-green-400 animate-pulse"
-                    : "bg-red-500"
+                    ? "bg-success animate-pulse"
+                    : "bg-danger"
                 }`}
               />
               {health.status.toUpperCase()}
@@ -93,7 +93,7 @@ export default function SystemStatusCard() {
           {items.map((it) => (
             <div
               key={it.label}
-              className="rounded border border-matrix/20 bg-black/40 p-4"
+              className="rounded border border-matrix/20 bg-bg/50 p-4"
             >
               <div className="flex items-center gap-2 text-matrix-dim text-[10px] tracking-widest mb-2">
                 {it.icon}

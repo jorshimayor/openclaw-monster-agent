@@ -16,9 +16,9 @@ from ..core.logging import get_logger
 from .registry import McpToolRegistry, Tool
 from .servers.github import GithubMcpServer
 from .servers.google_workspace import GoogleWorkspaceMcpServer
-from .servers.hashnode import HashnodeMcpServer
 from .servers.notion import NotionMcpServer
 from .servers.slack import SlackMcpServer
+from .servers.telegram import TelegramMcpServer
 
 logger = get_logger("mcp.manager")
 
@@ -27,7 +27,7 @@ SUPPORTED_SERVERS: List[str] = [
     "notion",
     "google_workspace",
     "slack",
-    "hashnode",
+    "telegram",
 ]
 
 
@@ -169,10 +169,11 @@ class McpServerManager:
                     default_channel=self.settings.slack_channel,
                 ),
             },
-            "hashnode": {
-                "instance": HashnodeMcpServer(
-                    token=self.settings.hashnode_token,
-                    publication_id=self.settings.hashnode_publication_id,
+            "telegram": {
+                "instance": TelegramMcpServer(
+                    bot_token=self.settings.telegram_bot_token,
+                    chat_id=self.settings.telegram_chat_id,
+                    admin_ids=self.settings.telegram_admin_ids,
                     repo_root=repo_root,
                 ),
             },

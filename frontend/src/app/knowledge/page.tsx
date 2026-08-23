@@ -153,7 +153,7 @@ export default function KnowledgePage() {
 
       {error && (
         <Card>
-          <CardContent className="pt-6 text-red-400 text-xs tracking-wider">
+          <CardContent className="pt-6 text-danger text-xs tracking-wider">
             ERROR: {error}
           </CardContent>
         </Card>
@@ -170,7 +170,7 @@ export default function KnowledgePage() {
                 if (!e.target.value) setQueryResults(null);
               }}
               placeholder="Semantic search crystals (e.g. 'reentrancy audit strategies')..."
-              className="w-full bg-black/40 border border-matrix/30 rounded pl-11 pr-28 py-2.5 text-sm focus:border-matrix focus:outline-none focus:shadow-matrix-glow placeholder:text-matrix-dim/50"
+              className="w-full bg-bg/50 border border-matrix/30 rounded pl-11 pr-28 py-2.5 text-sm focus:border-matrix focus:outline-none focus:shadow-matrix-glow placeholder:text-matrix-dim/50"
             />
             <Button
               type="submit"
@@ -263,7 +263,7 @@ export default function KnowledgePage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-matrix/90 leading-relaxed bg-black/40 border border-matrix/20 rounded p-4 whitespace-pre-wrap">
+                <p className="text-sm text-matrix/90 leading-relaxed bg-bg/50 border border-matrix/20 rounded p-4 whitespace-pre-wrap">
                   {c.content}
                 </p>
               </CardContent>

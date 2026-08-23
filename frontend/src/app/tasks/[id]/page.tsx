@@ -239,7 +239,7 @@ export default function TaskDetailPage() {
 
       {error && (
         <Card>
-          <CardContent className="pt-6 text-red-400">
+          <CardContent className="pt-6 text-danger">
             ERROR: {error}
           </CardContent>
         </Card>
@@ -275,7 +275,7 @@ export default function TaskDetailPage() {
               <div className="text-xs text-matrix-dim tracking-widest mb-2">
                 DESCRIPTION
               </div>
-              <div className="text-sm leading-relaxed bg-black/40 border border-matrix/20 rounded p-4">
+              <div className="text-sm leading-relaxed bg-bg/50 border border-matrix/20 rounded p-4">
                 {task.description}
               </div>
             </CardContent>
@@ -309,7 +309,7 @@ export default function TaskDetailPage() {
                 <CardTitle className="text-sm tracking-widest">FINAL REPORT</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="text-xs text-matrix/90 whitespace-pre-wrap leading-relaxed bg-black/40 border border-matrix/20 rounded p-4">
+                <pre className="text-xs text-matrix/90 whitespace-pre-wrap leading-relaxed bg-bg/50 border border-matrix/20 rounded p-4">
                   {finalReport}
                 </pre>
               </CardContent>
@@ -331,7 +331,7 @@ export default function TaskDetailPage() {
                 mergedOutputs.map((o, i) => (
                   <div
                     key={i}
-                    className="border border-matrix/30 rounded p-4 bg-black/40"
+                    className="border border-matrix/30 rounded p-4 bg-bg/50"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="text-sm font-bold tracking-wider">
@@ -357,7 +357,7 @@ export default function TaskDetailPage() {
                           : String(o.output ?? "")}
                     </pre>
                     {o.errors && o.errors.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-matrix/20 text-red-400 text-xs">
+                      <div className="mt-3 pt-3 border-t border-matrix/20 text-danger text-xs">
                         ERRORS: {o.errors.join(" · ")}
                       </div>
                     )}

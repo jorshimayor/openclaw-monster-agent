@@ -6,9 +6,10 @@
     "deploy": "npx wrangler deploy",
     "dev": "npx wrangler dev",
     "build": "tsc -p tsconfig.json --noEmit",
-    "container:build": "npx wrangler containers build -t monster-agent-backend:latest .",
-    "container:push": "npx wrangler containers push monster-agent-backend:latest",
-    "container:deploy": "npm run container:build && npm run container:push && npm run deploy"
+    "whoami": "npx wrangler whoami",
+    "login": "npx wrangler login",
+    "secrets:list": "npx wrangler secret list",
+    "tail": "npx wrangler tail"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260101.0",

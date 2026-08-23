@@ -46,6 +46,15 @@ async def lifespan(app: FastAPI):
         logger.warning("mcp_manager_init_failed", error=str(e))
         mcp_manager = None
     try:
+        from ..agents.bus import get_event_bus
+
+        loop = asyncio.get_running_loop()
+        bus = get_event_bus()
+        bus.start(mcp_manager=mcp_manager, loop=loop)
+    except Exception as e:
+        logger.warning("agent_event_bus_init_failed", error=str(e))
+        bus = None
+    try:
         knowledge_memory = ExperienceMemory()
     except Exception as e:
         logger.warning("knowledge_memory_init_failed", error=str(e))
@@ -116,6 +125,14 @@ async def lifespan(app: FastAPI):
             await mcp_manager.stop_all()
         except Exception as e:
             logger.error("mcp_manager_shutdown_failed", error=str(e))
+    try:
+        from ..agents.bus import get_event_bus
+
+        bus = get_event_bus()
+        if bus._started:
+            await bus.stop()
+    except Exception as e:
+        logger.error("agent_event_bus_shutdown_failed", error=str(e))
     try:
         await dispose_db()
     except Exception as e:

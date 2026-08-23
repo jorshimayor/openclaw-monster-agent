@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from ...agents.bus import get_event_bus
 from ...core.logging import get_logger
 from ...core.types import Task, TaskStatus
 from ..sse import EventSourceResponse
@@ -66,6 +67,13 @@ async def create_task(
     _TASK_STORE[tid] = task
     executor = _get_executor(request)
 
+    # ── Notify Personal Assistant Agent: TASK_CREATED ──────────────────
+    try:
+        bus = get_event_bus()
+        bus.emit_task_created(tid, body.description)
+    except Exception as exc:
+        logger.warning("task_create_bus_emit_failed", error=str(exc))
+
     async def _event_callback(event: Dict[str, Any]) -> None:
         stored = _TASK_STORE.get(tid)
         if stored is None:
@@ -82,12 +90,60 @@ async def create_task(
                 stored.status = TaskStatus.FAILED
                 stored.outputs["error"] = "Pipeline executor not initialized"
             logger.warning("pipeline_executor_missing", task_id=tid)
+            try:
+                get_event_bus().emit_task_failed(
+                    tid, body.description,
+                    "Pipeline executor not initialized in app.state",
+                )
+            except Exception:
+                pass
             return
         try:
             current = _TASK_STORE.get(tid)
             if current is not None:
                 current.status = TaskStatus.RUNNING
+            try:
+                bus = get_event_bus()
+                bus.emit(
+                    type("AgentBusEvent", (), {})()
+                ) if False else None  # no-op; pipeline_start handled in executor._emit
+            except Exception:
+                pass
             await executor.run(task, event_callback=_event_callback)
+
+            final_status = task.status
+            final_conf = 0.0
+            final_report = ""
+            if isinstance(task.outputs, dict):
+                final_conf = float(task.outputs.get("overall_confidence", 0.0))
+                final_report = str(task.outputs.get("final_report", ""))
+            if final_status == TaskStatus.COMPLETED:
+                try:
+                    get_event_bus().emit_task_completed(
+                        tid, body.description, final_conf, final_report,
+                    )
+                except Exception:
+                    pass
+            elif final_status in (TaskStatus.FAILED, TaskStatus.CANCELLED):
+                err_msg = final_report or str(task.outputs.get("error", "")) or "Unknown"
+                try:
+                    if final_status == TaskStatus.CANCELLED:
+                        # CANCELLED is P2 (not a crash)
+                        from ...core.types import AgentEventKind, AgentEventPriority, AgentBusEvent
+                        get_event_bus().emit(AgentBusEvent(
+                            kind=AgentEventKind.TASK_CANCELLED,
+                            priority=AgentEventPriority.P2_UPDATE,
+                            task_id=task.id,
+                            title="Task cancelled",
+                            summary=err_msg[:180],
+                            details={"description": body.description, "error": err_msg},
+                        ))
+                    else:
+                        get_event_bus().emit_task_failed(
+                            tid, body.description, err_msg,
+                        )
+                except Exception:
+                    pass
         except Exception as exc:
             logger.exception("pipeline_bg_task_failed", task_id=tid, error=str(exc))
             stored = _TASK_STORE.get(tid)
@@ -99,6 +155,12 @@ async def create_task(
                     stored.status = TaskStatus.FAILED
                 if isinstance(stored.outputs, dict):
                     stored.outputs["pipeline_error"] = str(exc)
+            try:
+                get_event_bus().emit_task_failed(
+                    tid, body.description, str(exc),
+                )
+            except Exception:
+                pass
         finally:
             stored = _TASK_STORE.get(tid)
             if stored is not None and isinstance(stored.outputs, dict):

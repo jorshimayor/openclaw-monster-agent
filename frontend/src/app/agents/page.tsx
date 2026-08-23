@@ -261,13 +261,13 @@ export default function AgentsPage() {
                 onChange={(e) => setModalPrompt(e.target.value)}
                 disabled={invokeState?.invoking}
                 rows={8}
-                className="w-full bg-black/40 border border-matrix/30 rounded p-3 text-sm focus:border-matrix focus:outline-none focus:shadow-matrix-glow placeholder:text-matrix-dim/50 font-mono resize-y disabled:opacity-60"
+                className="w-full bg-bg/50 border border-matrix/30 rounded p-3 text-sm focus:border-matrix focus:outline-none focus:shadow-matrix-glow placeholder:text-matrix-dim/50 font-mono resize-y disabled:opacity-60"
                 placeholder="Enter prompt or context object to pass to agent.invoke(context)"
               />
             </div>
 
             {invokeState?.error && (
-              <div className="border border-red-400/30 bg-red-400/10 rounded p-3 text-xs text-red-400 tracking-wider">
+              <div className="border border-danger/30 bg-danger/10 rounded p-3 text-xs text-danger tracking-wider">
                 ⚠ {invokeState.error}
               </div>
             )}
@@ -299,7 +299,7 @@ export default function AgentsPage() {
                             ? "bg-matrix shadow-matrix-glow"
                             : confidencePct(invokeState.result.confidence) >= 40
                             ? "bg-matrix/70"
-                            : "bg-red-400/80"
+                            : "bg-danger/80"
                         }`}
                         style={{
                           width: `${confidencePct(invokeState.result.confidence)}%`
@@ -320,7 +320,7 @@ export default function AgentsPage() {
                   </div>
                 )}
 
-                <div className="bg-black/40 border border-matrix/20 rounded">
+                <div className="bg-bg/50 border border-matrix/20 rounded">
                   <div className="flex items-center justify-between px-3 py-2 border-b border-matrix/10">
                     <div className="text-[10px] tracking-widest text-matrix-dim font-mono">
                       AGENT OUTPUT

@@ -86,10 +86,27 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("database_url", "DATABASE_URL"),
     )
 
+    # ⚠️  RETIRED 2026-08-23: Hashnode now requires Pro for API access (content API discontinued on free tier).
+    # Fields kept here for back-compat only; hashnode is REMOVED from McpServerManager.SUPPORTED_SERVERS
+    # and will never be launched at runtime. To re-enable later: re-add "hashnode" to SUPPORTED_SERVERS +
+    # restore hashnode spec entry in _build_server_specs() + re-run hashnode secret put commands.
     hashnode_token: str = Field(default="", validation_alias=AliasChoices("hashnode_token", "HASHNODE_TOKEN"))
     hashnode_publication_id: str = Field(
         default="",
         validation_alias=AliasChoices("hashnode_publication_id", "HASHNODE_PUBLICATION_ID"),
+    )
+
+    telegram_bot_token: str = Field(
+        default="",
+        validation_alias=AliasChoices("telegram_bot_token", "TELEGRAM_BOT_TOKEN"),
+    )
+    telegram_chat_id: str = Field(
+        default="",
+        validation_alias=AliasChoices("telegram_chat_id", "TELEGRAM_CHAT_ID"),
+    )
+    telegram_admin_ids: List[str] = Field(
+        default_factory=list,
+        validation_alias=AliasChoices("telegram_admin_ids", "TELEGRAM_ADMIN_IDS"),
     )
 
     backend_cors_origins: List[AnyHttpUrl] = Field(
@@ -162,6 +179,7 @@ class Settings(BaseSettings):
 
     agent_roles: List[str] = Field(
         default_factory=lambda: [
+            "PERSONAL_ASSISTANT",
             "ORCHESTRATOR",
             "CONTENT_WEB2",
             "CONTENT_WEB3",
@@ -198,6 +216,8 @@ class Settings(BaseSettings):
                 "SLACK_USER_TOKEN": flag(self.slack_user_token),
                 "GOOGLE_WORKSPACE_CLIENT_ID": flag(self.google_workspace_client_id),
                 "GOOGLE_WORKSPACE_REFRESH_TOKEN": flag(self.google_workspace_refresh_token),
+                "TELEGRAM_BOT_TOKEN": flag(self.telegram_bot_token),
+                "TELEGRAM_CHAT_ID": flag(self.telegram_chat_id),
                 "DATABASE_URL": flag(self.database_url),
             },
             "cwd": str(Path.cwd()),

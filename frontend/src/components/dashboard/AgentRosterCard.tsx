@@ -42,7 +42,7 @@ export default function AgentRosterCard() {
                 </div>
               </div>
               <Badge variant="success" className="gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                 IDLE
               </Badge>
             </div>

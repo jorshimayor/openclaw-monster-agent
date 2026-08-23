@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, TYPE_CHECKING
 from ..core.config import Settings
 from ..core.logging import get_logger
 from ..core.types import AgentRole, PipelineStep, Task, TaskStatus
+from ..agents.bus import get_event_bus
 from . import steps as pipeline_steps
 from .patterns import PATTERN_CONFIGS, WorkflowPattern, match_pattern
 
@@ -63,6 +64,19 @@ class PipelineExecutor:
         buf.append(event)
         state["events"] = buf
         self.tasks[tid] = state
+
+        # ── Report every pipeline milestone to the Personal Assistant Agent ─
+        try:
+            bus = get_event_bus()
+            desc = task.description if isinstance(task.description, str) else ""
+            bus.emit_pipeline_step(tid, step_name, data or {}, description=desc)
+            if step_name == "pipeline_start":
+                bus.emit(
+                    type("AgentBusEvent", (), {})()  # type: ignore[misc]
+                ) if False else None
+        except Exception as exc:
+            logger.warning("pipeline_bus_emit_failed", error=str(exc))
+
         if event_callback is not None:
             try:
                 cb = event_callback(event)

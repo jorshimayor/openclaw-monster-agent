@@ -64,7 +64,7 @@ export default function TasksPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the task... (e.g. 'Research Solana memecoins Q3 2026 and write a Twitter thread')"
-              className="w-full h-32 bg-black/40 border border-matrix/30 rounded p-4 text-sm focus:border-matrix focus:outline-none focus:shadow-matrix-glow placeholder:text-matrix-dim/50 resize-none"
+              className="w-full h-32 bg-bg/50 border border-matrix/30 rounded p-4 text-sm focus:border-matrix focus:outline-none focus:shadow-matrix-glow placeholder:text-matrix-dim/50 resize-none"
             />
             <div className="flex justify-end">
               <Button type="submit" variant="matrix" disabled={loading}>

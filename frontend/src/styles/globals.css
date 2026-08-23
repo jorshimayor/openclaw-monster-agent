@@ -2,18 +2,110 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --color-matrix: #00ff41;
-  --color-matrix-dim: #008f20;
-  --color-bg: #0a0a0a;
-  --color-bg-panel: #0f1110;
-  --color-bg-border: #1a1f1c;
+/* ═══════════════════════════════════════════════════════════════════════════
+   Theme tokens — applied to <html data-theme="..."> by ThemeProvider.
+   All component styles reference these CSS variables, so switching themes
+   is a single attribute write — no React re-render required for visuals.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root,
+html[data-theme="matrix"] {
+  --theme-accent: #00ff41;
+  --theme-accent-dim: #008f20;
+  --theme-accent-fg: #0a0a0a;
+  --theme-bg: #0a0a0a;
+  --theme-bg-panel: #0f1110;
+  --theme-bg-border: #1a1f1c;
+  --theme-text: #00ff41;
+  --theme-text-dim: #008f20;
+  --theme-success: #34d399;
+  --theme-warning: #fbbf24;
+  --theme-danger: #f87171;
+  --theme-mode: dark;
+}
+
+html[data-theme="cyberpunk"] {
+  --theme-accent: #ff2bd6;
+  --theme-accent-dim: #a21caf;
+  --theme-accent-fg: #08060f;
+  --theme-bg: #08060f;
+  --theme-bg-panel: #100a1e;
+  --theme-bg-border: #2a1a3e;
+  --theme-text: #f0abfc;
+  --theme-text-dim: #a21caf;
+  --theme-success: #22d3ee;
+  --theme-warning: #fbbf24;
+  --theme-danger: #fb7185;
+  --theme-mode: dark;
+}
+
+html[data-theme="aurora"] {
+  --theme-accent: #5eead4;
+  --theme-accent-dim: #14b8a6;
+  --theme-accent-fg: #02111a;
+  --theme-bg: #02111a;
+  --theme-bg-panel: #062030;
+  --theme-bg-border: #0f3a52;
+  --theme-text: #ccfbf1;
+  --theme-text-dim: #14b8a6;
+  --theme-success: #34d399;
+  --theme-warning: #fbbf24;
+  --theme-danger: #fb7185;
+  --theme-mode: dark;
+}
+
+html[data-theme="slate"] {
+  --theme-accent: #60a5fa;
+  --theme-accent-dim: #3b82f6;
+  --theme-accent-fg: #0b1220;
+  --theme-bg: #0b1220;
+  --theme-bg-panel: #111827;
+  --theme-bg-border: #1f2937;
+  --theme-text: #e5e7eb;
+  --theme-text-dim: #94a3b8;
+  --theme-success: #34d399;
+  --theme-warning: #fbbf24;
+  --theme-danger: #f87171;
+  --theme-mode: dark;
+}
+
+html[data-theme="sunset"] {
+  --theme-accent: #fb923c;
+  --theme-accent-dim: #d97706;
+  --theme-accent-fg: #140a06;
+  --theme-bg: #140a06;
+  --theme-bg-panel: #1c120a;
+  --theme-bg-border: #3a2415;
+  --theme-text: #fed7aa;
+  --theme-text-dim: #d97706;
+  --theme-success: #4ade80;
+  --theme-warning: #facc15;
+  --theme-danger: #f87171;
+  --theme-mode: dark;
+}
+
+html[data-theme="minimal"] {
+  --theme-accent: #111827;
+  --theme-accent-dim: #4b5563;
+  --theme-accent-fg: #fafaf9;
+  --theme-bg: #fafaf9;
+  --theme-bg-panel: #ffffff;
+  --theme-bg-border: #e5e7eb;
+  --theme-text: #111827;
+  --theme-text-dim: #6b7280;
+  --theme-success: #059669;
+  --theme-warning: #d97706;
+  --theme-danger: #dc2626;
+  --theme-mode: light;
 }
 
 body {
-  background-color: #0a0a0a;
-  color: #00ff41;
+  background-color: var(--theme-bg);
+  color: var(--theme-text);
   font-family: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  transition:
+    background-color 200ms ease,
+    color 200ms ease;
 }
 
 ::-webkit-scrollbar {
@@ -22,27 +114,28 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: var(--theme-bg);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #008f20;
+  background: var(--theme-accent-dim);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00ff41;
+  background: var(--theme-accent);
 }
 
 ::selection {
-  background: #00ff41;
-  color: #0a0a0a;
+  background: var(--theme-accent);
+  color: var(--theme-accent-fg);
 }
 
 html {
   scroll-behavior: smooth;
 }
 
+/* Effects overlay — respects theme via CSS var opacity tint */
 .scanlines {
   position: relative;
   overflow: hidden;
@@ -54,8 +147,8 @@ html {
   inset: 0;
   background: repeating-linear-gradient(
     0deg,
-    rgba(0, 255, 65, 0.03) 0px,
-    rgba(0, 255, 65, 0.03) 1px,
+    color-mix(in srgb, var(--theme-accent) 3%, transparent) 0px,
+    color-mix(in srgb, var(--theme-accent) 3%, transparent) 1px,
     transparent 1px,
     transparent 3px
   );
@@ -63,13 +156,56 @@ html {
   z-index: 50;
 }
 
+html[data-theme="minimal"] .scanlines::before {
+  display: none;
+}
+
 .glow-text {
-  text-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
+  color: var(--theme-text);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--theme-accent) 60%, transparent);
+}
+
+html[data-theme="minimal"] .glow-text {
+  text-shadow: none;
 }
 
 .hud-border {
-  border: 1px solid rgba(0, 255, 65, 0.3);
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 30%, transparent);
   box-shadow:
-    0 0 12px rgba(0, 255, 65, 0.15),
-    inset 0 0 12px rgba(0, 255, 65, 0.05);
+    0 0 12px color-mix(in srgb, var(--theme-accent) 15%, transparent),
+    inset 0 0 12px color-mix(in srgb, var(--theme-accent) 5%, transparent);
+}
+
+html[data-theme="minimal"] .hud-border {
+  box-shadow: none;
+}
+
+/* Panel tint — used for bg-black/40 etc. in themes; becomes theme-bg-panel in light mode */
+.panel-tint {
+  background-color: color-mix(
+    in srgb,
+    var(--theme-bg) 80%,
+    var(--theme-bg-panel)
+  );
+}
+
+/* Pulse ring for the accent color */
+@keyframes theme-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 8px color-mix(in srgb, var(--theme-accent) 60%, transparent);
+  }
+  50% {
+    opacity: 0.65;
+    box-shadow: 0 0 20px color-mix(in srgb, var(--theme-accent) 90%, transparent);
+  }
+}
+
+.animate-theme-pulse {
+  animation: theme-pulse 1.5s ease-in-out infinite;
+}
+
+html[data-theme="minimal"] .animate-theme-pulse {
+  animation: none;
 }
