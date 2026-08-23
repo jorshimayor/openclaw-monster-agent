@@ -75,8 +75,10 @@ class CrystallizedKnowledgeStore:
                 logger.info("notion_worker_cancelled")
                 return
             except Exception as exc:
+                # A failing get() is unrecoverable (e.g. the owning event loop
+                # was closed); retrying would busy-loop the thread forever.
                 logger.exception("notion_worker_queue_error", error=str(exc))
-                continue
+                return
             try:
                 async for attempt in AsyncRetrying(
                     stop=stop_after_attempt(3),

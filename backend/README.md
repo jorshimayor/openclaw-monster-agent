@@ -4,7 +4,7 @@
 
 ### Requirements
 
-- **Python 3.11+** (3.12 OK; 3.13 if you built from \`pyproject.toml configured)
+- **Python 3.12** for the local `.venv` — this matches production (`python:3.12-slim`, see `containers/backend/Dockerfile`). `pyproject.toml` allows `^3.11`, but keep the venv on 3.12 so local behavior matches the container. Rebuild it with e.g. `uv venv --python 3.12 .venv && uv pip install --no-build -r requirements.txt pytest 'pytest-asyncio>=0.24,<0.25' 'respx==0.21.*'`.
 - **poetry** (recommended) **OR** `pip`)
 
 ### Install
