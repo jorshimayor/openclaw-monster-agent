@@ -129,4 +129,43 @@ export default {
     }
     return new Response(resp.body, { status: resp.status, headers });
   },
+
+  /**
+   * Scheduled tasks — the assistant works unprompted. Each cron submits a
+   * task into the normal pipeline; results reach Telegram through the
+   * personal-assistant bus (task-completed alerts). Crons are UTC.
+   */
+  async scheduled(event: ScheduledController, env: Env): Promise<void> {
+    const stub = getContainer(env.BACKEND_CONTAINER, "backend-primary");
+    const submit = (description: string) =>
+      stub.fetch(
+        new Request("http://container/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ description }),
+        })
+      );
+
+    switch (event.cron) {
+      // Monday 06:00 UTC = 07:00 WAT — week planning brief
+      case "0 6 * * 1":
+        await submit(
+          "Weekly planning (scheduled): produce a concrete day-by-day plan for this week. " +
+            "I'm a software engineer in Lagos (WAT) building fieldtilt, a football data & publishing " +
+            "platform, as portfolio evidence for football-industry jobs. Structure: the one mandatory " +
+            "BUILD task, content to publish on X/LinkedIn, outreach, and evening/weekend time slots " +
+            "around a day job. Check my Google Calendar for conflicts if available. End with the top " +
+            "3 priorities for Monday."
+        );
+        break;
+      // Daily 05:30 UTC = 06:30 WAT — morning brief
+      case "30 5 * * *":
+        await submit(
+          "Morning brief (scheduled): summarize today in under 200 words — my Google Calendar events " +
+            "for today if available, the single most important task to move forward, and one reminder " +
+            "from my current week plan. Keep it scannable; it lands on Telegram."
+        );
+        break;
+    }
+  },
 };

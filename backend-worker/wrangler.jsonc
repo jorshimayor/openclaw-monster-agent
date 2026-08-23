@@ -62,6 +62,9 @@
   "$schema": "../frontend/node_modules/wrangler/config-schema.json",
   "name": "monster-agent-backend",
   "main": "src/index.ts",
+  // Scheduled assistant runs (UTC): Mon 06:00 weekly plan · daily 05:30 morning brief.
+  // Both land in Telegram via the personal-assistant bus when the task completes.
+  "triggers": { "crons": ["0 6 * * 1", "30 5 * * *"] },
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
