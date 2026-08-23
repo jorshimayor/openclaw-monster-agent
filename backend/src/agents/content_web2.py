@@ -15,8 +15,7 @@ class ContentWeb2Agent(Agent):
     role: AgentRole = AgentRole.CONTENT_WEB2
     model_profile: str = "groq/llama-3.1-8b-instant"
     tool_allowlist: List[str] = [
-        "github.read_file",
-        "github.read_repo",
+        "github.get_file_contents",
         "notion.*",
         "google_workspace.docs_read",
         "hashnode.read_posts",
@@ -41,17 +40,15 @@ class ContentWeb2Agent(Agent):
         github_repo_ref = context.get("github_repo", "jorshimayor/*")
 
         try:
-            if tool_matches(tool_names, "github.read_repo") or any(
-                tool_matches(self.tool_allowlist, n) and "github.read_repo" in n for n in tool_names
-            ) or (tool_names and "github.read_repo" in tool_names):
+            if tool_names and "github.get_file_contents" in tool_names:
                 repo_result = await _call_tool(
-                    "github.read_repo",
+                    "github.get_file_contents",
                     {"repo": github_repo_ref},
                     transport=mcp_transport,
                 )
                 if not repo_result.get("skipped"):
                     references.append(
-                        f"[github.read_repo] {github_repo_ref}: {json.dumps(repo_result, default=str)[:600]}"
+                        f"[github.get_file_contents] {github_repo_ref}: {json.dumps(repo_result, default=str)[:600]}"
                     )
         except Exception as tool_err:
             logger.warning("content_web2_github_tool_failed", error=str(tool_err))

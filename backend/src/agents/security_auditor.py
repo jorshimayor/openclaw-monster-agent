@@ -15,8 +15,7 @@ class SecurityAuditorAgent(Agent):
     role: AgentRole = AgentRole.SECURITY
     model_profile: str = "groq/gpt-oss-120b"
     tool_allowlist: List[str] = [
-        "github.read_file",
-        "github.read_repo",
+        "github.get_file_contents",
         "github.list_commits",
         "notion.*",
         "slack.send_message",
@@ -41,24 +40,25 @@ class SecurityAuditorAgent(Agent):
         pulled_code_snippets: List[str] = []
 
         try:
-            if "github.read_repo" in tool_names or any(
-                tool_matches(self.tool_allowlist, n) and "read_repo" in n for n in tool_names
+            if "github.get_file_contents" in tool_names or any(
+                tool_matches(self.tool_allowlist, n) and "get_file_contents" in n for n in tool_names
             ):
+                owner, _, repo_name = github_repo_ref.partition("/")
                 repo_result = await _call_tool(
-                    "github.read_repo",
-                    {"repo": github_repo_ref},
+                    "github.get_file_contents",
+                    {"owner": owner or "jorshimayor", "repo": repo_name or github_repo_ref, "path": ""},
                     transport=mcp_transport,
                 )
                 if not repo_result.get("skipped"):
                     pulled_code_snippets.append(
-                        f"[github.read_repo] {github_repo_ref} tree: {json.dumps(repo_result, default=str)[:800]}"
+                        f"[github.get_file_contents] {github_repo_ref} tree: {json.dumps(repo_result, default=str)[:800]}"
                     )
         except Exception as tool_err:
             logger.warning("security_auditor_github_repo_failed", error=str(tool_err))
 
         try:
-            if "github.read_file" in tool_names or any(
-                tool_matches(self.tool_allowlist, n) and "read_file" in n for n in tool_names
+            if "github.get_file_contents" in tool_names or any(
+                tool_matches(self.tool_allowlist, n) and "get_file_contents" in n for n in tool_names
             ):
                 contract_paths = context.get(
                     "contract_paths",
@@ -66,14 +66,15 @@ class SecurityAuditorAgent(Agent):
                 )
                 for cp in contract_paths[:2]:
                     try:
+                        owner, _, repo_name = github_repo_ref.partition("/")
                         file_result = await _call_tool(
-                            "github.read_file",
-                            {"repo": github_repo_ref, "path": cp},
+                            "github.get_file_contents",
+                            {"owner": owner or "jorshimayor", "repo": repo_name or github_repo_ref, "path": cp},
                             transport=mcp_transport,
                         )
                         if not file_result.get("skipped"):
                             pulled_code_snippets.append(
-                                f"[github.read_file:{cp}] {json.dumps(file_result, default=str)[:1200]}"
+                                f"[github.get_file_contents:{cp}] {json.dumps(file_result, default=str)[:1200]}"
                             )
                     except Exception as inner_err:
                         logger.warning(

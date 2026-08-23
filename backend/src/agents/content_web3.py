@@ -15,9 +15,8 @@ class ContentWeb3Agent(Agent):
     role: AgentRole = AgentRole.CONTENT_WEB3
     model_profile: str = "groq/gpt-oss-120b"
     tool_allowlist: List[str] = [
-        "github.read_file",
-        "github.read_repo",
-        "github.read_prs",
+        "github.get_file_contents",
+        "github.list_pull_requests",
         "github.list_commits",
         "notion.*",
         "hashnode.read_posts",
@@ -42,33 +41,35 @@ class ContentWeb3Agent(Agent):
         github_repo_ref = context.get("github_repo", "jorshimayor/*")
 
         try:
-            if "github.read_repo" in tool_names or any(
-                tool_matches(self.tool_allowlist, n) and "read_repo" in n for n in tool_names
+            if "github.get_file_contents" in tool_names or any(
+                tool_matches(self.tool_allowlist, n) and "get_file_contents" in n for n in tool_names
             ):
+                owner, _, repo_name = github_repo_ref.partition("/")
                 repo_result = await _call_tool(
-                    "github.read_repo",
-                    {"repo": github_repo_ref},
+                    "github.get_file_contents",
+                    {"owner": owner or "jorshimayor", "repo": repo_name or github_repo_ref, "path": ""},
                     transport=mcp_transport,
                 )
                 if not repo_result.get("skipped"):
                     code_refs.append(
-                        f"[github.read_repo] {github_repo_ref}: {json.dumps(repo_result, default=str)[:600]}"
+                        f"[github.get_file_contents] {github_repo_ref}: {json.dumps(repo_result, default=str)[:600]}"
                     )
         except Exception as tool_err:
             logger.warning("content_web3_github_repo_tool_failed", error=str(tool_err))
 
         try:
-            if "github.read_prs" in tool_names or any(
-                tool_matches(self.tool_allowlist, n) and "read_prs" in n for n in tool_names
+            if "github.list_pull_requests" in tool_names or any(
+                tool_matches(self.tool_allowlist, n) and "list_pull_requests" in n for n in tool_names
             ):
+                owner, _, repo_name = github_repo_ref.partition("/")
                 prs_result = await _call_tool(
-                    "github.read_prs",
-                    {"repo": github_repo_ref, "state": "closed", "limit": 10},
+                    "github.list_pull_requests",
+                    {"owner": owner or "jorshimayor", "repo": repo_name or github_repo_ref, "state": "closed", "perPage": 10},
                     transport=mcp_transport,
                 )
                 if not prs_result.get("skipped"):
                     code_refs.append(
-                        f"[github.read_prs] recent audits/PRs: {json.dumps(prs_result, default=str)[:600]}"
+                        f"[github.list_pull_requests] recent audits/PRs: {json.dumps(prs_result, default=str)[:600]}"
                     )
         except Exception as tool_err:
             logger.warning("content_web3_github_prs_tool_failed", error=str(tool_err))

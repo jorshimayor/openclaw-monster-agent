@@ -17,17 +17,35 @@ class GithubMcpServer:
 
     def exposed_tools(self) -> List[Tool]:
         return [
+            # Tool names/schemas MUST match what @modelcontextprotocol/server-github
+            # actually serves (verified via tools/list) — a declared name the real
+            # server doesn't know fails every agent call with "Unknown tool".
             Tool(
-                name="read_repo",
-                description="Read repository contents and metadata",
+                name="get_file_contents",
+                description="Read a file or directory listing from a repository",
                 input_schema={
                     "type": "object",
                     "properties": {
                         "owner": {"type": "string"},
                         "repo": {"type": "string"},
                         "path": {"type": "string"},
+                        "branch": {"type": "string"},
                     },
-                    "required": ["owner", "repo"],
+                    "required": ["owner", "repo", "path"],
+                },
+                server="github",
+            ),
+            Tool(
+                name="search_repositories",
+                description="Search GitHub repositories",
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"},
+                        "page": {"type": "integer"},
+                        "perPage": {"type": "integer"},
+                    },
+                    "required": ["query"],
                 },
                 server="github",
             ),
@@ -39,16 +57,17 @@ class GithubMcpServer:
                     "properties": {
                         "owner": {"type": "string"},
                         "repo": {"type": "string"},
-                        "branch": {"type": "string"},
-                        "limit": {"type": "integer", "default": 20},
+                        "sha": {"type": "string"},
+                        "page": {"type": "integer"},
+                        "perPage": {"type": "integer"},
                     },
                     "required": ["owner", "repo"],
                 },
                 server="github",
             ),
             Tool(
-                name="read_prs",
-                description="Read open and recent pull requests",
+                name="list_pull_requests",
+                description="List open and recent pull requests",
                 input_schema={
                     "type": "object",
                     "properties": {

@@ -16,15 +16,15 @@ pytestmark = pytest.mark.asyncio
 
 
 async def test_call_tool_no_transport_returns_skipped():
-    result = await _call_tool("github.read_repo", {"repo": "test/repo"}, transport=None)
+    result = await _call_tool("github.get_file_contents", {"owner": "test", "repo": "repo", "path": ""}, transport=None)
     assert result == {"skipped": True, "reason": "no_mcp_transport"}
 
 
 def test_tool_matches_globs():
     allowlist = ["github.*", "notion.create_page", "google_workspace.*_doc"]
 
-    assert tool_matches(allowlist, "github.read_file") is True
-    assert tool_matches(allowlist, "github.read_repo") is True
+    assert tool_matches(allowlist, "github.get_file_contents") is True
+    assert tool_matches(allowlist, "github.list_commits") is True
     assert tool_matches(allowlist, "github.anything") is True
     assert tool_matches(allowlist, "notion.create_page") is True
     assert tool_matches(allowlist, "notion.read_page") is False
@@ -55,7 +55,7 @@ async def test_content_web2_agent_github_tool_fallback_graceful():
             self._proc.stdin.drain = AsyncMock()
 
     agent = ContentWeb2Agent()
-    tools = [Tool(name="github.read_repo", description="read repo tree")]
+    tools = [Tool(name="github.get_file_contents", description="read repo tree")]
 
     context_good = {
         "title": "Test",
