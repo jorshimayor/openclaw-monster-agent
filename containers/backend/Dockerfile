@@ -10,9 +10,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# Install system libs for asyncpg wheels + Rust crypto (cryptography), curl for health
+# Install system libs for asyncpg wheels + Rust crypto (cryptography), curl for health,
+# and Node.js + npm — the MCP servers (github/notion/slack/google_workspace) are spawned
+# via `npx`; without node they all report "down" (verified in production via /api/mcp/doctor).
 RUN apt-get update -y && \
-    apt-get install -y --no-install-recommends build-essential libssl-dev pkg-config curl && \
+    apt-get install -y --no-install-recommends build-essential libssl-dev pkg-config curl nodejs npm && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

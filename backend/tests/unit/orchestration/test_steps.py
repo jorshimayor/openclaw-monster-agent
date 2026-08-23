@@ -171,9 +171,14 @@ async def test_step6_parallel_execution_stub():
     assert status == "OK"
     assert state["execution_seconds"] >= 0.0
     assert len(state["all_outputs"]) >= 1
-    for out in state["all_outputs"]:
+    # State contract: steps return model_dump()'d state (JSON-safe — it goes
+    # into task.outputs and Postgres JSONB). Consumers coerce via
+    # ensure_agent_results; assert that round-trip is lossless.
+    coerced = pipeline_steps.ensure_agent_results(state["all_outputs"])
+    for out in coerced:
         assert isinstance(out, AgentResult)
         assert isinstance(out.output, str)
+        assert 0.0 <= out.confidence <= 1.0
 
 
 @pytest.mark.asyncio
@@ -292,8 +297,11 @@ async def test_step8_quality_gate_fail_triggers_step9_branch():
     assert fix_state["stop_after"] is True
     assert fix_state["single_rework_performed"] is True
     assert len(fix_state["reworked_outputs"]) == len(failed)
-    for out in fix_state["reworked_outputs"]:
+    # Same state contract as step6: dumped dicts, coercible losslessly.
+    for out in pipeline_steps.ensure_agent_results(fix_state["reworked_outputs"]):
         assert isinstance(out, AgentResult)
+        # A stub rework (no LLM) must not smuggle in an error-crash output.
+        assert "rework failed" not in out.output
 
 
 @pytest.mark.asyncio
@@ -378,7 +386,10 @@ def test_workflow_graph_builder_builds_dag():
         assert "step10_synthesize" in succ
         assert "step9_fix" in succ
         succ9 = list(graph.successors("step9_fix"))
-        assert "step7_verify" in succ9
+        # Rework re-verification is a distinct bounded node (matches the
+        # executor's "step7b_reverify" event), keeping the graph a true DAG.
+        assert "step7b_reverify" in succ9
+        assert "step10_synthesize" in graph.successors("step7b_reverify")
 
 
 @pytest.mark.asyncio

@@ -127,10 +127,23 @@ class WorkflowGraphBuilder:
             "step9_fix",
             condition="FAIL",
         )
+        # Rework is a BOUNDED second verifier pass (the executor emits it as
+        # "step7b_reverify"), not a loop back to step 7 — a literal back-edge
+        # made the graph cyclic and failed DAG validation.
+        graph.add_node(
+            "step7b_reverify",
+            step=PipelineStep.VERIFIER,
+            label="Step 7b: Re-verify Reworked Outputs",
+        )
         graph.add_edge(
             "step9_fix",
-            "step7_verify",
+            "step7b_reverify",
             condition="REWORK",
+        )
+        graph.add_edge(
+            "step7b_reverify",
+            "step10_synthesize",
+            condition="default",
         )
 
         cycles = list(nx.simple_cycles(graph))

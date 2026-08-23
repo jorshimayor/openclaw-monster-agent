@@ -8,7 +8,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from ..core.config import get_settings
-from ..core.db import create_all_tables, dispose_db, init_db
+from ..core.db import create_all_tables, dispose_db, init_db, is_db_available
+
+
+def _is_db_available_safe() -> bool:
+    try:
+        return is_db_available()
+    except Exception:
+        return False
 from ..core.logging import configure_logging, get_logger
 from ..knowledge.memory import ExperienceMemory
 from ..knowledge.store import CrystallizedKnowledgeStore
@@ -162,6 +169,187 @@ def create_app() -> FastAPI:
     @app.get("/api/health", tags=["system"])
     async def health() -> Dict[str, str]:
         return {"status": "ok", "version": "1.0.0"}
+
+    @app.get("/api/health/diag", tags=["system"])
+    async def health_diag() -> Dict[str, Any]:
+        try:
+            s = get_settings()
+        except Exception as e:
+            import traceback as _tb
+            tb_lines = _tb.format_exc(limit=8).splitlines()
+            err_payload: Dict[str, Any] = {
+                "type": type(e).__name__,
+                "message": str(e),
+                "trace_tail": tb_lines[-6:],
+            }
+            return {
+                "status": "settings_validation_error",
+                "version": "1.0.0",
+                "settings_load_failed": True,
+                "settings_error": err_payload,
+                "hint": "Most common: TELEGRAM_ADMIN_IDS env var numeric. Ensure secret put uses a STRING (value with quotes pasted fine). Fix: re-run secret put TELEGRAM_ADMIN_IDS with STRING value.",
+            }
+        try:
+            db_url = s.database_url or ""
+            db_redacted = ""
+            if db_url:
+                try:
+                    from urllib.parse import urlparse
+                    # Strip DATABASE_URL= prefix if user accidentally pasted whole .env line as secret value
+                    url_for_parse = db_url
+                    if "=" in url_for_parse and url_for_parse.lower().startswith("database_url="):
+                        url_for_parse = url_for_parse.split("=", 1)[1]
+                    up = urlparse(url_for_parse)
+                    host_snip = (up.hostname or "")[:16]
+                    port_snip = f":{up.port}" if up.port else ""
+                    db_redacted = f"{up.scheme or 'unknown'}:***@{host_snip}{port_snip}{(up.path or '')[:24]}"
+                except Exception:
+                    db_redacted = f"<{len(db_url)} chars>"
+            telegram_token_present = bool(s.telegram_bot_token)
+            telegram_token_pfx = s.telegram_bot_token[:8] + "…" if telegram_token_present else ""
+            cors_origins: List[str] = []
+            try:
+                cors_origins = [str(o).rstrip("/").strip().strip("`").strip("'\"") for o in s.backend_cors_origins]
+            except Exception:
+                cors_origins = []
+            mcp_manager = _app_state.get("mcp_manager")
+            running_servers: List[str] = []
+            server_errors: Dict[str, str] = {}
+            configured_servers: List[str] = []
+            dead_processes: Dict[str, Dict[str, Any]] = {}
+            if mcp_manager is not None:
+                specs = getattr(mcp_manager, "_specs", {}) or {}
+                configured_servers = sorted(specs.keys())
+                procs = getattr(mcp_manager, "_processes", {}) or {}
+                for name, proc in procs.items():
+                    try:
+                        rc = proc.poll()
+                        if rc is None:
+                            running_servers.append(name)
+                        else:
+                            # Dead process — read stderr tail if pipe still accessible
+                            try:
+                                import asyncio as _aio
+                                loop_safe = _aio.get_event_loop()
+                            except Exception:
+                                loop_safe = None
+                            stderr_tail = ""
+                            if loop_safe is not None and not loop_safe.is_closed():
+                                try:
+                                    # best-effort: just read buffer from stderr attr; don't await inside sync handler
+                                    stderr_raw = getattr(proc.stderr, "_buffer", b"")
+                                    if stderr_raw:
+                                        stderr_tail = stderr_raw.decode("utf-8", errors="replace")[-400:]
+                                except Exception:
+                                    stderr_tail = ""
+                            dp: Dict[str, Any] = {"exit_code": rc}
+                            if stderr_tail:
+                                dp["stderr_tail"] = stderr_tail
+                            dead_processes[name] = dp
+                    except Exception:
+                        pass
+                start_errs = getattr(mcp_manager, "_start_errors", {}) or {}
+                for name, err in start_errs.items():
+                    if err:
+                        server_errors[name] = str(err)[:300]
+                # For processes that died after spawn passed the liveness check (later crash),
+                # surface as errors too.
+                for name, info in dead_processes.items():
+                    if name in server_errors:
+                        continue
+                    rc = info.get("exit_code")
+                    tail = info.get("stderr_tail", "")
+                    msg = f"process exited with code {rc}"
+                    if tail:
+                        msg += f": {tail}"
+                    server_errors[name] = msg[:300]
+                transports = getattr(mcp_manager, "_transports", {}) or {}
+                for name in configured_servers:
+                    if name in server_errors or name in running_servers:
+                        continue
+                    try:
+                        tr = transports.get(name)
+                        if tr is None and name not in procs:
+                            server_errors[name] = "never started (no process, no transport)"
+                    except Exception:
+                        pass
+            mcp_servers_block: Dict[str, Any] = {
+                "configured": configured_servers,
+                "running": running_servers,
+                "errors": server_errors,
+            }
+            if dead_processes:
+                mcp_servers_block["dead_processes"] = dead_processes
+            llm_r = _app_state.get("llm_router")
+            llm_profiles_ok: List[str] = []
+            raw_providers = {}
+            if llm_r is not None:
+                raw_providers = getattr(llm_r, "_providers", {}) or {}
+                _ok: List[str] = []
+                for name, p_obj in raw_providers.items():
+                    try:
+                        if isinstance(p_obj, dict):
+                            flags = [p_obj.get("ok"), p_obj.get("available"), p_obj.get("api_key")]
+                        else:
+                            flags = [
+                                getattr(p_obj, "ok", None),
+                                getattr(p_obj, "available", None),
+                                bool(getattr(p_obj, "api_key", None)),
+                                bool(getattr(p_obj, "_api_key", None)),
+                                bool(getattr(p_obj, "base_url", None)),
+                            ]
+                        if any(f for f in flags if f not in (None, "", False, 0, [], {})):
+                            _ok.append(name)
+                    except Exception:
+                        pass
+                llm_profiles_ok = sorted(_ok)[:20]
+            return {
+                "status": "ok",
+                "version": "1.0.0",
+                "database": {
+                    "configured": bool(db_url),
+                    "redacted": db_redacted,
+                    # Honest signal: is the async engine actually initialized?
+                    # (The old value checked logger+executor and reported True
+                    # even while init_db was failing on the URL scheme.)
+                    "engine_initialized": _is_db_available_safe(),
+                },
+                "telegram": {
+                    "bot_token_present": telegram_token_present,
+                    "bot_token_prefix": telegram_token_pfx,
+                    "chat_id": (s.telegram_chat_id or "")[:16] + ("…" if len(s.telegram_chat_id or "") > 16 else ""),
+                    "chat_id_present": bool(s.telegram_chat_id),
+                    "admin_ids_count": len(s.telegram_admin_ids),
+                    "admin_ids_present": [
+                        (aid[:4] + "…" + aid[-2:] if len(aid) > 6 else aid) for aid in s.telegram_admin_ids
+                    ],
+                    "mcp_server_running": "telegram" in running_servers,
+                    "mcp_startup_error": server_errors.get("telegram"),
+                },
+                "mcp_servers": mcp_servers_block,
+                "llm": {
+                    "profiles_configured_count": len(raw_providers),
+                    "profiles_with_keys": llm_profiles_ok,
+                    "router_initialized": llm_r is not None,
+                },
+                "cors_origins": cors_origins,
+                "log_level": s.log_level,
+                "pipeline_executor_initialized": _app_state.get("pipeline_executor") is not None,
+                "agent_event_bus_running": _app_state.get("logger") is not None,
+            }
+        except Exception as e:
+            import traceback as _tb
+            tb_lines = _tb.format_exc(limit=12).splitlines()
+            return {
+                "status": "handler_error",
+                "version": "1.0.0",
+                "settings_load_succeeded": True,
+                "handler_error": {
+                    "type": type(e).__name__,
+                    "message": str(e),
+                    "trace_tail": tb_lines[-8:],
+                },
+            }
 
     @app.post("/api/llm/test", tags=["system"])
     async def llm_test(body: LLMTestRequest) -> Dict[str, Any]:

@@ -9,13 +9,13 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.src.api.main import app as fastapi_app
-from backend.src.core.config import Settings, get_settings
-from backend.src.core.types import AgentRole, Task, TaskStatus
-from backend.src.knowledge.memory import ExperienceMemory
-from backend.src.knowledge.store import CrystallizedKnowledgeStore
-from backend.src.mcp.manager import McpServerStatus
-from backend.src.orchestration.pipeline import PipelineExecutor
+from src.api.main import app as fastapi_app
+from src.core.config import Settings, get_settings
+from src.core.types import AgentRole, Task, TaskStatus
+from src.knowledge.memory import ExperienceMemory
+from src.knowledge.store import CrystallizedKnowledgeStore
+from src.mcp.manager import McpServerStatus
+from src.orchestration.pipeline import PipelineExecutor
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 

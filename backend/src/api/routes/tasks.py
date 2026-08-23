@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, List, Optional
 from uuid import UUID, uuid4
 
@@ -10,6 +11,7 @@ from pydantic import BaseModel
 
 from ...agents.bus import get_event_bus
 from ...core.logging import get_logger
+from ...core.task_repo import load_recent_tasks, load_task, save_task
 from ...core.types import Task, TaskStatus
 from ..sse import EventSourceResponse
 
@@ -34,7 +36,11 @@ async def list_tasks(
     limit: int = 50,
 ):
     logger.info("tasks_list_requested", skip=skip, limit=limit)
-    items = list(_TASK_STORE.values())
+    # Postgres is the durable record; overlay hot in-memory copies (fresher
+    # for tasks currently running in this process).
+    merged: Dict[str, Task] = {str(t.id): t for t in await load_recent_tasks(limit=max(1, limit + skip))}
+    merged.update({tid: t for tid, t in _TASK_STORE.items()})
+    items = list(merged.values())
     items.sort(
         key=lambda t: (
             t.outputs.get("created_at") if isinstance(t.outputs, dict) else ""
@@ -64,7 +70,9 @@ async def create_task(
         outputs={},
     )
     tid = str(task.id)
+    task.outputs["created_at"] = datetime.now(timezone.utc).isoformat()
     _TASK_STORE[tid] = task
+    await save_task(task)  # durable row exists before we return the id
     executor = _get_executor(request)
 
     # ── Notify Personal Assistant Agent: TASK_CREATED ──────────────────
@@ -82,6 +90,9 @@ async def create_task(
             stored.outputs = {}
         buf: List[Dict[str, Any]] = stored.outputs.setdefault("event_buffer", [])
         buf.append(event)
+        # Write-through: ~a dozen events per pipeline run, so persisting each
+        # keeps Postgres current at negligible cost.
+        await save_task(stored)
 
     async def _run_pipeline() -> None:
         if executor is None:
@@ -102,6 +113,7 @@ async def create_task(
             current = _TASK_STORE.get(tid)
             if current is not None:
                 current.status = TaskStatus.RUNNING
+                await save_task(current)
             try:
                 bus = get_event_bus()
                 bus.emit(
@@ -165,6 +177,8 @@ async def create_task(
             stored = _TASK_STORE.get(tid)
             if stored is not None and isinstance(stored.outputs, dict):
                 stored.outputs["_stream_done"] = True
+            if stored is not None:
+                await save_task(stored)  # final durable state
 
     asyncio.create_task(_run_pipeline())
     return task
@@ -177,6 +191,9 @@ async def get_task(
 ):
     logger.info("task_get_requested", task_id=str(task_id))
     stored = _TASK_STORE.get(str(task_id))
+    if stored is None:
+        # Fall back to Postgres — the task may predate this container.
+        stored = await load_task(task_id)
     if stored is None:
         raise HTTPException(status_code=404, detail=f"Task {task_id} not found")
     return stored
@@ -271,6 +288,7 @@ async def cancel_task(
         pass
     else:
         stored.status = TaskStatus.CANCELLED
+        await save_task(stored)
     return {
         "task_id": str(task_id),
         "cancelled": True,

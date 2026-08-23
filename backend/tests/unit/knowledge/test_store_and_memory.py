@@ -108,9 +108,9 @@ def test_store_add_and_list():
         id2 = await store.add(c2)
         assert id1 == str(c1.id)
         assert id2 == str(c2.id)
-        all_items = store.list(limit=50)
+        all_items = await store.list(limit=50)
         assert len(all_items) == 2
-        web3_items = store.list(category="ethereum", limit=50)
+        web3_items = await store.list(category="ethereum", limit=50)
         assert len(web3_items) >= 1
         web3_entities = [e.lower() for c in web3_items for e in c.entities]
         assert "ethereum" in web3_entities

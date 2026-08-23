@@ -403,6 +403,68 @@ async def _invoke_agent(
     )
 
 
+def role_str(role: Any) -> str:
+    """AgentResult uses use_enum_values=True, so agent_role is a plain str
+    after validation — `.value` on it raises. Use this everywhere instead."""
+    return role.value if hasattr(role, "value") else str(role)
+
+
+def ensure_agent_results(outputs: List[Any]) -> List[AgentResult]:
+    """Coerce a mixed list into AgentResult models.
+
+    Two things legitimately produce dicts here: (a) an agent subclass that
+    forgot to wrap LLMRouter.generate()'s dict, and (b) — the one that bit us
+    in production — pipeline steps returning `state.model_dump()`, which
+    serializes nested AgentResults to dicts that later steps then consume as
+    if they were models (`.confidence` → AttributeError on 'dict'). Every
+    step boundary that consumes prior-step state must pass through this.
+    """
+    normalized: List[AgentResult] = []
+    for i, raw in enumerate(outputs):
+        if isinstance(raw, AgentResult):
+            normalized.append(raw)
+            continue
+        if isinstance(raw, dict):
+            role_raw = raw.get("agent_role") or raw.get("role")
+            try:
+                role = AgentRole(role_raw) if role_raw else AgentRole.ORCHESTRATOR
+            except Exception:
+                role = AgentRole.ORCHESTRATOR
+            try:
+                conf = float(raw.get("confidence") or 0.3)
+            except (TypeError, ValueError):
+                conf = 0.3
+            normalized.append(
+                AgentResult(
+                    agent_role=role,
+                    output=str(raw.get("output") or raw.get("response") or str(raw)),
+                    confidence=max(0.0, min(1.0, conf)),
+                    errors=[str(raw.get("error"))] if raw.get("error") else None,
+                )
+            )
+            logger.warning(
+                "agent_result_coerced_from_dict",
+                index=i,
+                role=role.value if hasattr(role, "value") else str(role),
+                keys=sorted(raw.keys())[:12],
+            )
+        else:
+            normalized.append(
+                AgentResult(
+                    agent_role=AgentRole.ORCHESTRATOR,
+                    output=f"[Unexpected result type {type(raw).__name__}] {str(raw)[:400]}",
+                    confidence=0.1,
+                    errors=[f"Unsupported invoke() return type: {type(raw).__name__}"],
+                )
+            )
+            logger.warning(
+                "agent_result_unknown_type",
+                index=i,
+                result_type=type(raw).__name__,
+            )
+    return normalized
+
+
 async def step7_verifier(
     outputs: List[AgentResult],
     verifier_agent: Optional["Agent"],
@@ -411,6 +473,8 @@ async def step7_verifier(
     ttl_seconds: int = 3600,
     confidence_threshold: float = 0.7,
 ) -> Tuple[StepResult, Dict[str, Any]]:
+    outputs = ensure_agent_results(outputs)
+
     verified: List[Dict[str, Any]] = []
     passed = 0
     failed = 0
@@ -557,7 +621,12 @@ async def step9_fix_and_revalidate(
 ) -> Tuple[StepResult, Dict[str, Any]]:
     reworked: List[AgentResult] = []
     for item in failed_outputs_with_feedback:
-        original: AgentResult = item["original_output"]
+        # original_output arrives as a dict when the prior step state was
+        # model_dump()'d; some producers hand the output fields flat on the
+        # item itself. Normalize either shape before attribute access.
+        original: AgentResult = ensure_agent_results(
+            [item.get("original_output", item)]
+        )[0]
         feedback = item.get("feedback", "No feedback provided")
         role = original.agent_role
         prompt = (
@@ -573,7 +642,7 @@ async def step9_fix_and_revalidate(
                 reworked.append(
                     AgentResult(
                         agent_role=role,
-                        output=result.get("response", f"[reworked stub for {role.value}]"),
+                        output=result.get("response", f"[reworked stub for {role_str(role)}]"),
                         confidence=0.65,
                         errors=None,
                     )
@@ -582,7 +651,7 @@ async def step9_fix_and_revalidate(
                 reworked.append(
                     AgentResult(
                         agent_role=role,
-                        output=f"[stub rework for {role.value}] feedback: {feedback[:120]}",
+                        output=f"[stub rework for {role_str(role)}] feedback: {feedback[:120]}",
                         confidence=0.4,
                         errors=["No LLM available for rework"],
                     )
@@ -617,13 +686,16 @@ async def step10_synthesizer(
     tools: Optional[List[Any]] = None,
     task_description: str = "",
 ) -> Tuple[StepResult, Dict[str, Any]]:
+    # Prior-step state arrives model_dump()'d — coerce dicts back to models
+    # (this exact line was the production 'dict has no attribute confidence').
+    approved_outputs = ensure_agent_results(approved_outputs)
     confidences: Dict[str, float] = {}
     overall_conf = 0.0
     sections: List[str] = []
     for i, out in enumerate(approved_outputs, 1):
-        confidences[out.agent_role.value] = out.confidence
+        confidences[role_str(out.agent_role)] = out.confidence
         sections.append(
-            f"## Output from {out.agent_role.value} (confidence {out.confidence:.2f})\n\n{out.output}"
+            f"## Output from {role_str(out.agent_role)} (confidence {out.confidence:.2f})\n\n{out.output}"
         )
     if approved_outputs:
         overall_conf = sum(o.confidence for o in approved_outputs) / len(approved_outputs)
@@ -700,7 +772,7 @@ async def step11_post_task_reflection(
             from ..core.types import KnowledgeCrystals
 
             crystals = KnowledgeCrystals(
-                entities=([kresult.agent_role.value] if kresult.agent_role else []),
+                entities=([role_str(kresult.agent_role)] if kresult.agent_role else []),
                 strategies=[],
                 pitfalls=[],
                 frameworks=[],

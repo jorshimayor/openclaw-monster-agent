@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 from typing import Any, Dict, List, Tuple
 
 from ...core.logging import get_logger
@@ -422,15 +423,18 @@ class TelegramMcpServer:
         ]
 
     def server_command(self) -> Tuple[str, List[str], Dict[str, Any]]:
-        cmd = "node"
-        args = ["-e", _TELEGRAM_SHIM_CODE]
+        shim_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "telegram_shim.py"))
+        py = sys.executable or "python3"
+        # -u = completely unbuffered stdin/stdout/stderr (prevents hanging on pipe write)
+        # -I = isolated mode (ignores user site-packages to keep sandbox clean); optional, omit for now
+        args = ["-u", shim_path]
         env = {
             "TELEGRAM_BOT_TOKEN": self.bot_token,
             "TELEGRAM_CHAT_ID": self.chat_id,
             "TELEGRAM_ADMIN_IDS": ",".join(self.admin_ids),
-            "NODE_PATH": os.environ.get("NODE_PATH", ""),
+            "PYTHONUNBUFFERED": "1",
         }
-        return cmd, args, env
+        return py, args, env
 
     async def start(self) -> asyncio.subprocess.Process:
         cmd, args, env = self.server_command()

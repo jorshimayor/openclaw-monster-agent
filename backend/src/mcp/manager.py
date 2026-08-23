@@ -138,6 +138,7 @@ class McpServerManager:
         self._transports: Dict[str, McpStdioTransport] = {}
         self._specs: Dict[str, Dict[str, Any]] = {}
         self._probe_results: Dict[str, Dict[str, Any]] = {}
+        self._start_errors: Dict[str, str] = {}
         self._log = get_logger("mcp.manager")
 
     def _build_server_specs(self) -> Dict[str, Dict[str, Any]]:
@@ -181,10 +182,12 @@ class McpServerManager:
 
     async def start_all(self) -> None:
         self._specs = self._build_server_specs()
+        self._start_errors = {}
         for server_name in SUPPORTED_SERVERS:
             try:
                 await self._start_single(server_name)
             except Exception as exc:
+                self._start_errors[server_name] = f"{type(exc).__name__}: {exc}"
                 self._log.exception(
                     "server_start_failed",
                     server=server_name,
@@ -215,6 +218,26 @@ class McpServerManager:
                 error=str(exc),
             )
             raise
+        # Liveness check: wait 2.0 s then detect immediate process death.
+        # The basic Cloudflare Containers tier is 1/4 vCPU and Python startup +
+        # urllib import can take > 0.5 s on cold start. Wait longer so we reliably
+        # capture syntax errors, missing files, import errors inside the shim, etc.
+        try:
+            rc = await asyncio.wait_for(proc.wait(), timeout=2.0)
+        except asyncio.TimeoutError:
+            rc = None
+        if rc is not None:
+            stderr_tail = ""
+            try:
+                _, stderr_bytes = await asyncio.wait_for(proc.communicate(), timeout=2.0)
+                stderr_tail = (stderr_bytes or b"").decode("utf-8", errors="replace")[-600:]
+            except Exception:
+                pass
+            raise RuntimeError(
+                f"Server '{server_name}' exited immediately with code {rc}. "
+                f"cmd={cmd} args_preview={args[:2] if args else []}. "
+                f"stderr_tail={stderr_tail}"
+            )
         transport = McpStdioTransport(proc, server_name)
         await transport.start()
         self._processes[server_name] = proc

@@ -1,14 +1,15 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import Any, Dict, List
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from backend.src.api.main import app as fastapi_app
-from backend.src.core.types import AgentRole, AgentResult
-from backend.src.mcp.manager import McpServerStatus
+from src.api.main import app as fastapi_app
+from src.core.types import AgentRole, AgentResult
+from src.mcp.manager import McpServerStatus
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -50,16 +51,17 @@ def test_llm_test_mocked_returns_response(app, monkeypatch: pytest.MonkeyPatch) 
     assert len(body["response"]) > 0
 
 
-def test_list_agents_returns_8(app) -> None:
+def test_list_agents_returns_9(app) -> None:
     response = app.get("/api/agents")
     assert response.status_code == 200
     body = response.json()
     assert isinstance(body, list)
-    assert len(body) == 8, f"Expected 8 agents, got {len(body)}"
+    # 9 since the PERSONAL_ASSISTANT agent joined the roster
+    assert len(body) == 9, f"Expected 9 agents, got {len(body)}"
 
 
 def test_get_single_agent(app) -> None:
-    response = app.get("/api/agents/security_auditor")
+    response = app.get("/api/agents/security")
     assert response.status_code == 200
     body = response.json()
     assert "role" in body
@@ -92,7 +94,7 @@ def test_invoke_agent_security_auditor_mocked(
         monkeypatch.setattr(router, "generate", fake_generate)
 
     response = app.post(
-        "/api/agents/security_auditor/invoke",
+        "/api/agents/security/invoke",
         json={"context": {"code": "contract Demo {}", "prompt": "audit this"}},
     )
     assert response.status_code == 200
@@ -164,13 +166,13 @@ def test_mcp_doctor_probe_unknown_404(app, monkeypatch: pytest.MonkeyPatch) -> N
 
 
 def test_knowledge_list_empty_200(app, monkeypatch: pytest.MonkeyPatch) -> None:
-    from backend.src.core.config import get_settings
-    from backend.src.knowledge.memory import ExperienceMemory
-    from backend.src.knowledge.store import CrystallizedKnowledgeStore
+    from src.core.config import get_settings
+    from src.knowledge.memory import ExperienceMemory
+    from src.knowledge.store import CrystallizedKnowledgeStore
 
     settings = get_settings()
     empty_store = CrystallizedKnowledgeStore(settings, memory=ExperienceMemory())
-    monkeypatch.setattr(fastapi_app.state, "knowledge_store", empty_store)
+    monkeypatch.setattr(fastapi_app.state, "knowledge_store", empty_store, raising=False)
 
     response = app.get("/api/knowledge")
     assert response.status_code == 200
@@ -180,13 +182,13 @@ def test_knowledge_list_empty_200(app, monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_knowledge_query_200(app, monkeypatch: pytest.MonkeyPatch) -> None:
-    from backend.src.core.config import get_settings
-    from backend.src.knowledge.memory import ExperienceMemory
-    from backend.src.knowledge.store import CrystallizedKnowledgeStore
+    from src.core.config import get_settings
+    from src.knowledge.memory import ExperienceMemory
+    from src.knowledge.store import CrystallizedKnowledgeStore
 
     settings = get_settings()
     store = CrystallizedKnowledgeStore(settings, memory=ExperienceMemory())
-    monkeypatch.setattr(fastapi_app.state, "knowledge_store", store)
+    monkeypatch.setattr(fastapi_app.state, "knowledge_store", store, raising=False)
 
     response = app.post(
         "/api/knowledge/query",
@@ -205,10 +207,10 @@ def test_task_submit_and_stream_sse(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from unittest.mock import MagicMock as _MagicMock, AsyncMock as _AsyncMock
-    from backend.src.core.config import get_settings
-    from backend.src.knowledge.memory import ExperienceMemory
-    from backend.src.knowledge.store import CrystallizedKnowledgeStore
-    from backend.src.orchestration.pipeline import PipelineExecutor
+    from src.core.config import get_settings
+    from src.knowledge.memory import ExperienceMemory
+    from src.knowledge.store import CrystallizedKnowledgeStore
+    from src.orchestration.pipeline import PipelineExecutor
 
     settings = get_settings()
     memory = ExperienceMemory()
@@ -236,11 +238,11 @@ def test_task_submit_and_stream_sse(
         store=store,
         memory=memory,
     )
-    monkeypatch.setattr(fastapi_app.state, "pipeline_executor", executor)
-    monkeypatch.setattr(fastapi_app.state, "knowledge_store", store)
-    monkeypatch.setattr(fastapi_app.state, "knowledge_memory", memory)
-    monkeypatch.setattr(fastapi_app.state, "llm_router", fake_llm)
-    monkeypatch.setattr(fastapi_app.state, "mcp_manager", fake_manager)
+    monkeypatch.setattr(fastapi_app.state, "pipeline_executor", executor, raising=False)
+    monkeypatch.setattr(fastapi_app.state, "knowledge_store", store, raising=False)
+    monkeypatch.setattr(fastapi_app.state, "knowledge_memory", memory, raising=False)
+    monkeypatch.setattr(fastapi_app.state, "llm_router", fake_llm, raising=False)
+    monkeypatch.setattr(fastapi_app.state, "mcp_manager", fake_manager, raising=False)
 
     create_response = app.post(
         "/api/tasks",
@@ -260,19 +262,25 @@ def test_task_cancel(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     from unittest.mock import MagicMock as _MagicMock, AsyncMock as _AsyncMock
-    from backend.src.core.config import get_settings
-    from backend.src.knowledge.memory import ExperienceMemory
-    from backend.src.knowledge.store import CrystallizedKnowledgeStore
-    from backend.src.orchestration.pipeline import PipelineExecutor
+    from src.core.config import get_settings
+    from src.knowledge.memory import ExperienceMemory
+    from src.knowledge.store import CrystallizedKnowledgeStore
+    from src.orchestration.pipeline import PipelineExecutor
 
     settings = get_settings()
     memory = ExperienceMemory()
     store = CrystallizedKnowledgeStore(settings, memory=memory)
 
     fake_llm = _MagicMock()
-    fake_llm.generate = _AsyncMock(
-        return_value={"provider": "m", "model": "m", "response": "ok"}
-    )
+
+    async def _slow_generate(*_a, **_kw):
+        # Keep the pipeline demonstrably in-flight so the cancel request
+        # deterministically wins the race (an instant fake completed the
+        # whole pipeline before cancel landed, flaking this test).
+        await asyncio.sleep(5.0)
+        return {"provider": "m", "model": "m", "response": "ok"}
+
+    fake_llm.generate = _AsyncMock(side_effect=_slow_generate)
     fake_manager = _MagicMock()
     fake_manager.registry = _MagicMock()
     fake_manager.get_server_statuses = _MagicMock(return_value=[])
@@ -285,9 +293,9 @@ def test_task_cancel(
         store=store,
         memory=memory,
     )
-    monkeypatch.setattr(fastapi_app.state, "pipeline_executor", executor)
-    monkeypatch.setattr(fastapi_app.state, "knowledge_store", store)
-    monkeypatch.setattr(fastapi_app.state, "knowledge_memory", memory)
+    monkeypatch.setattr(fastapi_app.state, "pipeline_executor", executor, raising=False)
+    monkeypatch.setattr(fastapi_app.state, "knowledge_store", store, raising=False)
+    monkeypatch.setattr(fastapi_app.state, "knowledge_memory", memory, raising=False)
 
     create_response = app.post(
         "/api/tasks",

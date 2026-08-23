@@ -26,25 +26,37 @@ def test_settings() -> Settings:
 
 
 class FakeProcess:
+    """Models a healthy long-running MCP server process.
+
+    wait() must BLOCK until terminate()/kill() — the manager's liveness gate
+    treats a wait() that returns within 2s as "process died at spawn" and
+    aborts the server. The old fake returned 0 immediately, which made
+    start_all abort every server before tool registration.
+    """
+
     def __init__(self) -> None:
+        import asyncio as _asyncio
+
         self.pid = 12345
-        self.returncode = None
+        self.returncode: int | None = None
         self.stdin = MagicMock()
         self.stdin.write = MagicMock()
         self.stdin.drain = AsyncMock()
         self.stdout = MagicMock()
         self.stderr = MagicMock()
-        self._killed = False
+        self._exited = _asyncio.Event()
 
     async def wait(self) -> int:
-        return 0 if not self._killed else -1
+        await self._exited.wait()
+        return self.returncode if self.returncode is not None else 0
 
     def terminate(self) -> None:
         self.returncode = 0
+        self._exited.set()
 
     def kill(self) -> None:
-        self._killed = True
         self.returncode = -1
+        self._exited.set()
 
 
 @pytest.fixture
@@ -95,10 +107,8 @@ async def test_start_all_registers_tools_with_mocked_spawn(
         return_value=fake_proc,
     ):
         manager = McpServerManager(test_settings)
-        try:
-            await manager.start_all()
-        except Exception:
-            pass
+        await manager.start_all()
+    assert manager._start_errors == {}, f"servers failed to start: {manager._start_errors}"
     all_tools = manager.registry.list_all_tools()
     for server in SUPPORTED_SERVERS:
         assert server in all_tools

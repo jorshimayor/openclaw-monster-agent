@@ -7,12 +7,12 @@ from uuid import uuid4, UUID
 import pytest
 from pydantic import ValidationError
 
-from backend.src.core.config import Settings
-from backend.src.core.types import KnowledgeCrystals, Task, TaskStatus
-from backend.src.knowledge.memory import ExperienceMemory
-from backend.src.knowledge.store import CrystallizedKnowledgeStore
-from backend.src.orchestration import pipeline as pipeline_module
-from backend.src.orchestration import steps as pipeline_steps
+from src.core.config import Settings
+from src.core.types import KnowledgeCrystals, Task, TaskStatus
+from src.knowledge.memory import ExperienceMemory
+from src.knowledge.store import CrystallizedKnowledgeStore
+from src.orchestration import pipeline as pipeline_module
+from src.orchestration import steps as pipeline_steps
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -93,11 +93,10 @@ async def test_sync_to_notion_stub_returns_int() -> None:
 
 
 async def test_step11_reflection_invokes_crystallizer_saves_store() -> None:
-    from backend.src.core.config import get_settings
+    from src.core.config import get_settings
 
     settings = get_settings()
     memory = ExperienceMemory()
-    store = CrystallizedKnowledgeStore(settings, memory=memory, extractor=None)
 
     fake_task = Task(
         id=uuid4(),
@@ -115,8 +114,12 @@ async def test_step11_reflection_invokes_crystallizer_saves_store() -> None:
     async def fake_extract(*args, **kwargs) -> KnowledgeCrystals:
         return expected_crystal
 
+    # step11 reads store.extractor and calls .extract(final_output, task_id) —
+    # inject the fake through the store constructor (the old patch targeted a
+    # module attribute that doesn't exist and a method step11 never calls).
     fake_extractor = MagicMock()
-    fake_extractor.extract_from_run = AsyncMock(side_effect=fake_extract)
+    fake_extractor.extract = AsyncMock(side_effect=fake_extract)
+    store = CrystallizedKnowledgeStore(settings, memory=memory, extractor=fake_extractor)
 
     async def fake_llm_generate(*args, **kwargs) -> Dict[str, Any]:
         return {
@@ -137,32 +140,30 @@ async def test_step11_reflection_invokes_crystallizer_saves_store() -> None:
 
     store.add = spy_add
 
-    with patch.object(
-        pipeline_steps,
-        "KnowledgeExtractor",
-        return_value=fake_extractor,
-    ):
-        step_result, state = await pipeline_steps.step11_post_task_reflection(
-            final_report=fake_final_report,
-            task=fake_task,
-            crystallizer_agent=None,
-            llm=fake_llm,
-            tools=None,
-            store=store,
-            memory=memory,
-        )
+    step_result, state = await pipeline_steps.step11_post_task_reflection(
+        final_output=fake_final_report,
+        task=fake_task,
+        crystallizer_agent=None,
+        llm=fake_llm,
+        tools=None,
+        store=store,
+        memory=memory,
+    )
 
-    assert len(add_calls) >= 1 or len(store.list()) >= 1, (
+    assert len(add_calls) >= 1 or len(await store.list()) >= 1, (
         "Step11 reflection did not save a crystal via store.add()"
     )
 
-    crystals_after = store.list()
+    crystals_after = await store.list()
     assert len(crystals_after) >= 1, (
         f"Expected 1+ crystal after step11, got {len(crystals_after)}"
     )
 
 
-def test_knowledge_crystals_schema_validates_id_required() -> None:
+def test_knowledge_crystals_schema_validation() -> None:
+    """The actual schema contract: `id` auto-generates when absent (it has a
+    default_factory — the old test wrongly asserted it was required, and
+    KeyError'd deleting a key it never set); `source_task_id` IS required."""
     valid_uuid = uuid4()
     source_uuid = uuid4()
 
@@ -177,17 +178,17 @@ def test_knowledge_crystals_schema_validates_id_required() -> None:
     valid_crystal = KnowledgeCrystals.model_validate(valid_payload)
     assert valid_crystal.id == valid_uuid
 
-    invalid_payload: Dict[str, Any] = {
-        "entities": ["Uniswap"],
-        "strategies": [],
-        "pitfalls": [],
-        "frameworks": [],
-        "source_task_id": str(source_uuid),
-    }
-    del invalid_payload["id"]
+    # id omitted → auto-generated, unique per crystal
+    no_id_payload = {k: v for k, v in valid_payload.items() if k != "id"}
+    c1 = KnowledgeCrystals.model_validate(no_id_payload)
+    c2 = KnowledgeCrystals.model_validate(no_id_payload)
+    assert c1.id and c2.id and c1.id != c2.id
 
+    # source_task_id is the genuinely required field
     with pytest.raises(ValidationError):
-        KnowledgeCrystals.model_validate(invalid_payload)
+        KnowledgeCrystals.model_validate(
+            {k: v for k, v in valid_payload.items() if k != "source_task_id"}
+        )
 
 
 async def test_store_query_by_domain_returns_ordered() -> None:

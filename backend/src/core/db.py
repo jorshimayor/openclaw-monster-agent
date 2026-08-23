@@ -25,17 +25,43 @@ _engine: Optional[AsyncEngine] = None
 _session_factory: Optional[async_sessionmaker[AsyncSession]] = None
 
 
-def _build_engine(url: str) -> AsyncEngine:
+def normalize_database_url(url: str) -> tuple[str, bool]:
+    """(clean_url, ssl_required) for the async engine.
+
+    - postgres:// and postgresql:// become postgresql+asyncpg:// — the
+      SQLAlchemy ASYNC engine refuses the bare schemes (it loads the sync
+      psycopg2 dialect and raises). Without this, init_db failed silently in
+      production and every task write no-op'd.
+    - sslmode / channel_binding are libpq-only query params asyncpg rejects;
+      sslmode becomes explicit ssl connect_args, both are stripped.
+    """
     import re
-    # Some Neon connection strings carry query-param sslmode=require which asyncpg
-    # doesn't accept as a URL query param; translate it into explicit ssl
-    # connect_args and strip from the URL.
-    ssl_flag = False
-    if "sslmode=require" in url or "sslmode=verify" in url:
-        ssl_flag = True
+
+    url = url.strip().strip('"').strip("'")
+    # A whole .env line pasted as the secret value ("DATABASE_URL=postgres…")
+    # — main.py's diag strips this for DISPLAY only, which masked a dead
+    # engine in production. Strip it for real.
+    if re.match(r"(?i)^database_url=", url):
+        url = url.split("=", 1)[1].strip().strip('"').strip("'")
+
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+    ssl_flag = "sslmode=require" in url or "sslmode=verify" in url
     clean_url = re.sub(r"[?&]sslmode=[^&]+", "", url)
-    # If we stripped the only query param, fix trailing ? or &
+    clean_url = re.sub(r"[?&]channel_binding=[^&]+", "", clean_url)
+    # Stripping the first param can orphan the rest ("db&a=b") or leave a
+    # dangling separator — restore a well-formed query string.
+    if "?" not in clean_url and "&" in clean_url:
+        clean_url = clean_url.replace("&", "?", 1)
+    clean_url = re.sub(r"\?&", "?", clean_url)
     clean_url = re.sub(r"[?&]$", "", clean_url)
+    return clean_url, ssl_flag
+
+
+def _build_engine(url: str) -> AsyncEngine:
+    clean_url, ssl_flag = normalize_database_url(url)
 
     connect_args: dict = {"server_settings": {"jit": "off"}}
     if ssl_flag:

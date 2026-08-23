@@ -109,6 +109,61 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("telegram_admin_ids", "TELEGRAM_ADMIN_IDS"),
     )
 
+    @field_validator("telegram_chat_id", mode="before")
+    @classmethod
+    def _coerce_chat_id(cls, v: Any) -> str:
+        # Cloudflare Container env vars / .env often paste numeric chat ids
+        # like -100123456789 for groups or 399640868 for private DMs. Always
+        # stringify (Telegram API accepts numeric strings for chat_id).
+        if v is None:
+            return ""
+        if isinstance(v, (int, float)):
+            # Use int() to strip float zeroes; preserve sign for group "-100…"
+            return str(int(v))
+        s = str(v).strip()
+        if s.lower() in {"", "none", "null"}:
+            return ""
+        return s
+
+    @field_validator("telegram_admin_ids", mode="before")
+    @classmethod
+    def _coerce_admin_ids(cls, v: Any) -> list:
+        # Accept: 399640868 (raw int) | "399640868" (single string) |
+        #         "399640868,123456789" (comma-sep) | ["399640868", 123] (mixed list)
+        if v is None:
+            return []
+        if isinstance(v, (int, float)):
+            return [str(int(v))]
+        if isinstance(v, str):
+            s = v.strip()
+            if not s:
+                return []
+            parts = [p.strip() for p in s.split(",")]
+            cleaned = []
+            for p in parts:
+                if not p:
+                    continue
+                # Accept numeric int-only strings as telegram ids (all digits, optionally leading '-' for groups)
+                try:
+                    cleaned.append(str(int(p)))
+                except (TypeError, ValueError):
+                    cleaned.append(p)
+            return cleaned
+        if isinstance(v, (list, tuple, set)):
+            cleaned = []
+            for item in v:
+                if item is None:
+                    continue
+                if isinstance(item, (int, float)):
+                    cleaned.append(str(int(item)))
+                else:
+                    s = str(item).strip()
+                    if s:
+                        cleaned.append(s)
+            return cleaned
+        # Fallback: stringify whatever weird value was passed
+        return [str(v)]
+
     backend_cors_origins: List[AnyHttpUrl] = Field(
         default_factory=lambda: [
             AnyHttpUrl("http://localhost:3000"),

@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from backend.src.core.types import (
+from src.core.types import (
     AgentRole,
     AgentResult,
     KnowledgeCrystals,
@@ -14,9 +14,9 @@ from backend.src.core.types import (
     Task,
     TaskStatus,
 )
-from backend.src.orchestration import pipeline as pipeline_module
-from backend.src.orchestration import steps as pipeline_steps
-from backend.src.orchestration.pipeline import PipelineExecutor
+from src.orchestration import pipeline as pipeline_module
+from src.orchestration import steps as pipeline_steps
+from src.orchestration.pipeline import PipelineExecutor
 
 pytestmark = pytest.mark.asyncio(loop_scope="session")
 
@@ -70,7 +70,7 @@ async def test_pipeline_completes_all_11_steps(
     assert len(output_keys & critical_keys) >= 1
     assert len(task.outputs) >= 3
 
-    crystals = store.list()
+    crystals = await store.list()
     assert len(crystals) >= 1, "Step 11 reflection did not save any knowledge crystal"
 
     recalled = memory.recall(sample_task.description, top_k=5, min_similarity=0.0)
@@ -124,9 +124,12 @@ async def test_step8_fail_triggers_exactly_one_rework_cycle(
         state["aggregate_score"] = 0.9
         return pipeline_steps.PASS, state
 
+    # The executor resolves steps through the `pipeline_steps` module at call
+    # time (`from . import steps as pipeline_steps`) — patch there, not on the
+    # pipeline module (which never re-exports the step functions).
     with (
-        patch.object(pipeline_module, "step7_verifier", wrapped_step7),
-        patch.object(pipeline_module, "step8_p6_quality_gate", wrapped_step8),
+        patch.object(pipeline_steps, "step7_verifier", wrapped_step7),
+        patch.object(pipeline_steps, "step8_p6_quality_gate", wrapped_step8),
     ):
         task = await mock_pipeline_executor.run(sample_task)
 
@@ -149,7 +152,7 @@ async def test_llm_fallback_triggers_within_pipeline(
     async def fake_llm_generate(prompt: str, agent_role: AgentRole, **kwargs: Any) -> Dict[str, Any]:
         if agent_role == AgentRole.CONTENT_WEB3 and len(call_log) < 2:
             call_log.append({"role": agent_role.value, "attempt": len(call_log) + 1})
-            from backend.src.llm.providers.nvidia_nim import LLMProviderError
+            from src.llm.providers.nvidia_nim import LLMProviderError
             raise LLMProviderError("nvidia_nim: primary provider forced failure")
         call_log.append({"role": agent_role.value if hasattr(agent_role, "value") else str(agent_role), "provider": "groq"})
         return {
@@ -241,10 +244,11 @@ async def test_sse_stream_yields_step_events(
                 if isinstance(value, str) and ("Mock LLM response" in value or len(value) > 100):
                     agent_output_count += 1
                     break
-            if data and any(isinstance(v, (str, list, dict)) for v in data.values()):
-                out_count = data.get("outputs")
-                if isinstance(out_count, int) and out_count > 0:
-                    agent_output_count += 1
+            # step6_execution emits {"outputs": N, "seconds": …} — all-numeric
+            # data, so the old "content-bearing values" guard always skipped it.
+            out_count = data.get("outputs")
+            if isinstance(out_count, int) and out_count > 0:
+                agent_output_count += 1
 
     assert agent_output_count >= 1, "Expected at least one agent_output-content-bearing event in stream"
 
@@ -253,10 +257,10 @@ async def test_notion_sync_queued_after_step11_if_token_set(
     sample_task: Task,
     mock_settings_with_notion_token,
 ) -> None:
-    from backend.src.core.config import get_settings
-    from backend.src.knowledge.memory import ExperienceMemory
-    from backend.src.knowledge.store import CrystallizedKnowledgeStore
-    from backend.src.orchestration.pipeline import PipelineExecutor
+    from src.core.config import get_settings
+    from src.knowledge.memory import ExperienceMemory
+    from src.knowledge.store import CrystallizedKnowledgeStore
+    from src.orchestration.pipeline import PipelineExecutor
     from unittest.mock import AsyncMock as _AsyncMock, MagicMock as _MagicMock
 
     settings = mock_settings_with_notion_token

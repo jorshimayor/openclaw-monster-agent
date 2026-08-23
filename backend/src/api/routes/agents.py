@@ -152,6 +152,10 @@ async def invoke_agent(
         AgentRole.SECURITY: 240.0,
         AgentRole.EDITOR: 240.0,
         AgentRole.CONTENT_WEB3: 240.0,
+        # Verified in production: long-form generations from these two also
+        # overrun the 180s default on the basic container tier.
+        AgentRole.CONTENT_WEB2: 240.0,
+        AgentRole.STUDY: 240.0,
     }
     _ROLE_MAX_TOKENS_OVERRIDES: Dict[AgentRole, int] = {
         AgentRole.ORCHESTRATOR: 2048,

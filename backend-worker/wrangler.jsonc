@@ -64,6 +64,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
 
   // ——— Container application (Docker image) ————————————————————————————————
   // One entry in `containers[]` per Dockerized service. The `class_name` links
@@ -119,6 +121,6 @@
     "SLACK_CHANNEL": "#agent-updates",
     "LLM_FALLBACK_ORDER": "[\"nvidia_nim\",\"groq\"]",
     "LOG_LEVEL": "INFO",
-    "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\",\"http://localhost:8080\",\"*\"]"
+    "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\",\"http://localhost:8080\",\"https://monster-agent-frontend-2dn.pages.dev\",\"https://2a9f9635.monster-agent-frontend-2dn.pages.dev\"]"
   }
 }

@@ -89,3 +89,6 @@ mcp-servers/hashnode/.env
 *.p12
 *.key
 *.pem
+
+# Symlink to private source-of-truth docs in chelsea_bot (career plan + season calendar) — NEVER commit
+docs/private-sot
