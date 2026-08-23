@@ -16,7 +16,7 @@ class StudyPartnerAgent(Agent):
     model_profile: str = "groq/llama-3.1-8b-instant"
     tool_allowlist: List[str] = [
         "notion.*",
-        "notion.create_page",
+        "notion.API-post-page",
         "google_workspace.*",
         "slack.send_message",
     ]
@@ -142,20 +142,25 @@ class StudyPartnerAgent(Agent):
             errors = [str(e)]
 
         try:
-            has_notion_create = "notion.create_page" in tool_names or any(
-                tool_matches(self.tool_allowlist, n) and "create_page" in n for n in tool_names
+            has_notion_create = "notion.API-post-page" in tool_names or any(
+                tool_matches(self.tool_allowlist, n) and "API-post-page" in n for n in tool_names
             )
             if has_notion_create:
+                from ..core.config import get_settings
+
+                db_id = get_settings().notion_db_id
+                meta_line = f"level: {level} · duration_weeks: {weeks} · topic: {topic}"
+                blocks = [
+                    {"object": "block", "type": "paragraph",
+                     "paragraph": {"rich_text": [{"text": {"content": chunk}}]}}
+                    for chunk in ([meta_line] + [output[i:i + 1800] for i in range(0, min(len(output), 9000), 1800)])
+                ]
                 notion_result = await _call_tool(
-                    "notion.create_page",
+                    "notion.API-post-page",
                     {
-                        "title": f"Study Plan: {topic}",
-                        "content": output,
-                        "properties": {
-                            "level": level,
-                            "duration_weeks": weeks,
-                            "topic": topic,
-                        },
+                        "parent": {"database_id": db_id},
+                        "properties": {"title": {"title": [{"text": {"content": f"Study Plan: {topic}"}}]}},
+                        "children": blocks,
                     },
                     transport=mcp_transport,
                 )

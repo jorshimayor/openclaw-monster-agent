@@ -17,7 +17,7 @@ class KnowledgeCrystallizerAgent(Agent):
     model_profile: str = "groq/llama-3.1-8b-instant"
     tool_allowlist: List[str] = [
         "notion.*",
-        "notion.create_page",
+        "notion.API-post-page",
         "google_workspace.sheets_read",
     ]
     soul_path: str = "src/souls/knowledge_crystallizer.md"
@@ -187,20 +187,31 @@ class KnowledgeCrystallizerAgent(Agent):
             errors = [str(e)]
 
         try:
-            has_notion_create = "notion.create_page" in tool_names or any(
-                tool_matches(self.tool_allowlist, n) and "create_page" in n for n in tool_names
+            has_notion_create = "notion.API-post-page" in tool_names or any(
+                tool_matches(self.tool_allowlist, n) and "API-post-page" in n for n in tool_names
             )
             if has_notion_create and crystals is not None:
+                from ..core.config import get_settings
+
+                db_id = get_settings().notion_db_id
+                # Official Notion API shape (verified live): title property +
+                # paragraph blocks; a summary line carries the crystal metadata.
+                meta_line = (
+                    f"source_task_id: {source_task_id} · "
+                    f"entities: {len(crystals.entities)} · "
+                    f"strategies: {len(crystals.strategies)}"
+                )
+                blocks = [
+                    {"object": "block", "type": "paragraph",
+                     "paragraph": {"rich_text": [{"text": {"content": chunk}}]}}
+                    for chunk in ([meta_line] + [output[i:i + 1800] for i in range(0, min(len(output), 9000), 1800)])
+                ]
                 notion_result = await _call_tool(
-                    "notion.create_page",
+                    "notion.API-post-page",
                     {
-                        "title": f"KnowledgeCrystal-{crystals.id}",
-                        "content": output,
-                        "properties": {
-                            "source_task_id": str(source_task_id),
-                            "entities_count": len(crystals.entities),
-                            "strategies_count": len(crystals.strategies),
-                        },
+                        "parent": {"database_id": db_id},
+                        "properties": {"title": {"title": [{"text": {"content": f"KnowledgeCrystal-{crystals.id}"}}]}},
+                        "children": blocks,
                     },
                     transport=mcp_transport,
                 )

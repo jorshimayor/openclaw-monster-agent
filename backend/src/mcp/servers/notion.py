@@ -17,60 +17,101 @@ class NotionMcpServer:
         self._log = get_logger("mcp.servers.notion")
 
     def exposed_tools(self) -> List[Tool]:
+        # Names/schemas MUST match what @notionhq/notion-mcp-server (the
+        # official Notion MCP) actually serves — verified via tools/list.
+        # Page creation against the default DB was verified live with
+        # parent={"database_id": ...}.
         return [
             Tool(
-                name="read_page",
-                description="Read the content and properties of a Notion page",
+                name="API-post-search",
+                description="Search Notion pages and databases by title",
                 input_schema={
                     "type": "object",
                     "properties": {
-                        "page_id": {"type": "string"},
+                        "query": {"type": "string"},
+                        "page_size": {"type": "integer", "default": 20},
                     },
+                    "required": ["query"],
+                },
+                server="notion",
+            ),
+            Tool(
+                name="API-post-page",
+                description=(
+                    "Create a Notion page. parent: {\"database_id\": id} or "
+                    "{\"page_id\": id}; properties uses the Notion API shape "
+                    "(title: {title: [{text: {content: ...}}]}); children is a "
+                    "list of block objects."
+                ),
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "parent": {"type": "object"},
+                        "properties": {"type": "object"},
+                        "children": {"type": "array", "items": {"type": "object"}},
+                    },
+                    "required": ["parent", "properties"],
+                },
+                server="notion",
+            ),
+            Tool(
+                name="API-retrieve-a-page",
+                description="Retrieve a Notion page's properties",
+                input_schema={
+                    "type": "object",
+                    "properties": {"page_id": {"type": "string"}},
                     "required": ["page_id"],
                 },
                 server="notion",
             ),
             Tool(
-                name="create_page",
-                description="Create a new page in the default database",
+                name="API-retrieve-page-markdown",
+                description="Read a Notion page's full content as markdown",
                 input_schema={
                     "type": "object",
-                    "properties": {
-                        "title": {"type": "string"},
-                        "content": {"type": "string"},
-                        "properties": {"type": "object"},
-                    },
-                    "required": ["title"],
-                },
-                server="notion",
-            ),
-            Tool(
-                name="update_page",
-                description="Update an existing Notion page content or properties",
-                input_schema={
-                    "type": "object",
-                    "properties": {
-                        "page_id": {"type": "string"},
-                        "title": {"type": "string"},
-                        "content": {"type": "string"},
-                        "properties": {"type": "object"},
-                    },
+                    "properties": {"page_id": {"type": "string"}},
                     "required": ["page_id"],
                 },
                 server="notion",
             ),
             Tool(
-                name="query_db",
-                description="Query pages in the Notion database with filters",
+                name="API-patch-page",
+                description="Update a Notion page's properties",
                 input_schema={
                     "type": "object",
                     "properties": {
-                        "database_id": {"type": "string"},
+                        "page_id": {"type": "string"},
+                        "properties": {"type": "object"},
+                    },
+                    "required": ["page_id", "properties"],
+                },
+                server="notion",
+            ),
+            Tool(
+                name="API-get-block-children",
+                description="List the child blocks (content) of a page or block",
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "block_id": {"type": "string"},
+                        "page_size": {"type": "integer", "default": 50},
+                    },
+                    "required": ["block_id"],
+                },
+                server="notion",
+            ),
+            Tool(
+                name="API-query-data-source",
+                description="Query pages in a Notion data source (database) with filters",
+                input_schema={
+                    "type": "object",
+                    "properties": {
+                        "data_source_id": {"type": "string"},
                         "filter": {"type": "object"},
                         "sorts": {"type": "array", "items": {"type": "object"}},
-                        "limit": {"type": "integer", "default": 50},
+                        "page_size": {"type": "integer", "default": 50},
                     },
-                    "required": ["database_id"],
+                    "required": ["data_source_id"],
                 },
                 server="notion",
             ),
@@ -78,10 +119,9 @@ class NotionMcpServer:
 
     def server_command(self) -> Tuple[str, List[str], dict]:
         cmd = "npx"
-        args = ["-y", "@shck-dev/notion-mcp"]
+        args = ["-y", "@notionhq/notion-mcp-server"]
         env = {
             "NOTION_TOKEN": self.token,
-            "NOTION_DB_ID": self.db_id,
         }
         return cmd, args, env
 
