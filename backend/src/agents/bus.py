@@ -131,7 +131,7 @@ class AgentEventBus:
             priority=AgentEventPriority.P2_UPDATE,
             task_id=task_id,
             title=f"Task completed · conf {conf_pct}%",
-            summary=str(final_report or description)[:200],
+            summary=str(final_report or description)[:320],
             details={
                 "description": description,
                 "overall_confidence": confidence,

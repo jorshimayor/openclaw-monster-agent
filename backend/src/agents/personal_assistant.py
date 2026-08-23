@@ -77,6 +77,8 @@ class PersonalAssistantAgent(Agent):
         if decision == "alert":
             sent = await self._send_telegram_alert(event)
             self._window[event.priority] = self._window.get(event.priority, 0) + 1
+            if event.kind in (AgentEventKind.TASK_COMPLETED, AgentEventKind.TASK_FAILED):
+                await self._send_slack_update(event)
             return {"routed": "telegram", **sent}
 
         if decision == "digest":
@@ -200,6 +202,39 @@ class PersonalAssistantAgent(Agent):
             return "alert"
         return "digest"
 
+    async def _send_slack_update(self, event: AgentBusEvent) -> Dict[str, Any]:
+        """Mirror task outcomes to Slack (direct Web API — the slack MCP
+        server is a stub). SLACK_CHANNEL holds the DM channel id."""
+        from ..core.config import get_settings
+
+        s = get_settings()
+        if not s.slack_bot_token or not s.slack_channel:
+            return {"stub": True, "reason": "slack_not_configured"}
+        icon = "\u2705" if event.kind == AgentEventKind.TASK_COMPLETED else "\u274c"
+        desc = (event.details or {}).get("description") or ""
+        text = (
+            f"{icon} *{event.title}*\n"
+            + (f"_{desc[:120]}_\n" if desc else "")
+            + f"```{(event.summary or '')[:400]}```\n"
+            + f"`{str(event.task_id)[:8]}` \u00b7 full report in the console"
+        )
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=15) as client:
+                r = await client.post(
+                    "https://slack.com/api/chat.postMessage",
+                    headers={"Authorization": f"Bearer {s.slack_bot_token}"},
+                    json={"channel": s.slack_channel, "text": text},
+                )
+                j = r.json()
+                if not j.get("ok"):
+                    self._log.warning("slack_notify_failed", error=j.get("error"))
+                return j
+        except Exception as exc:
+            self._log.warning("slack_notify_error", error=str(exc))
+            return {"ok": False, "error": str(exc)}
+
     async def _send_telegram_alert(self, event: AgentBusEvent) -> Dict[str, Any]:
         meta = _PRIORITY_META[event.priority]
         short_id = ""
@@ -233,6 +268,23 @@ class PersonalAssistantAgent(Agent):
                 "action_items": [],
             })
             # pin not necessary — send_alert auto-pins P0 & sets sound per tier
+            return {"event_id": str(event.id), "raw": result}
+
+        # Completed tasks get a fuller card: what finished + what to expect.
+        if event.kind == AgentEventKind.TASK_COMPLETED:
+            text = (
+                f"\u2705 <b>Task completed</b> \u2014 {desc_s or title_e}\n"
+                f"<b>{title_e}</b>\n"
+                f"<pre>{summary_e}</pre>\n"
+                f"<code>{short_id}</code> \u00b7 full report in the console"
+            )
+            result = await self._call_mcp("telegram.send_message", {
+                "text": text,
+                "parse_mode": "HTML",
+                "disable_web_page_preview": True,
+                "disable_notification": False,
+                "pin": False,
+            })
             return {"event_id": str(event.id), "raw": result}
 
         # P2 short-form

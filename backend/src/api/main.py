@@ -26,6 +26,7 @@ from ..orchestration.pipeline import PipelineExecutor
 from .routes.tasks import router as tasks_router
 from .routes.agents import router as agents_router
 from .routes.mcp import router as mcp_router
+from .routes.notify import router as notify_router
 from .routes.knowledge import router as knowledge_router
 
 
@@ -398,6 +399,7 @@ def create_app() -> FastAPI:
     app.include_router(tasks_router)
     app.include_router(agents_router)
     app.include_router(mcp_router)
+    app.include_router(notify_router)
     app.include_router(knowledge_router)
     return app
 
