@@ -196,8 +196,8 @@ class PersonalAssistantAgent(Agent):
             AgentEventKind.TASK_FAILED,
             AgentEventKind.INTEGRATION_DOWN,
             AgentEventKind.INTEGRATION_DEGRADED,
-            AgentEventKind.TASK_CREATED,
-            AgentEventKind.KNOWLEDGE_CRYSTAL,
+            # TASK_CREATED intentionally digest-only: "queued" is noise —
+            # the completion card (with the report) is the notification.
         ):
             return "alert"
         return "digest"
@@ -212,11 +212,12 @@ class PersonalAssistantAgent(Agent):
             return {"stub": True, "reason": "slack_not_configured"}
         icon = "\u2705" if event.kind == AgentEventKind.TASK_COMPLETED else "\u274c"
         desc = (event.details or {}).get("description") or ""
+        report = (event.details or {}).get("report") or event.summary or ""
         text = (
             f"{icon} *{event.title}*\n"
             + (f"_{desc[:120]}_\n" if desc else "")
-            + f"```{(event.summary or '')[:400]}```\n"
-            + f"`{str(event.task_id)[:8]}` \u00b7 full report in the console"
+            + f"```{str(report)[:2500]}```\n"
+            + f"<https://monster-agent-frontend-2dn.pages.dev/tasks|open in console> \u00b7 `{str(event.task_id)[:8]}`"
         )
         try:
             import httpx
@@ -272,11 +273,13 @@ class PersonalAssistantAgent(Agent):
 
         # Completed tasks get a fuller card: what finished + what to expect.
         if event.kind == AgentEventKind.TASK_COMPLETED:
+            report = (event.details or {}).get("report") or event.summary or ""
+            report_e = html.escape(str(report)[:3400])
             text = (
                 f"\u2705 <b>Task completed</b> \u2014 {desc_s or title_e}\n"
                 f"<b>{title_e}</b>\n"
-                f"<pre>{summary_e}</pre>\n"
-                f"<code>{short_id}</code> \u00b7 full report in the console"
+                f"<pre>{report_e}</pre>\n"
+                f'<a href="https://monster-agent-frontend-2dn.pages.dev/tasks">open in console</a> \u00b7 <code>{short_id}</code>'
             )
             result = await self._call_mcp("telegram.send_message", {
                 "text": text,

@@ -134,6 +134,7 @@ class AgentEventBus:
             summary=str(final_report or description)[:320],
             details={
                 "description": description,
+                "report": str(final_report or "")[:3500],
                 "overall_confidence": confidence,
                 "final_report_preview": (final_report or "")[:280],
             },

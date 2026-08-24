@@ -137,14 +137,37 @@ export default {
    */
   async scheduled(event: ScheduledController, env: Env): Promise<void> {
     const stub = getContainer(env.BACKEND_CONTAINER, "backend-primary");
-    const submit = (description: string) =>
-      stub.fetch(
+    // Submit, then poll until the task reaches a terminal state (or ~13 min).
+    // The polling is not just observability: the container sleeps after 15
+    // idle minutes and a background pipeline generates NO requests, so an
+    // unwatched scheduled task can die mid-run — or complete but never get
+    // its notification out. Each poll resets the idle clock.
+    const submit = async (description: string): Promise<void> => {
+      const created = await stub.fetch(
         new Request("http://container/api/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ description }),
         })
       );
+      const task = (await created.json().catch(() => null)) as { id?: string } | null;
+      if (!task?.id) return;
+      for (let i = 0; i < 26; i++) {
+        await new Promise((r) => setTimeout(r, 30_000));
+        try {
+          const res = await stub.fetch(new Request(`http://container/api/tasks/${task.id}`));
+          const t = (await res.json().catch(() => null)) as { status?: string } | null;
+          if (t?.status && ["COMPLETED", "FAILED", "CANCELLED"].includes(t.status)) {
+            // one grace poll so the notification worker finishes sending
+            await new Promise((r) => setTimeout(r, 15_000));
+            await stub.fetch(new Request("http://container/api/health")).catch(() => {});
+            return;
+          }
+        } catch {
+          /* transient — keep polling */
+        }
+      }
+    };
 
     switch (event.cron) {
       // Saturday 07:00 UTC = 08:00 WAT — weekly market RESEARCH digest
