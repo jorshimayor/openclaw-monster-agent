@@ -32,6 +32,65 @@ _PRIORITY_META: Dict[AgentEventPriority, Dict[str, Any]] = {
 }
 
 
+def _md_table_row(line: str) -> str:
+    cells = [c.strip() for c in line.strip().strip("|").split("|")]
+    return "  ·  ".join(c for c in cells if c)
+
+
+def md_to_telegram_html(md: str) -> str:
+    """Markdown → Telegram HTML (parse_mode=HTML). Pipeline reports are
+    markdown; raw asterisks/pipes in a chat message are terrible UX."""
+    import re as _re
+
+    out = []
+    for line in str(md).splitlines():
+        s = line.rstrip()
+        if _re.fullmatch(r"\s*[-=_*]{3,}\s*", s):
+            continue  # horizontal rules are noise on a phone
+        if _re.match(r"\s*\|[\s:|-]+\|\s*$", s):
+            continue  # table separator row
+        esc = html.escape(s)
+        esc = _re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", esc)
+        esc = _re.sub(r"`([^`]+)`", r"<code>\1</code>", esc)
+        m = _re.match(r"\s*#{1,6}\s+(.*)", esc)
+        if m:
+            out.append(f"<b>{m.group(1)}</b>")
+            continue
+        if "|" in s and s.strip().startswith("|"):
+            row = html.escape(_md_table_row(s))
+            out.append(_re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", row))
+            continue
+        esc = _re.sub(r"^(\s*)[-*]\s+", "\\g<1>• ", esc)
+        out.append(esc)
+    text = "\n".join(out)
+    return _re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def md_to_slack_mrkdwn(md: str) -> str:
+    """Markdown → Slack mrkdwn (*bold* not **bold**, headings as bold lines)."""
+    import re as _re
+
+    out = []
+    for line in str(md).splitlines():
+        s = line.rstrip()
+        if _re.fullmatch(r"\s*[-=_*]{3,}\s*", s):
+            continue
+        if _re.match(r"\s*\|[\s:|-]+\|\s*$", s):
+            continue
+        s = _re.sub(r"\*\*(.+?)\*\*", r"*\1*", s)
+        m = _re.match(r"\s*#{1,6}\s+(.*)", s)
+        if m:
+            out.append(f"*{m.group(1)}*")
+            continue
+        if "|" in s and s.strip().startswith("|"):
+            out.append(_md_table_row(s))
+            continue
+        s = _re.sub(r"^(\s*)[-*]\s+", "\\g<1>• ", s)
+        out.append(s)
+    text = "\n".join(out)
+    return _re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
 class PersonalAssistantAgent(Agent):
     role: AgentRole = AgentRole.PERSONAL_ASSISTANT
     model_profile: str = "groq/llama-3.1-8b-instant"
@@ -213,10 +272,11 @@ class PersonalAssistantAgent(Agent):
         icon = "\u2705" if event.kind == AgentEventKind.TASK_COMPLETED else "\u274c"
         desc = (event.details or {}).get("description") or ""
         report = (event.details or {}).get("report") or event.summary or ""
+        report_md = md_to_slack_mrkdwn(str(report)[:3500])
         text = (
             f"{icon} *{event.title}*\n"
-            + (f"_{desc[:120]}_\n" if desc else "")
-            + f"```{str(report)[:2500]}```\n"
+            + (f"_{desc[:120]}_\n\n" if desc else "\n")
+            + f"{report_md}\n\n"
             + f"<https://monster-agent-frontend-2dn.pages.dev/tasks|open in console> \u00b7 `{str(event.task_id)[:8]}`"
         )
         try:
@@ -274,11 +334,11 @@ class PersonalAssistantAgent(Agent):
         # Completed tasks get a fuller card: what finished + what to expect.
         if event.kind == AgentEventKind.TASK_COMPLETED:
             report = (event.details or {}).get("report") or event.summary or ""
-            report_e = html.escape(str(report)[:3400])
+            report_html = md_to_telegram_html(str(report)[:3400])
             text = (
                 f"\u2705 <b>Task completed</b> \u2014 {desc_s or title_e}\n"
-                f"<b>{title_e}</b>\n"
-                f"<pre>{report_e}</pre>\n"
+                f"<b>{title_e}</b>\n\n"
+                f"{report_html}\n\n"
                 f'<a href="https://monster-agent-frontend-2dn.pages.dev/tasks">open in console</a> \u00b7 <code>{short_id}</code>'
             )
             result = await self._call_mcp("telegram.send_message", {
