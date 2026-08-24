@@ -190,14 +190,20 @@ export default function TaskDetailPage() {
         .then((t) => {
           setTask(t);
           if (t.currentStep) setCurrentStep(t.currentStep);
-          if (t.outputs && t.outputs.length > 0) {
+          if (Array.isArray(t.outputs) && t.outputs.length > 0) {
             setOutputs((prev) => {
-              if (prev.length >= t.outputs!.length) return prev;
-              return t.outputs!;
+              if (prev.length >= (t.outputs as AgentResult[]).length) return prev;
+              return t.outputs as AgentResult[];
             });
           }
-          if ((t.status === "completed" || t.status === "failed") && !finalReport) {
-            setFinalReport(t.status === "completed" ? "Task completed successfully." : "Task failed.");
+          // API statuses are UPPERCASE; the stored final report IS the deliverable.
+          const st = String(t.status || "").toUpperCase();
+          if (st === "COMPLETED" || st === "FAILED") {
+            setFinalReport((prev) =>
+              prev ??
+              (t.finalReport ||
+                (st === "COMPLETED" ? "Task completed (no report stored)." : t.error || "Task failed."))
+            );
           }
         })
         .catch();
@@ -220,8 +226,8 @@ export default function TaskDetailPage() {
 
   const mergedOutputs = useMemo<AgentResult[]>(() => {
     const list = outputs;
-    if (task?.outputs && task.outputs.length > list.length) {
-      return task.outputs;
+    if (Array.isArray(task?.outputs) && (task!.outputs as AgentResult[]).length > list.length) {
+      return task!.outputs as AgentResult[];
     }
     return list;
   }, [outputs, task?.outputs]);

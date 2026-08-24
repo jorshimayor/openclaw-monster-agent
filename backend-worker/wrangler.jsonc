@@ -121,7 +121,7 @@
   // ——— Non-secret defaults (override via secret put for production) ————————
   "vars": {
     "NVIDIA_NIM_BASE_URL": "https://integrate.api.nvidia.com/v1",
-    "SLACK_CHANNEL": "#agent-updates",
+    "SLACK_CHANNEL": "D0BQR97P2NP",  // bot DM to jorshimayor (bot lacks channels:manage; DM needs no setup)
     "LLM_FALLBACK_ORDER": "[\"nvidia_nim\",\"groq\"]",
     "LOG_LEVEL": "INFO",
     "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\",\"http://localhost:8080\",\"https://monster-agent-frontend-2dn.pages.dev\",\"https://2a9f9635.monster-agent-frontend-2dn.pages.dev\"]"
