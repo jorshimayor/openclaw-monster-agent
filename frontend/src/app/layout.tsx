@@ -4,6 +4,7 @@ import Link from "next/link";
 import "@/styles/globals.css";
 import { ThemeProvider, themeBootstrapScript } from "@/lib/theme-provider";
 import { ConnLabel } from "@/components/ConnLabel";
+import SidebarStatus from "@/components/SidebarStatus";
 import ThemeSwitcher from "@/components/ui/theme-switcher";
 
 const jb = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
 const NAV_LINKS = [
   { href: "/", label: "Dashboard", icon: "⬢" },
   { href: "/tasks", label: "Tasks", icon: "▤" },
+  { href: "/commitments", label: "Commitments", icon: "✓" },
   { href: "/agents", label: "Agents", icon: "◎" },
   { href: "/knowledge", label: "Knowledge", icon: "◈" },
   { href: "/integrations", label: "Integrations", icon: "⬡" }
@@ -64,23 +66,7 @@ export default function RootLayout({
               <div className="text-[10px] text-matrix-dim tracking-widest mb-2">
                 SYSTEM STATUS
               </div>
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-matrix-dim">API</span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-matrix animate-pulse"></span>
-                    ONLINE
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-matrix-dim">Nodes</span>
-                  <span>8 / 8</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-matrix-dim">Queue</span>
-                  <span>0</span>
-                </div>
-              </div>
+              <SidebarStatus />
             </div>
           </aside>
 
@@ -95,7 +81,6 @@ export default function RootLayout({
               </div>
               <div className="flex items-center gap-4 text-xs text-matrix-dim shrink-0">
                 <ThemeSwitcher />
-                <span className="hidden sm:inline">SESSION: 0xA1B2C3D4</span>
                 <span className="text-matrix">v1.0.0</span>
               </div>
             </header>
@@ -104,7 +89,7 @@ export default function RootLayout({
 
             <footer className="border-t border-bg-border px-6 py-2 text-[10px] text-matrix-dim flex justify-between shrink-0">
               <span>© MONSTER AGENT · MULTI-AGENT ORCHESTRATION</span>
-              <span>BUILD 2026.08.17 · STABLE</span>
+              <span>MULTI-AGENT PIPELINE · ACCOUNTABILITY LEDGER</span>
             </footer>
           </div>
         </ThemeProvider>

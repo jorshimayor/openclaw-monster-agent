@@ -1,22 +1,12 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import SystemStatusCard from "@/components/dashboard/SystemStatusCard";
+import CommitmentsCard from "@/components/dashboard/CommitmentsCard";
 import AgentRosterCard from "@/components/dashboard/AgentRosterCard";
 import PipelineActivityLegend from "@/components/dashboard/PipelineActivityLegend";
 import RecentKnowledgeCard from "@/components/dashboard/RecentKnowledgeCard";
-import { api } from "@/lib/api";
 
+/** Each card owns its own polling — the page-level heartbeat that used to live
+ *  here pinged /api/health every 5s and threw the result away. */
 export default function DashboardPage() {
-  const [, setPing] = useState<number>(0);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      api.health().then(() => setPing(Date.now())).catch(() => {});
-    }, 5000);
-    return () => clearInterval(id);
-  }, []);
-
   return (
     <div className="space-y-6">
       <div>
@@ -30,6 +20,7 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SystemStatusCard />
+        <CommitmentsCard />
         <AgentRosterCard />
         <PipelineActivityLegend />
         <RecentKnowledgeCard />

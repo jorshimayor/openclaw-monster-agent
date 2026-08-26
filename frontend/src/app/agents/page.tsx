@@ -12,59 +12,61 @@ import {
   DialogFooter,
   DialogDescription
 } from "@/components/ui/dialog";
-import {
-  AGENTS,
-  type AgentRole,
-  type AgentResult
-} from "@/lib/types";
-import type { AgentDetail } from "@/lib/api";
+import { agentPresentation, type AgentResult } from "@/lib/types";
+import type { AgentDetail, AgentSummary } from "@/lib/api";
 import { api } from "@/lib/api";
 import { Cpu, Zap, Shield, Lightbulb, BookOpen, GraduationCap, Trophy, Network } from "lucide-react";
 
-const ICONS: Record<AgentRole, typeof Cpu> = {
-  orchestrator: Network,
-  content_web2: Zap,
-  content_web3: Shield,
-  security_auditor: Shield,
-  knowledge_crystallizer: Lightbulb,
-  editor_reviewer: BookOpen,
-  study_partner: GraduationCap,
-  football_analyst: Trophy
+/** Keyed by the backend's AgentRole values. Unknown roles fall back to Cpu. */
+const ICONS: Record<string, typeof Cpu> = {
+  ORCHESTRATOR: Network,
+  CONTENT_WEB2: Zap,
+  CONTENT_WEB3: Shield,
+  SECURITY: Shield,
+  KNOWLEDGE: Lightbulb,
+  EDITOR: BookOpen,
+  STUDY: GraduationCap,
+  FOOTBALL: Trophy,
+  PERSONAL_ASSISTANT: Cpu
 };
 
-const DEFAULT_PROMPTS: Record<AgentRole, string> = {
-  orchestrator:
+const iconFor = (role: string) => ICONS[role] ?? Cpu;
+
+const DEFAULT_PROMPTS: Record<string, string> = {
+  ORCHESTRATOR:
     "Design a 7-step plan for building a Web3 DeFi dApp dashboard that displays real-time yield farming APYs across 5 chains.",
-  content_web2:
+  CONTENT_WEB2:
     "Write a 3-paragraph technical blog intro about realtime collaborative editors using CRDTs.",
-  content_web3:
+  CONTENT_WEB3:
     "Draft an audit summary for a new Uniswap V4 hook that implements TWAMM orders.",
-  security_auditor:
+  SECURITY:
     "Audit the following Solidity snippet for reentrancy, integer overflow, and access control issues:\n\nfunction withdraw(uint256 a) external {\n  require(balances[msg.sender] >= a);\n  (bool ok,) = msg.sender.call{value: a}('');\n  require(ok);\n  balances[msg.sender] -= a;\n}",
-  knowledge_crystallizer:
+  KNOWLEDGE:
     "Extract reusable strategies, pitfalls, and entities from the following text:\n\nWhen auditing DeFi lending protocols, always verify oracle freshness using latestRoundData. Relying on timestamp without checking updatedAt caused the 2023 Venus exploit. Re-validate interest rate models against extreme market conditions.",
-  editor_reviewer:
+  EDITOR:
     "Review this technical article outline and suggest 3 concrete improvements for clarity, narrative flow, and developer usefulness.",
-  study_partner:
+  STUDY:
     "Design a 4-week study plan for learning ZK circuits starting from zero: include circuits, arithmetic, Circom, and a final project building a private voting proof.",
-  football_analyst:
+  FOOTBALL:
     "Analyze a 4-3-3 vs 4-2-3-1 tactical matchup: identify strengths, weaknesses, key matchups, and recommend 3 in-game adjustments for a team trailing 1-0 in the 60th minute."
 };
 
 interface InvokeState {
-  role: AgentRole;
+  role: string;
   result: AgentResult | null;
   invoking: boolean;
   error: string | null;
 }
 
 export default function AgentsPage() {
-  const [health, setHealth] = useState<Record<AgentRole, AgentDetail | null>>(() =>
-    Object.fromEntries(AGENTS.map((a) => [a.role, null])) as Record<AgentRole, AgentDetail | null>
-  );
+  // The roster itself comes from the backend; this page no longer asserts
+  // which agents exist or that all of them are online.
+  const [agents, setAgents] = useState<AgentSummary[] | null>(null);
+  const [rosterError, setRosterError] = useState<string | null>(null);
+  const [health, setHealth] = useState<Record<string, AgentDetail | null>>({});
   const [healthLoading, setHealthLoading] = useState(true);
 
-  const [selectedRole, setSelectedRole] = useState<AgentRole | null>(null);
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [modalPrompt, setModalPrompt] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
 
@@ -74,28 +76,36 @@ export default function AgentsPage() {
     let cancelled = false;
     setHealthLoading(true);
     (async () => {
-      const next: Partial<Record<AgentRole, AgentDetail | null>> = {};
-      for (const a of AGENTS) {
-        try {
-          const detail = await api.getAgent(a.role);
-          if (!cancelled) next[a.role] = detail;
-        } catch {
-          if (!cancelled) next[a.role] = null;
+      let roster: AgentSummary[] = [];
+      try {
+        roster = await api.listAgents();
+        if (!cancelled) {
+          setAgents(roster);
+          setRosterError(null);
         }
+      } catch (e) {
+        if (!cancelled) {
+          setAgents([]);
+          setRosterError((e as Error).message);
+          setHealthLoading(false);
+        }
+        return;
       }
-      if (!cancelled) {
-        setHealth(next as Record<AgentRole, AgentDetail | null>);
-        setHealthLoading(false);
-      }
+      const details = await Promise.all(
+        roster.map((a) => api.getAgent(a.role).catch(() => null))
+      );
+      if (cancelled) return;
+      setHealth(Object.fromEntries(roster.map((a, i) => [a.role, details[i]])));
+      setHealthLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const openInvokeModal = useCallback((role: AgentRole) => {
+  const openInvokeModal = useCallback((role: string) => {
     setSelectedRole(role);
-    setModalPrompt(DEFAULT_PROMPTS[role]);
+    setModalPrompt(DEFAULT_PROMPTS[role] ?? "");
     setInvokeState({ role, result: null, invoking: false, error: null });
     setModalOpen(true);
   }, []);
@@ -141,13 +151,24 @@ export default function AgentsPage() {
           ⟨ AGENT CONTROL PANEL ⟩
         </h1>
         <p className="text-xs text-matrix-dim mt-1 tracking-widest">
-          8 SPECIALIZED AGENTS · HEALTH MONITORED · ONE-CLICK INVOKE
+          {agents === null
+            ? "LOADING ROSTER…"
+            : `${agents.length} AGENT${agents.length === 1 ? "" : "S"} · LIVE FROM /api/agents · ONE-CLICK INVOKE`}
         </p>
       </div>
 
+      {rosterError && (
+        <Card>
+          <CardContent className="py-6 text-xs text-danger">
+            AGENT ROSTER UNAVAILABLE · {rosterError}
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {AGENTS.map((a) => {
-          const Icon = ICONS[a.role];
+        {(agents ?? []).map((a) => {
+          const Icon = iconFor(a.role);
+          const p = agentPresentation(a.role);
           const h = health[a.role];
           const healthy = h?.healthy ?? false;
           return (
@@ -160,10 +181,10 @@ export default function AgentsPage() {
                     </div>
                     <div className="min-w-0">
                       <CardTitle className="text-sm tracking-wider">
-                        {a.displayName}
+                        {p.displayName}
                       </CardTitle>
                       <CardDescription className="text-[10px] tracking-widest mt-1">
-                        {a.role.toUpperCase()}
+                        {a.role} · {a.model_profile}
                       </CardDescription>
                     </div>
                   </div>
@@ -194,7 +215,7 @@ export default function AgentsPage() {
                   {a.description}
                 </p>
                 <div className="flex flex-wrap gap-1.5 mb-3">
-                  {a.tags.slice(0, 4).map((t) => (
+                  {p.tags.slice(0, 4).map((t) => (
                     <span
                       key={t}
                       className="text-[9px] px-2 py-0.5 rounded bg-matrix/5 border border-matrix/10 text-matrix-dim tracking-widest font-mono"
@@ -236,12 +257,12 @@ export default function AgentsPage() {
               {selectedRole && (
                 <>
                   {(() => {
-                    const Icon = ICONS[selectedRole];
+                    const Icon = iconFor(selectedRole);
                     return <Icon className="w-5 h-5 text-matrix" />;
                   })()}
                   INVOKE{" "}
                   <span className="text-matrix-dim text-xs tracking-widest font-mono ml-1">
-                    {selectedRole.toUpperCase()}
+                    {agentPresentation(selectedRole).displayName}
                   </span>
                 </>
               )}

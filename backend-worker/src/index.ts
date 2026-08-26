@@ -52,6 +52,10 @@ type Env = {
   GOOGLE_WORKSPACE_SUBJECT_EMAIL: string;
   NVIDIA_NIM_BASE_URL?: string;
   SLACK_CHANNEL?: string;
+  TELEGRAM_WEBHOOK_SECRET?: string;
+  PUBLIC_APP_URL?: string;
+  NAG_ENABLED?: string;
+  USER_TIMEZONE_OFFSET_HOURS?: string;
   LLM_FALLBACK_ORDER?: string;
   LOG_LEVEL?: string;
   BACKEND_CORS_ORIGINS?: string;
@@ -77,6 +81,11 @@ function buildEnvVars(env: Env): Record<string, string> {
     NVIDIA_NIM_BASE_URL:
       env.NVIDIA_NIM_BASE_URL ?? "https://integrate.api.nvidia.com/v1",
     SLACK_CHANNEL: env.SLACK_CHANNEL ?? "#agent-updates",
+    TELEGRAM_WEBHOOK_SECRET: env.TELEGRAM_WEBHOOK_SECRET ?? "",
+    PUBLIC_APP_URL:
+      env.PUBLIC_APP_URL ?? "https://monster-agent-frontend-2dn.pages.dev",
+    NAG_ENABLED: env.NAG_ENABLED ?? "true",
+    USER_TIMEZONE_OFFSET_HOURS: env.USER_TIMEZONE_OFFSET_HOURS ?? "1",
     LLM_FALLBACK_ORDER: env.LLM_FALLBACK_ORDER ?? '["nvidia_nim","groq"]',
     LOG_LEVEL: env.LOG_LEVEL ?? "INFO",
     BACKEND_CORS_ORIGINS:
@@ -168,6 +177,27 @@ export default {
         }
       }
     };
+
+    // Every 10 minutes: run one reminder round and pick up replies. This is
+    // what makes the assistant persistent — the container sleeps after 15
+    // idle minutes and an in-process loop dies with it, so the reminder clock
+    // has to live out here. `drain` is the no-webhook fallback for inbound
+    // replies; with a webhook registered it just returns 0 updates.
+    if (event.cron === "*/10 * * * *") {
+      const hit = async (path: string): Promise<void> => {
+        try {
+          const r = await stub.fetch(
+            new Request(`http://container${path}`, { method: "POST" })
+          );
+          if (!r.ok) console.error(`cron ${path} -> ${r.status}`);
+        } catch (err) {
+          console.error(`cron ${path} failed`, err);
+        }
+      };
+      await hit("/api/commitments/tick");
+      await hit("/api/telegram/drain");
+      return;
+    }
 
     switch (event.cron) {
       // Saturday 07:00 UTC = 08:00 WAT — weekly market RESEARCH digest

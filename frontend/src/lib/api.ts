@@ -1,5 +1,13 @@
 import { createParser, type ParsedEvent, type ReconnectInterval } from "eventsource-parser";
-import type { AgentRole, AgentResult, KnowledgeCrystal, Task } from "./types";
+import { normalizePipelineStep } from "./utils";
+import type {
+  AgentRole,
+  AgentResult,
+  Commitment,
+  KnowledgeCrystal,
+  McpServerStatus,
+  Task
+} from "./types";
 
 export interface AgentDetail {
   role: AgentRole;
@@ -11,6 +19,54 @@ export interface AgentDetail {
   soul_file?: string;
   healthy: boolean;
   last_run?: string | null;
+}
+
+export interface AgentSummary {
+  role: string;
+  status: string;
+  description: string;
+  model_profile: string;
+  tool_allowlist: string[];
+  soul_file: string;
+}
+
+export interface CommitmentStats {
+  open: number;
+  overdue: number;
+  done: number;
+  dropped: number;
+  total: number;
+}
+
+export interface CommitmentsHealth {
+  db_backed: boolean;
+  nag: {
+    started: boolean;
+    worker_alive: boolean;
+    last_tick: string | null;
+    last_tick_sent: number;
+  };
+  stats: CommitmentStats;
+}
+
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/** FastAPI puts the human-readable reason in `detail` — surface it instead of
+ *  a bare status code, because the artifact rejection copy lives there. */
+async function failure(res: Response, label: string): Promise<ApiError> {
+  let detail = "";
+  try {
+    const body = await res.json();
+    detail = typeof body?.detail === "string" ? body.detail : JSON.stringify(body?.detail ?? "");
+  } catch {
+    /* non-JSON error body */
+  }
+  return new ApiError(detail || `${label} failed: ${res.status}`, res.status);
 }
 
 export interface KnowledgeQueryHit {
@@ -130,7 +186,8 @@ export class ApiClient {
     return res.json();
   }
 
-  async getAgent(role: AgentRole): Promise<AgentDetail> {
+  /** `role` is the backend AgentRole value, e.g. "FOOTBALL". */
+  async getAgent(role: string): Promise<AgentDetail> {
     const res = await fetch(`${this.baseUrl}/api/agents/${role}`, {
       headers: { Accept: "application/json" },
       cache: "no-store"
@@ -139,7 +196,7 @@ export class ApiClient {
     return res.json();
   }
 
-  async invokeAgent(role: AgentRole, context: object): Promise<AgentResult> {
+  async invokeAgent(role: string, context: object): Promise<AgentResult> {
     const res = await fetch(`${this.baseUrl}/api/agents/${role}/invoke`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
@@ -147,6 +204,147 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw new Error(`invokeAgent failed: ${res.status}`);
+    return res.json();
+  }
+
+  async healthDiag(): Promise<Record<string, any>> {
+    const res = await fetch(`${this.baseUrl}/api/health/diag`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "healthDiag");
+    return res.json();
+  }
+
+  async listAgents(): Promise<AgentSummary[]> {
+    const res = await fetch(`${this.baseUrl}/api/agents`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "listAgents");
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  async mcpDoctor(): Promise<McpServerStatus[]> {
+    const res = await fetch(`${this.baseUrl}/api/mcp/doctor`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "mcpDoctor");
+    const raw = await res.json();
+    return (Array.isArray(raw) ? raw : []).map((r: any) => ({
+      name: String(r.name ?? ""),
+      status: (r.status ?? "down") as McpServerStatus["status"],
+      toolsAvailable: Number(r.toolsAvailable ?? r.tools_available ?? 0),
+      lastProbe: r.lastProbe ?? r.last_probe ?? undefined
+    }));
+  }
+
+  async mcpProbe(server: string): Promise<Record<string, any>> {
+    const res = await fetch(
+      `${this.baseUrl}/api/mcp/doctor/${encodeURIComponent(server)}/probe`,
+      { headers: { Accept: "application/json" }, cache: "no-store" }
+    );
+    if (!res.ok) throw await failure(res, "mcpProbe");
+    return res.json();
+  }
+
+  // ── commitments (the accountability ledger) ──────────────────────────────
+
+  async listCommitments(status?: string): Promise<Commitment[]> {
+    const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+    const res = await fetch(`${this.baseUrl}/api/commitments${qs}`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "listCommitments");
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  }
+
+  async commitmentsHealth(): Promise<CommitmentsHealth> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/health`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "commitmentsHealth");
+    return res.json();
+  }
+
+  async createCommitment(body: {
+    title: string;
+    detail?: string;
+    due_at?: string;
+    due_in_minutes?: number;
+    day?: string;
+    time_of_day?: string;
+  }): Promise<Commitment> {
+    const res = await fetch(`${this.baseUrl}/api/commitments`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "createCommitment");
+    return res.json();
+  }
+
+  /** Throws ApiError(422) with the rejection reason when the artifact is
+   *  too thin — the caller shows that text verbatim. */
+  async completeCommitment(
+    id: string,
+    artifact: { artifact_url?: string; artifact_text?: string }
+  ): Promise<Commitment> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/${id}/done`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(artifact),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "completeCommitment");
+    return res.json();
+  }
+
+  async snoozeCommitment(id: string, minutes: number): Promise<Commitment> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/${id}/snooze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ minutes }),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "snoozeCommitment");
+    return res.json();
+  }
+
+  async dropCommitment(id: string): Promise<Commitment> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/${id}/drop`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "dropCommitment");
+    return res.json();
+  }
+
+  async nagCommitment(id: string): Promise<Record<string, any>> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/${id}/nag`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "nagCommitment");
+    return res.json();
+  }
+
+  async extractCommitments(taskId: string): Promise<{ filed: number; commitments: Commitment[] }> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/extract`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ task_id: taskId }),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "extractCommitments");
     return res.json();
   }
 
@@ -229,7 +427,7 @@ function normalizeTask(raw: any): Task {
     id: String(raw?.id ?? ""),
     description: String(raw?.description ?? ""),
     status: raw?.status ?? "QUEUED",
-    currentStep: raw?.currentStep ?? raw?.step ?? undefined,
+    currentStep: normalizePipelineStep(raw?.currentStep ?? raw?.step) as Task["currentStep"],
     createdAt: raw?.createdAt ?? outputs.created_at ?? "",
     finalReport: raw?.finalReport ?? outputs.final_report ?? undefined,
     error: raw?.error ?? outputs.error ?? undefined

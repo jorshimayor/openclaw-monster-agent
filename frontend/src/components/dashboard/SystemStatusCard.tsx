@@ -4,86 +4,134 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
-import { Server, Activity, Cpu, Clock } from "lucide-react";
+import { Server, Activity, Cpu, Database } from "lucide-react";
 
 interface HealthInfo {
-  status: "online" | "offline";
-  latency: number;
-  uptimePct: number;
-  activeTasks: number;
+  status: "online" | "offline" | "unknown";
+  latency: number | null;
+  activeTasks: number | null;
+  version: string | null;
+  dbEngine: boolean | null;
+  mcpRunning: number | null;
+  mcpConfigured: number | null;
 }
 
+const INITIAL: HealthInfo = {
+  status: "unknown",
+  latency: null,
+  activeTasks: null,
+  version: null,
+  dbEngine: null,
+  mcpRunning: null,
+  mcpConfigured: null
+};
+
+/**
+ * Everything here is measured, not asserted. The card previously showed a
+ * hardcoded "99.97% uptime / 23ms / v1.0.0" that stayed green while the
+ * backend was down — anything this component cannot verify now renders as "—".
+ */
 export default function SystemStatusCard() {
-  const [health, setHealth] = useState<HealthInfo>({
-    status: "online",
-    latency: 23,
-    uptimePct: 99.97,
-    activeTasks: 0
-  });
+  const [health, setHealth] = useState<HealthInfo>(INITIAL);
 
   useEffect(() => {
+    let cancelled = false;
+
     const ping = async () => {
       const t0 = performance.now();
+      let latency: number | null = null;
+      let version: string | null = null;
       try {
-        await api.health();
-        const lat = Math.round(performance.now() - t0);
-        setHealth((h) => ({
-          ...h,
-          status: "online",
-          latency: lat,
-          uptimePct: 99.97
-        }));
+        const h = await api.health();
+        latency = Math.round(performance.now() - t0);
+        version = typeof h?.version === "string" ? h.version : null;
       } catch {
-        setHealth((h) => ({ ...h, status: "offline", latency: 0 }));
+        if (!cancelled) setHealth({ ...INITIAL, status: "offline" });
+        return;
       }
+
+      // Secondary reads are allowed to fail without flipping the card to
+      // offline — the health probe already answered.
+      const [diag, tasks] = await Promise.all([
+        api.healthDiag().catch(() => null),
+        api.listTasks().catch(() => null)
+      ]);
+
+      if (cancelled) return;
+      setHealth({
+        status: "online",
+        latency,
+        version,
+        activeTasks: tasks
+          ? tasks.filter((t) => t.status === "running" || t.status === "queued").length
+          : null,
+        dbEngine: diag ? Boolean(diag?.database?.engine_initialized) : null,
+        mcpRunning: diag ? (diag?.mcp_servers?.running?.length ?? null) : null,
+        mcpConfigured: diag ? (diag?.mcp_servers?.configured?.length ?? null) : null
+      });
     };
+
     ping();
-    const id = setInterval(ping, 5000);
-    return () => clearInterval(id);
+    const id = setInterval(ping, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
   }, []);
+
+  const dash = (v: unknown) => (v === null || v === undefined ? "—" : String(v));
 
   const items = [
     {
-      icon: <Clock className="w-4 h-4" />,
-      label: "UPTIME",
-      value: `${health.uptimePct.toFixed(2)}%`,
-      sub: "30d rolling"
+      icon: <Cpu className="w-4 h-4" />,
+      label: "HEALTH LATENCY",
+      value: health.latency === null ? "—" : `${health.latency}ms`,
+      sub: "GET /api/health"
     },
     {
       icon: <Activity className="w-4 h-4" />,
       label: "ACTIVE TASKS",
-      value: String(health.activeTasks),
-      sub: "in pipeline"
+      value: dash(health.activeTasks),
+      sub: "queued + running"
     },
     {
-      icon: <Cpu className="w-4 h-4" />,
-      label: "HEALTH LATENCY",
-      value: `${health.latency}ms`,
-      sub: "HTTP /api/health"
+      icon: <Database className="w-4 h-4" />,
+      label: "DATABASE",
+      value:
+        health.dbEngine === null ? "—" : health.dbEngine ? "CONNECTED" : "OFFLINE",
+      sub: "async engine"
     },
     {
       icon: <Server className="w-4 h-4" />,
-      label: "BUILD",
-      value: "v1.0.0",
-      sub: "stable · prod"
+      label: "MCP SERVERS",
+      value:
+        health.mcpRunning === null || health.mcpConfigured === null
+          ? "—"
+          : `${health.mcpRunning} / ${health.mcpConfigured}`,
+      sub: health.version ? `api v${health.version}` : "running / configured"
     }
   ];
+
+  const badgeVariant =
+    health.status === "online" ? "success" : health.status === "offline" ? "error" : "warning";
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="text-sm tracking-widest flex items-center justify-between">
           <span>SYSTEM STATUS</span>
-          <Badge variant={health.status === "online" ? "success" : "error"}>
+          <Badge variant={badgeVariant}>
             <span className="flex items-center gap-1.5">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
                   health.status === "online"
                     ? "bg-success animate-pulse"
-                    : "bg-danger"
+                    : health.status === "offline"
+                    ? "bg-danger"
+                    : "bg-warning animate-pulse"
                 }`}
               />
-              {health.status.toUpperCase()}
+              {health.status === "unknown" ? "CHECKING" : health.status.toUpperCase()}
             </span>
           </Badge>
         </CardTitle>
@@ -102,9 +150,7 @@ export default function SystemStatusCard() {
               <div className="text-xl font-bold glow-text tracking-wider">
                 {it.value}
               </div>
-              <div className="text-[10px] text-matrix-dim/70 mt-0.5">
-                {it.sub}
-              </div>
+              <div className="text-[10px] text-matrix-dim/70 mt-0.5">{it.sub}</div>
             </div>
           ))}
         </div>

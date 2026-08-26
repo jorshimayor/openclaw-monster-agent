@@ -62,9 +62,18 @@
   "$schema": "../frontend/node_modules/wrangler/config-schema.json",
   "name": "monster-agent-backend",
   "main": "src/index.ts",
-  // Scheduled assistant runs (UTC): Mon 06:00 weekly plan · daily 05:30 morning brief.
-  // Both land in Telegram via the personal-assistant bus when the task completes.
-  "triggers": { "crons": ["0 6 * * 1", "30 5 * * *", "0 7 * * 6"] },
+  // Scheduled assistant runs (UTC): Mon 06:00 weekly plan · daily 05:30 morning
+  // brief · Sat 07:00 market digest. All land in Telegram via the
+  // personal-assistant bus when the task completes.
+  //
+  // "*/10 * * * *" is the accountability heartbeat: one reminder round for
+  // overdue commitments plus an inbound-reply drain. NOTE: a 10-minute cron is
+  // shorter than the container's 15m sleepAfter, so the container effectively
+  // stays warm — that is the cost of an assistant that keeps chasing you.
+  // Raise this interval (or lower sleepAfter) to trade persistence for spend.
+  "triggers": {
+    "crons": ["*/10 * * * *", "0 6 * * 1", "30 5 * * *", "0 7 * * 6"]
+  },
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
@@ -124,6 +133,9 @@
     "SLACK_CHANNEL": "D0BQR97P2NP",  // bot DM to jorshimayor (bot lacks channels:manage; DM needs no setup)
     "LLM_FALLBACK_ORDER": "[\"nvidia_nim\",\"groq\"]",
     "LOG_LEVEL": "INFO",
+    "PUBLIC_APP_URL": "https://monster-agent-frontend-2dn.pages.dev",
+    "NAG_ENABLED": "true",
+    "USER_TIMEZONE_OFFSET_HOURS": "1",  // WAT — due times in plans are local
     "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\",\"http://localhost:8080\",\"https://monster-agent-frontend-2dn.pages.dev\",\"https://2a9f9635.monster-agent-frontend-2dn.pages.dev\"]"
   }
 }

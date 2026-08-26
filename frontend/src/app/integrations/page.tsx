@@ -1,60 +1,34 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { api } from "@/lib/api";
 import type { McpServerStatus } from "@/lib/types";
-import { Github, BookOpen, FolderKanban, MessageSquare, Hash } from "lucide-react";
-import { useIsHydrated } from "@/lib/hydration";
+import {
+  Github,
+  BookOpen,
+  FolderKanban,
+  MessageSquare,
+  Hash,
+  Send,
+  Plug
+} from "lucide-react";
 
-interface IntegrationRow extends McpServerStatus {
-  icon: React.ReactNode;
-  displayName: string;
-}
-
-const INITIAL: IntegrationRow[] = [
-  {
-    name: "github-mcp",
-    displayName: "GitHub",
-    icon: <Github className="w-5 h-5" />,
-    status: "healthy",
-    toolsAvailable: 14,
-    lastProbe: undefined
+/** Icon + label per known server name. Unknown servers still render — the
+ *  backend's SUPPORTED_SERVERS list is the source of truth, not this map. */
+const PRESENTATION: Record<string, { label: string; icon: React.ReactNode }> = {
+  github: { label: "GitHub", icon: <Github className="w-5 h-5" /> },
+  notion: { label: "Notion", icon: <BookOpen className="w-5 h-5" /> },
+  google_workspace: {
+    label: "Google Workspace",
+    icon: <FolderKanban className="w-5 h-5" />
   },
-  {
-    name: "notion-mcp",
-    displayName: "Notion",
-    icon: <BookOpen className="w-5 h-5" />,
-    status: "healthy",
-    toolsAvailable: 9,
-    lastProbe: undefined
-  },
-  {
-    name: "google-workspace-mcp",
-    displayName: "Google Workspace",
-    icon: <FolderKanban className="w-5 h-5" />,
-    status: "degraded",
-    toolsAvailable: 11,
-    lastProbe: undefined
-  },
-  {
-    name: "slack-mcp",
-    displayName: "Slack",
-    icon: <MessageSquare className="w-5 h-5" />,
-    status: "healthy",
-    toolsAvailable: 7,
-    lastProbe: undefined
-  },
-  {
-    name: "hashnode-mcp",
-    displayName: "Hashnode",
-    icon: <Hash className="w-5 h-5" />,
-    status: "down",
-    toolsAvailable: 4,
-    lastProbe: undefined
-  }
-];
+  slack: { label: "Slack", icon: <MessageSquare className="w-5 h-5" /> },
+  telegram: { label: "Telegram", icon: <Send className="w-5 h-5" /> },
+  hashnode: { label: "Hashnode", icon: <Hash className="w-5 h-5" /> }
+};
 
 const STATUS_VARIANT: Record<
   McpServerStatus["status"],
@@ -66,21 +40,47 @@ const STATUS_VARIANT: Record<
 };
 
 export default function IntegrationsPage() {
-  const hydrated = useIsHydrated();
-  const [servers, setServers] = useState<IntegrationRow[]>(INITIAL);
+  const [servers, setServers] = useState<McpServerStatus[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [probing, setProbing] = useState<string | null>(null);
+  const [probeResult, setProbeResult] = useState<Record<string, string>>({});
 
+  const load = useCallback(async () => {
+    try {
+      setServers(await api.mcpDoctor());
+      setError(null);
+    } catch (e) {
+      setServers([]);
+      setError((e as Error).message);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+    const id = setInterval(load, 15000);
+    return () => clearInterval(id);
+  }, [load]);
+
+  /** A real round-trip to the server's tools/list, not a setTimeout. */
   const probe = async (name: string) => {
     setProbing(name);
-    await new Promise((r) => setTimeout(r, 900));
-    setServers((prev) =>
-      prev.map((s) =>
-        s.name === name
-          ? { ...s, lastProbe: new Date().toISOString() }
-          : s
-      )
-    );
-    setProbing(null);
+    try {
+      const result = await api.mcpProbe(name);
+      setProbeResult((prev) => ({
+        ...prev,
+        [name]: result?.ok
+          ? `OK · ${result?.tools_count ?? result?.tools?.length ?? 0} tools`
+          : `FAILED · ${String(result?.error ?? "no detail")}`.slice(0, 90)
+      }));
+    } catch (e) {
+      setProbeResult((prev) => ({
+        ...prev,
+        [name]: `FAILED · ${(e as Error).message}`.slice(0, 90)
+      }));
+    } finally {
+      setProbing(null);
+      load();
+    }
   };
 
   return (
@@ -90,75 +90,102 @@ export default function IntegrationsPage() {
           ⟨ INTEGRATIONS · MCP SERVERS ⟩
         </h1>
         <p className="text-xs text-matrix-dim mt-1 tracking-widest">
-          MODEL CONTEXT PROTOCOL · EXTERNAL TOOL CONNECTIVITY
+          MODEL CONTEXT PROTOCOL · LIVE FROM /api/mcp/doctor
         </p>
       </div>
 
+      {error && (
+        <Card>
+          <CardContent className="py-6 text-xs text-danger">
+            MCP DOCTOR UNAVAILABLE · {error}
+          </CardContent>
+        </Card>
+      )}
+
+      {!error && servers !== null && servers.length === 0 && (
+        <Card>
+          <CardContent className="py-10 text-center text-xs text-matrix-dim">
+            NO MCP SERVERS CONFIGURED
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {servers.map((s) => (
-          <Card key={s.name}>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded border border-matrix/30 bg-matrix/5 flex items-center justify-center shadow-matrix-glow/30">
-                    {s.icon}
-                  </div>
-                  <div>
-                    <div className="font-bold tracking-wider">{s.displayName}</div>
-                    <div className="text-[10px] text-matrix-dim tracking-widest mt-0.5">
-                      {s.name}
+        {(servers ?? []).map((s) => {
+          const p = PRESENTATION[s.name] ?? {
+            label: s.name,
+            icon: <Plug className="w-5 h-5" />
+          };
+          return (
+            <Card key={s.name}>
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded border border-matrix/30 bg-matrix/5 flex items-center justify-center">
+                      {p.icon}
+                    </div>
+                    <div>
+                      <div className="font-bold tracking-wider">{p.label}</div>
+                      <div className="text-[10px] text-matrix-dim tracking-widest mt-0.5">
+                        {s.name}
+                      </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`w-2.5 h-2.5 rounded-full ${
+                        s.status === "healthy"
+                          ? "bg-matrix animate-pulse"
+                          : s.status === "degraded"
+                          ? "bg-warning animate-pulse"
+                          : "bg-danger"
+                      }`}
+                    />
+                    <Badge variant={STATUS_VARIANT[s.status]}>
+                      {s.status.toUpperCase()}
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`w-2.5 h-2.5 rounded-full ${
-                      s.status === "healthy"
-                        ? "bg-matrix animate-pulse"
-                        : s.status === "degraded"
-                        ? "bg-warning animate-pulse"
-                        : "bg-danger"
-                    }`}
-                  />
-                  <Badge variant={STATUS_VARIANT[s.status]}>
-                    {s.status.toUpperCase()}
-                  </Badge>
+              </CardHeader>
+              <CardContent className="space-y-3 text-xs">
+                <div className="bg-bg/50 border border-matrix/20 rounded p-3 space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-matrix-dim tracking-wider">TOOLS</span>
+                    <span>{s.toolsAvailable} REGISTERED</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-matrix-dim tracking-wider shrink-0">
+                      LAST PROBE
+                    </span>
+                    <span className="truncate" suppressHydrationWarning>
+                      {s.lastProbe ? s.lastProbe.slice(0, 19).replace("T", " ") : "NEVER"}
+                    </span>
+                  </div>
+                  {probeResult[s.name] && (
+                    <div
+                      className={`pt-1.5 border-t border-matrix/10 ${
+                        probeResult[s.name].startsWith("OK")
+                          ? "text-success"
+                          : "text-danger"
+                      }`}
+                    >
+                      {probeResult[s.name]}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-3 text-xs">
-              <div className="bg-bg/50 border border-matrix/20 rounded p-3 space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-matrix-dim tracking-wider">SERVER</span>
-                  <span className="font-mono">{s.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-matrix-dim tracking-wider">TOOLS</span>
-                  <span>{s.toolsAvailable} AVAILABLE</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-matrix-dim tracking-wider">LAST PROBE</span>
-                  <span>
-                    {s.lastProbe
-                      ? hydrated
-                        ? new Date(s.lastProbe).toISOString().slice(11, 19) + " UTC"
-                        : "—"
-                      : "N/A"}
-                  </span>
-                </div>
-              </div>
-              <Button
-                variant="matrix"
-                size="sm"
-                className="w-full"
-                disabled={probing === s.name}
-                onClick={() => probe(s.name)}
-              >
-                {probing === s.name ? "PROBING..." : "◉ PROBE SERVER"}
-              </Button>
-            </CardContent>
-          </Card>
-        ))}
+                <Button
+                  variant="matrix"
+                  size="sm"
+                  className="w-full"
+                  disabled={probing === s.name}
+                  onClick={() => probe(s.name)}
+                >
+                  {probing === s.name ? "PROBING..." : "◉ PROBE SERVER"}
+                </Button>
+              </CardContent>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
