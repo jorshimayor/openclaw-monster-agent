@@ -62,15 +62,24 @@ def _normalize_role(role: str) -> AgentRole:
         try:
             return AgentRole(role)
         except ValueError:
+            # Long-form aliases matter: the console used to request
+            # "football_analyst" and get a 404, so five of eight agents
+            # permanently rendered as health-unknown.
             mapping = {
                 "orchestrator": AgentRole.ORCHESTRATOR,
                 "content_web2": AgentRole.CONTENT_WEB2,
                 "content_web3": AgentRole.CONTENT_WEB3,
                 "football": AgentRole.FOOTBALL,
+                "football_analyst": AgentRole.FOOTBALL,
                 "editor": AgentRole.EDITOR,
+                "editor_reviewer": AgentRole.EDITOR,
                 "security": AgentRole.SECURITY,
+                "security_auditor": AgentRole.SECURITY,
                 "knowledge": AgentRole.KNOWLEDGE,
+                "knowledge_crystallizer": AgentRole.KNOWLEDGE,
                 "study": AgentRole.STUDY,
+                "study_partner": AgentRole.STUDY,
+                "personal_assistant": AgentRole.PERSONAL_ASSISTANT,
             }
             if role.lower() in mapping:
                 return mapping[role.lower()]

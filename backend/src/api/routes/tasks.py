@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, List, Optional
 from uuid import UUID, uuid4
@@ -136,6 +137,22 @@ async def create_task(
                     )
                 except Exception:
                     pass
+                # File the user's own action items so the assistant can chase
+                # them. A plan that lands on Telegram and is never mentioned
+                # again is a newsletter, not an assistant.
+                try:
+                    from ...agents.commitment_extractor import extract_and_file
+
+                    filed = await extract_and_file(
+                        body.description,
+                        final_report,
+                        task_id=task.id,
+                        llm=getattr(request.app.state, "llm_router", None),
+                    )
+                    if filed:
+                        await _announce_commitments(filed, body.description)
+                except Exception as exc:
+                    logger.warning("commitment_extract_failed", task_id=tid, error=str(exc))
             elif final_status in (TaskStatus.FAILED, TaskStatus.CANCELLED):
                 err_msg = final_report or str(task.outputs.get("error", "")) or "Unknown"
                 try:
@@ -182,6 +199,33 @@ async def create_task(
 
     asyncio.create_task(_run_pipeline())
     return task
+
+
+async def _announce_commitments(filed: List[Dict[str, Any]], description: str) -> None:
+    """Tell the user what was just put on their hook, and when the chasing
+    starts. Silent filing would feel like the reminders came from nowhere."""
+    from ...agents.nagger import get_nag_engine
+
+    lines = [
+        f"\U0001F4CC <b>{len(filed)} thing(s) now on your hook</b>",
+        f"<i>from: {html.escape(description[:110])}</i>",
+        "",
+    ]
+    for c in filed:
+        due = str(c.get("due_at") or "")[:16].replace("T", " ")
+        lines.append(
+            f"  <code>{c['short_id']}</code> — {html.escape(str(c['title'])[:100])}\n"
+            f"       <i>due {due} UTC</i>"
+        )
+    lines += [
+        "",
+        "I'll keep reminding you about each one until you close it with an "
+        "artifact. <code>/todo</code> to see them, <code>/done &lt;id&gt; &lt;link&gt;</code> to close one.",
+    ]
+    try:
+        await get_nag_engine().send_message("\n".join(lines), silent=True)
+    except Exception:
+        pass
 
 
 @router.get("/{task_id}", response_model=Task)

@@ -44,3 +44,30 @@ async def notify_test() -> Dict[str, Any]:
         logger.exception("notify_test_failed", error=str(exc))
         state["result"] = {"error": str(exc)}
     return state
+
+
+@router.post("/send")
+async def notify_send(body: Dict[str, Any]) -> Dict[str, Any]:
+    """Push a message through the assistant's channels (Telegram + Slack)
+    WITHOUT running the pipeline. Used by sibling systems (e.g. fieldtilt)
+    for reminders: queued drafts, accountability, health events."""
+    title = str(body.get("title") or "Notification")[:120]
+    message = str(body.get("message") or "")[:3000]
+    if not message:
+        return {"ok": False, "error": "message required"}
+    bus = get_event_bus()
+    if bus._pa is None:
+        return {"ok": False, "error": "personal assistant not attached"}
+    event = AgentBusEvent(
+        kind=AgentEventKind.TASK_COMPLETED,  # reuses the rich card path on both channels
+        priority=AgentEventPriority.P2_UPDATE,
+        title=title,
+        summary=message[:320],
+        details={"description": title, "report": message},
+    )
+    try:
+        result = await bus._pa.ingest_event(event)
+        return {"ok": True, "routed": result.get("routed")}
+    except Exception as exc:
+        logger.exception("notify_send_failed", error=str(exc))
+        return {"ok": False, "error": str(exc)}

@@ -29,6 +29,8 @@ from .routes.agents import router as agents_router
 from .routes.mcp import router as mcp_router
 from .routes.notify import router as notify_router
 from .routes.knowledge import router as knowledge_router
+from .routes.commitments import router as commitments_router
+from .routes.telegram import router as telegram_router
 
 
 class LLMTestRequest(BaseModel):
@@ -66,6 +68,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("agent_event_bus_init_failed", error=str(e))
         bus = None
+    try:
+        from ..agents.nagger import get_nag_engine
+
+        nag_engine = get_nag_engine()
+        nag_engine.start(loop=asyncio.get_running_loop())
+    except Exception as e:
+        logger.warning("nag_engine_init_failed", error=str(e))
+        nag_engine = None
     try:
         knowledge_memory = ExperienceMemory()
     except Exception as e:
@@ -114,6 +124,7 @@ async def lifespan(app: FastAPI):
     _app_state["knowledge_store"] = knowledge_store
     _app_state["pipeline_executor"] = pipeline_executor
     _app_state["logger"] = logger
+    _app_state["nag_engine"] = nag_engine
     app.state.mcp_manager = mcp_manager
     app.state.llm_router = llm_router
     app.state.settings = settings
@@ -121,6 +132,7 @@ async def lifespan(app: FastAPI):
     app.state.knowledge_memory = knowledge_memory
     app.state.knowledge_store = knowledge_store
     app.state.pipeline_executor = pipeline_executor
+    app.state.nag_engine = nag_engine
     logger.info(
         "api_startup",
         version="1.0.0",
@@ -129,6 +141,7 @@ async def lifespan(app: FastAPI):
         mcp_manager_ok=mcp_manager is not None,
         knowledge_store_ok=knowledge_store is not None,
         pipeline_executor_ok=pipeline_executor is not None,
+        nag_engine_ok=nag_engine is not None,
         db_ok=db_ok,
     )
     yield
@@ -137,6 +150,12 @@ async def lifespan(app: FastAPI):
             await mcp_manager.stop_all()
         except Exception as e:
             logger.error("mcp_manager_shutdown_failed", error=str(e))
+    try:
+        from ..agents.nagger import get_nag_engine
+
+        await get_nag_engine().stop()
+    except Exception as e:
+        logger.error("nag_engine_shutdown_failed", error=str(e))
     try:
         from ..agents.bus import get_event_bus
 
@@ -402,6 +421,8 @@ def create_app() -> FastAPI:
     app.include_router(mcp_router)
     app.include_router(notify_router)
     app.include_router(knowledge_router)
+    app.include_router(commitments_router)
+    app.include_router(telegram_router)
     return app
 
 

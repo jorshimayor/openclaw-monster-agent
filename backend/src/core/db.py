@@ -125,8 +125,11 @@ async def create_all_tables() -> None:
         return
     assert _engine is not None
     async with _engine.begin() as conn:
-        from ..models.knowledge import KnowledgeCrystalDB
-        from ..models.task import TaskDB
+        # Imported for the side effect of registering each table on
+        # Base.metadata before create_all runs.
+        from ..models.commitment import CommitmentDB  # noqa: F401
+        from ..models.knowledge import KnowledgeCrystalDB  # noqa: F401
+        from ..models.task import TaskDB  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
     logger.info("database_tables_created")
 

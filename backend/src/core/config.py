@@ -164,6 +164,35 @@ class Settings(BaseSettings):
         # Fallback: stringify whatever weird value was passed
         return [str(v)]
 
+    # ── Accountability / nag engine ───────────────────────────────────────
+    # The assistant chases open commitments until an artifact closes them.
+    # nag_tick_seconds drives the in-process loop; the Cloudflare cron wakes
+    # a sleeping container on the same cadence so reminders survive sleep.
+    nag_enabled: bool = Field(default=True, validation_alias=AliasChoices("nag_enabled", "NAG_ENABLED"))
+    nag_tick_seconds: int = Field(
+        default=300, validation_alias=AliasChoices("nag_tick_seconds", "NAG_TICK_SECONDS")
+    )
+    commitment_auto_extract: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("commitment_auto_extract", "COMMITMENT_AUTO_EXTRACT"),
+    )
+    # Local wall-clock the user actually lives in; due times parsed from
+    # reports ("Monday evening") are anchored here, not to UTC.
+    user_timezone_offset_hours: int = Field(
+        default=1,
+        validation_alias=AliasChoices("user_timezone_offset_hours", "USER_TIMEZONE_OFFSET_HOURS"),
+    )
+    public_app_url: str = Field(
+        default="https://monster-agent-frontend-2dn.pages.dev",
+        validation_alias=AliasChoices("public_app_url", "PUBLIC_APP_URL"),
+    )
+    # Shared secret appended to the Telegram webhook path (Telegram echoes it
+    # back in X-Telegram-Bot-Api-Secret-Token) so the endpoint can't be spoofed.
+    telegram_webhook_secret: str = Field(
+        default="",
+        validation_alias=AliasChoices("telegram_webhook_secret", "TELEGRAM_WEBHOOK_SECRET"),
+    )
+
     backend_cors_origins: List[AnyHttpUrl] = Field(
         default_factory=lambda: [
             AnyHttpUrl("http://localhost:3000"),
