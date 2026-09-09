@@ -102,7 +102,7 @@ export function agentPresentation(role: string) {
   );
 }
 
-export type CommitmentStatus = "open" | "done" | "dropped";
+export type CommitmentStatus = "proposed" | "open" | "done" | "dropped";
 
 /** One thing the user owes. Mirrors the backend commitments row. */
 export interface Commitment {

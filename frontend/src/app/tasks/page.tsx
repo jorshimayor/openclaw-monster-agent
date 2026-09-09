@@ -9,6 +9,8 @@ import { api } from "@/lib/api";
 import type { Task } from "@/lib/types";
 import { formatDate, truncate } from "@/lib/utils";
 
+const PAGE_SIZE = 20;
+
 const STATUS_VARIANT: Record<Task["status"], "default" | "success" | "warning" | "error"> = {
   queued: "default",
   running: "warning",
@@ -20,17 +22,38 @@ const STATUS_VARIANT: Record<Task["status"], "default" | "success" | "warning" |
 export default function TasksPage() {
   const [description, setDescription] = useState("");
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Task | null>(null);
 
   const reload = useCallback(() => {
-    api.listTasks().then(setTasks).catch(() => {});
-  }, []);
+    api
+      .listTasks(page * PAGE_SIZE, PAGE_SIZE)
+      .then(setTasks)
+      .catch(() => {});
+    api.countTasks().then(setTotal).catch(() => {});
+  }, [page]);
 
   useEffect(() => {
     reload();
     const id = setInterval(reload, 5000);
     return () => clearInterval(id);
   }, [reload]);
+
+  const remove = async (task: Task) => {
+    setDeleting(task.id);
+    try {
+      await api.deleteTask(task.id);
+      setConfirmDelete(null);
+      reload();
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +62,7 @@ export default function TasksPage() {
     try {
       await api.submitTask(description.trim());
       setDescription("");
+      setPage(0);
       reload();
     } finally {
       setLoading(false);
@@ -78,8 +102,12 @@ export default function TasksPage() {
       <Card>
         <CardHeader>
           <CardTitle className="text-sm tracking-widest flex items-center justify-between">
-            <span>ACTIVE & HISTORICAL TASKS</span>
-            <span className="text-xs text-matrix-dim">{tasks.length} TOTAL</span>
+            <span>ACTIVE &amp; HISTORICAL TASKS</span>
+            <span className="text-xs text-matrix-dim">
+              {total > 0
+                ? `${page * PAGE_SIZE + 1}–${Math.min((page + 1) * PAGE_SIZE, total)} OF ${total}`
+                : `${tasks.length} TOTAL`}
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
@@ -92,12 +120,13 @@ export default function TasksPage() {
                   <th className="text-left px-6 py-3 font-normal tracking-widest">STATUS</th>
                   <th className="text-left px-6 py-3 font-normal tracking-widest">CURRENT STEP</th>
                   <th className="text-left px-6 py-3 font-normal tracking-widest">CREATED</th>
+                  <th className="text-right px-6 py-3 font-normal tracking-widest">ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
                 {tasks.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center text-matrix-dim">
+                    <td colSpan={6} className="px-6 py-12 text-center text-matrix-dim">
                       NO TASKS YET · SUBMIT ONE ABOVE TO INITIATE PIPELINE
                     </td>
                   </tr>
@@ -124,15 +153,86 @@ export default function TasksPage() {
                       <td className="px-6 py-4 text-matrix-dim">
                         {t.currentStep ? t.currentStep.toUpperCase() : "—"}
                       </td>
-                      <td className="px-6 py-4 text-matrix-dim">{formatDate(t.createdAt)}</td>
+                      <td className="px-6 py-4 text-matrix-dim" suppressHydrationWarning>
+                        {formatDate(t.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDelete(t)}
+                          disabled={deleting === t.id}
+                          className="text-matrix-dim hover:text-danger transition-colors disabled:opacity-40"
+                          title="Delete this task and any commitments it filed"
+                        >
+                          {deleting === t.id ? "…" : "🗑"}
+                        </button>
+                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
+          {pageCount > 1 && (
+            <div className="flex items-center justify-between px-6 py-3 border-t border-bg-border text-xs">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
+              >
+                ← PREV
+              </Button>
+              <span className="text-matrix-dim tracking-widest">
+                PAGE {page + 1} / {pageCount}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={page + 1 >= pageCount}
+                onClick={() => setPage((p) => p + 1)}
+              >
+                NEXT →
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
+
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <Card className="max-w-md w-full">
+            <CardHeader>
+              <CardTitle className="text-sm tracking-widest text-danger">
+                DELETE TASK?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-matrix/90 leading-relaxed">
+                {truncate(confirmDelete.description, 160)}
+              </p>
+              <p className="text-[11px] text-matrix-dim leading-relaxed">
+                This also deletes any commitments this task put on your hook, so
+                you stop being reminded about work whose origin is gone. It
+                cannot be undone.
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setConfirmDelete(null)}>
+                  CANCEL
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deleting === confirmDelete.id}
+                  onClick={() => remove(confirmDelete)}
+                >
+                  {deleting === confirmDelete.id ? "DELETING…" : "DELETE"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

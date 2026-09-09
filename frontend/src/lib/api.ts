@@ -30,6 +30,22 @@ export interface AgentSummary {
   soul_file: string;
 }
 
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  meta?: Record<string, any>;
+  created_at: string | null;
+}
+
+export interface ChatAction {
+  type: string;
+  id?: string;
+  title?: string;
+  due?: string;
+  candidates?: string[];
+}
+
 export interface CommitmentStats {
   open: number;
   overdue: number;
@@ -40,11 +56,18 @@ export interface CommitmentStats {
 
 export interface CommitmentsHealth {
   db_backed: boolean;
+  memory_fallback_allowed: boolean;
   nag: {
     started: boolean;
     worker_alive: boolean;
     last_tick: string | null;
     last_tick_sent: number;
+    quiet_hours?: {
+      enabled: boolean;
+      window: string;
+      active_now: boolean;
+      resumes_at: string | null;
+    };
   };
   stats: CommitmentStats;
 }
@@ -97,8 +120,9 @@ export class ApiClient {
     return res.json();
   }
 
-  async listTasks(): Promise<Task[]> {
-    const res = await fetch(`${this.baseUrl}/api/tasks`, {
+  async listTasks(skip = 0, limit = 50): Promise<Task[]> {
+    const qs = `?skip=${skip}&limit=${limit}`;
+    const res = await fetch(`${this.baseUrl}/api/tasks${qs}`, {
       headers: { Accept: "application/json" },
       cache: "no-store"
     });
@@ -125,6 +149,25 @@ export class ApiClient {
     });
     if (!res.ok) throw new Error(`submitTask failed: ${res.status}`);
     return normalizeTask(await res.json());
+  }
+
+  async countTasks(): Promise<number> {
+    const res = await fetch(`${this.baseUrl}/api/tasks/count`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "countTasks");
+    return Number((await res.json())?.total ?? 0);
+  }
+
+  async deleteTask(id: string): Promise<{ deleted: boolean; commitments_removed: number }> {
+    const res = await fetch(`${this.baseUrl}/api/tasks/${id}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "deleteTask");
+    return res.json();
   }
 
   async listKnowledge(category?: string, limit = 50): Promise<KnowledgeCrystal[]> {
@@ -324,6 +367,83 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw await failure(res, "dropCommitment");
+    return res.json();
+  }
+
+  async getChat(taskId: string): Promise<{
+    messages: ChatMessage[];
+    commitments: Commitment[];
+  }> {
+    const res = await fetch(`${this.baseUrl}/api/tasks/${taskId}/chat`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "getChat");
+    return res.json();
+  }
+
+  async sendChat(
+    taskId: string,
+    message: string
+  ): Promise<{ reply: string; actions: ChatAction[]; commitments: Commitment[] }> {
+    const res = await fetch(`${this.baseUrl}/api/tasks/${taskId}/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ message }),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "sendChat");
+    return res.json();
+  }
+
+  async approveCommitment(id: string): Promise<Commitment> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/${id}/approve`, {
+      method: "POST",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "approveCommitment");
+    return res.json();
+  }
+
+  async deleteCommitment(id: string): Promise<{ deleted: boolean }> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/${id}`, {
+      method: "DELETE",
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "deleteCommitment");
+    return res.json();
+  }
+
+  async purgeCommitments(filter: { task_id?: string; status?: string }): Promise<{ deleted: number }> {
+    const res = await fetch(`${this.baseUrl}/api/commitments/purge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(filter),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "purgeCommitments");
+    return res.json();
+  }
+
+  async syncSchedule(): Promise<Record<string, any>> {
+    const res = await fetch(`${this.baseUrl}/api/schedule/sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ write_back: true }),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "syncSchedule");
+    return res.json();
+  }
+
+  async scheduleState(): Promise<{ sheet_configured: boolean; range: string }> {
+    const res = await fetch(`${this.baseUrl}/api/schedule/state`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "scheduleState");
     return res.json();
   }
 

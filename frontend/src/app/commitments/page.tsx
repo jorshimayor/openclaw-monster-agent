@@ -98,14 +98,28 @@ function CloseForm({
         <Button
           type="button"
           size="sm"
-          variant="destructive"
+          variant="ghost"
           disabled={busy}
+          title="Records that you abandoned it — stays on the ledger"
           onClick={async () => {
             await api.dropCommitment(commitment.id).catch(() => {});
             onClosed();
           }}
         >
-          🗑 DROP
+          ⊘ DROP
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="destructive"
+          disabled={busy}
+          title="Remove it entirely — for rows that should never have existed"
+          onClick={async () => {
+            await api.deleteCommitment(commitment.id).catch(() => {});
+            onClosed();
+          }}
+        >
+          🗑 DELETE
         </Button>
       </div>
     </form>
@@ -121,6 +135,9 @@ export default function CommitmentsPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newWhen, setNewWhen] = useState("");
   const [adding, setAdding] = useState(false);
+  const [sheetConfigured, setSheetConfigured] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     try {
@@ -143,6 +160,42 @@ export default function CommitmentsPage() {
     const id = setInterval(reload, 10000);
     return () => clearInterval(id);
   }, [reload]);
+
+  useEffect(() => {
+    api
+      .scheduleState()
+      .then((s) => setSheetConfigured(s.sheet_configured))
+      .catch(() => setSheetConfigured(false));
+  }, []);
+
+  const syncSheet = async () => {
+    setSyncing(true);
+    setNotice(null);
+    try {
+      const r = await api.syncSchedule();
+      setNotice(
+        `Sheet synced — ${r.rows_seen} rows · ${r.filed} new · ${r.updated} updated · ` +
+          `${r.closed_from_sheet} ticked off · ${r.written_back} cells written back`
+      );
+      reload();
+    } catch (e) {
+      setNotice(`Sheet sync failed: ${(e as Error).message}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  /** Escape hatch for a bad extraction run that filled the ledger with junk. */
+  const clearAllOpen = async () => {
+    if (!window.confirm("Delete every OPEN commitment? This cannot be undone.")) return;
+    try {
+      const r = await api.purgeCommitments({ status: "open" });
+      setNotice(`Deleted ${r.deleted} open commitment(s).`);
+      reload();
+    } catch (e) {
+      setNotice(`Purge failed: ${(e as Error).message}`);
+    }
+  };
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -219,6 +272,19 @@ export default function CommitmentsPage() {
         ))}
       </div>
 
+      {notice && (
+        <div className="text-xs border border-matrix/30 bg-matrix/5 rounded px-4 py-2.5 text-matrix/90 flex items-start justify-between gap-4">
+          <span>{notice}</span>
+          <button
+            type="button"
+            onClick={() => setNotice(null)}
+            className="text-matrix-dim hover:text-matrix shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {health && (
         <div className="text-[10px] text-matrix-dim tracking-wider flex flex-wrap gap-x-5 gap-y-1">
           <span>
@@ -233,15 +299,54 @@ export default function CommitmentsPage() {
           <span>
             STORAGE:{" "}
             <span className={health.db_backed ? "text-success" : "text-danger"}>
-              {health.db_backed ? "POSTGRES" : "IN-MEMORY (LOST ON RESTART)"}
+              {health.db_backed
+                ? "POSTGRES"
+                : health.memory_fallback_allowed
+                ? "IN-MEMORY (LOCAL DEV)"
+                : "UNAVAILABLE · WRITES REFUSED"}
             </span>
           </span>
+          {health.nag.quiet_hours?.enabled && (
+            <span>
+              QUIET HOURS: {health.nag.quiet_hours.window}
+              {health.nag.quiet_hours.active_now && (
+                <span className="text-warning">
+                  {" "}
+                  · ASLEEP, RESUMING{" "}
+                  {health.nag.quiet_hours.resumes_at?.slice(11, 16)} UTC
+                </span>
+              )}
+            </span>
+          )}
         </div>
       )}
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm tracking-widest">PUT SOMETHING ON THE HOOK</CardTitle>
+          <CardTitle className="text-sm tracking-widest flex items-center justify-between gap-3">
+            <span>PUT SOMETHING ON THE HOOK</span>
+            <span className="flex items-center gap-2 font-normal">
+              {sheetConfigured && (
+                <button
+                  type="button"
+                  onClick={syncSheet}
+                  disabled={syncing}
+                  className="text-[10px] tracking-widest text-matrix hover:underline disabled:opacity-50"
+                >
+                  {syncing ? "SYNCING…" : "⟳ SYNC SHEET"}
+                </button>
+              )}
+              {(open?.length ?? 0) > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAllOpen}
+                  className="text-[10px] tracking-widest text-danger hover:underline"
+                >
+                  ✕ CLEAR ALL OPEN
+                </button>
+              )}
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={add} className="flex flex-col sm:flex-row gap-3">

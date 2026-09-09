@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { href: "/commitments", label: "Commitments", icon: "✓" },
   { href: "/agents", label: "Agents", icon: "◎" },
   { href: "/knowledge", label: "Knowledge", icon: "◈" },
+  { href: "/hq", label: "Career HQ", icon: "★" },
   { href: "/integrations", label: "Integrations", icon: "⬡" }
 ];
 

@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PipelineRail } from "@/components/pipeline/PipelineRail";
 import { LogPanel } from "@/components/console/LogPanel";
 import { api } from "@/lib/api";
+import Markdown from "@/components/Markdown";
+import TaskChat from "@/components/TaskChat";
 import type { AgentResult, PipelineStep, Task, TaskStatus } from "@/lib/types";
 import type { LogEntry, PipelineEvent } from "@/lib/events";
 import { formatDate } from "@/lib/utils";
@@ -271,7 +273,18 @@ export default function TaskDetailPage() {
                   <div className="text-[10px] text-matrix-dim tracking-widest">
                     CREATED: {formatDate(task.createdAt)}
                   </div>
-                  {finalReport && (
+                  <Card>
+            <CardHeader>
+              <CardTitle className="text-sm tracking-widest">
+                CONVERSATION · APPROVE · ASK · SUBMIT ARTIFACTS
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <TaskChat taskId={id} />
+            </CardContent>
+          </Card>
+
+          {finalReport && (
                     <Badge variant="success" className="mt-1">FINALIZED</Badge>
                   )}
                 </div>
@@ -315,9 +328,9 @@ export default function TaskDetailPage() {
                 <CardTitle className="text-sm tracking-widest">FINAL REPORT</CardTitle>
               </CardHeader>
               <CardContent>
-                <pre className="text-xs text-matrix/90 whitespace-pre-wrap leading-relaxed bg-bg/50 border border-matrix/20 rounded p-4">
-                  {finalReport}
-                </pre>
+                <div className="bg-bg/50 border border-matrix/20 rounded p-4 overflow-x-auto">
+                  <Markdown source={finalReport} />
+                </div>
               </CardContent>
             </Card>
           )}
