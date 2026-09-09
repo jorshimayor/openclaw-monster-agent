@@ -4,11 +4,13 @@ import asyncio
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from ..core.config import get_settings
+from ..core.commitment_repo import StorageUnavailable
 from ..core.db import create_all_tables, dispose_db, init_db, is_db_available
 
 
@@ -31,6 +33,8 @@ from .routes.notify import router as notify_router
 from .routes.knowledge import router as knowledge_router
 from .routes.commitments import router as commitments_router
 from .routes.telegram import router as telegram_router
+from .routes.schedule import router as schedule_router
+from .routes.study import router as study_router
 
 
 class LLMTestRequest(BaseModel):
@@ -60,6 +64,27 @@ async def lifespan(app: FastAPI):
         logger.warning("mcp_manager_init_failed", error=str(e))
         mcp_manager = None
     try:
+        knowledge_memory = ExperienceMemory()
+    except Exception as e:
+        logger.warning("knowledge_memory_init_failed", error=str(e))
+        knowledge_memory = ExperienceMemory()
+    # Postgres comes up FIRST. The commitment and conversation repos silently
+    # fall back to an in-memory dict when the engine is not ready, and that
+    # state dies with the container — a reminder written into it nags you until
+    # the container is replaced and then vanishes.
+    db_ok = False
+    try:
+        db_ok = init_db(settings.database_url)
+        if db_ok:
+            try:
+                await create_all_tables()
+            except Exception as e:
+                logger.warning("db_create_tables_failed", error=str(e))
+    except Exception as e:
+        logger.warning("db_init_failed", error=str(e))
+        db_ok = False
+
+    try:
         from ..agents.bus import get_event_bus
 
         loop = asyncio.get_running_loop()
@@ -76,22 +101,6 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("nag_engine_init_failed", error=str(e))
         nag_engine = None
-    try:
-        knowledge_memory = ExperienceMemory()
-    except Exception as e:
-        logger.warning("knowledge_memory_init_failed", error=str(e))
-        knowledge_memory = ExperienceMemory()
-    db_ok = False
-    try:
-        db_ok = init_db(settings.database_url)
-        if db_ok:
-            try:
-                await create_all_tables()
-            except Exception as e:
-                logger.warning("db_create_tables_failed", error=str(e))
-    except Exception as e:
-        logger.warning("db_init_failed", error=str(e))
-        db_ok = False
     try:
         knowledge_store = CrystallizedKnowledgeStore(
             settings,
@@ -189,6 +198,14 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
         expose_headers=["X-Request-ID", "Content-Type"],
     )
+
+    @app.exception_handler(StorageUnavailable)
+    async def _storage_unavailable(_request: Request, exc: StorageUnavailable):
+        """503, not a 500 traceback — the service is up, its storage is not."""
+        return JSONResponse(
+            status_code=503,
+            content={"detail": str(exc), "storage": "unavailable"},
+        )
 
     @app.get("/api/health", tags=["system"])
     async def health() -> Dict[str, str]:
@@ -423,6 +440,8 @@ def create_app() -> FastAPI:
     app.include_router(knowledge_router)
     app.include_router(commitments_router)
     app.include_router(telegram_router)
+    app.include_router(schedule_router)
+    app.include_router(study_router)
     return app
 
 

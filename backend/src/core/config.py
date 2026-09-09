@@ -169,8 +169,28 @@ class Settings(BaseSettings):
     # nag_tick_seconds drives the in-process loop; the Cloudflare cron wakes
     # a sleeping container on the same cadence so reminders survive sleep.
     nag_enabled: bool = Field(default=True, validation_alias=AliasChoices("nag_enabled", "NAG_ENABLED"))
+    # Quiet hours, in the user's LOCAL clock (see user_timezone_offset_hours).
+    # Reminders do not fire in this window and do not advance the escalation
+    # ladder — you wake up to reminder #4, not reminder #40.
+    quiet_hours_enabled: bool = Field(
+        default=True, validation_alias=AliasChoices("quiet_hours_enabled", "QUIET_HOURS_ENABLED")
+    )
+    quiet_hours_start: int = Field(
+        default=22, ge=0, le=23,
+        validation_alias=AliasChoices("quiet_hours_start", "QUIET_HOURS_START"),
+    )
+    quiet_hours_end: int = Field(
+        default=7, ge=0, le=23,
+        validation_alias=AliasChoices("quiet_hours_end", "QUIET_HOURS_END"),
+    )
     nag_tick_seconds: int = Field(
         default=300, validation_alias=AliasChoices("nag_tick_seconds", "NAG_TICK_SECONDS")
+    )
+    # Extracted commitments arrive as "proposed" and wait for a yes. Turning
+    # this off makes the assistant start chasing you the moment a task finishes.
+    commitment_require_approval: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("commitment_require_approval", "COMMITMENT_REQUIRE_APPROVAL"),
     )
     commitment_auto_extract: bool = Field(
         default=True,
@@ -181,6 +201,15 @@ class Settings(BaseSettings):
     user_timezone_offset_hours: int = Field(
         default=1,
         validation_alias=AliasChoices("user_timezone_offset_hours", "USER_TIMEZONE_OFFSET_HOURS"),
+    )
+    # Google Sheet holding the weekly schedule. Rows become commitments and
+    # outcomes are written back, so the Sheet and the ledger stay in step.
+    schedule_sheet_id: str = Field(
+        default="", validation_alias=AliasChoices("schedule_sheet_id", "SCHEDULE_SHEET_ID")
+    )
+    schedule_sheet_range: str = Field(
+        default="Sheet1!A1:H200",
+        validation_alias=AliasChoices("schedule_sheet_range", "SCHEDULE_SHEET_RANGE"),
     )
     public_app_url: str = Field(
         default="https://monster-agent-frontend-2dn.pages.dev",

@@ -46,6 +46,28 @@ export interface ChatAction {
   candidates?: string[];
 }
 
+export interface ResourceItem {
+  title: string;
+  url: string;
+  note: string;
+  meta?: { language?: string | null; stars?: number | null; updated?: string | null };
+}
+
+export interface ResourceGroup {
+  key: string;
+  name: string;
+  source: "sheet" | "github" | "curated";
+  items: ResourceItem[];
+  error: string | null;
+}
+
+export interface StudyResources {
+  groups: ResourceGroup[];
+  total: number;
+  failed: string[];
+  cached: boolean;
+}
+
 export interface CommitmentStats {
   open: number;
   overdue: number;
@@ -435,6 +457,15 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw await failure(res, "syncSchedule");
+    return res.json();
+  }
+
+  async studyResources(refresh = false): Promise<StudyResources> {
+    const res = await fetch(
+      `${this.baseUrl}/api/study/resources${refresh ? "?refresh=true" : ""}`,
+      { headers: { Accept: "application/json" }, cache: "no-store" }
+    );
+    if (!res.ok) throw await failure(res, "studyResources");
     return res.json();
   }
 

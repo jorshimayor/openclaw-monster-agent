@@ -176,5 +176,57 @@ async def test_stats_track_open_overdue_and_settled() -> None:
     await repo.complete(settled.id, artifact_kind="link", artifact_url="https://x.com/1")
 
     stats = await repo.stats()
-    assert stats == {"open": 2, "overdue": 1, "done": 1, "dropped": 0, "total": 3}
+    assert stats == {
+        "proposed": 0,
+        "open": 2,
+        "overdue": 1,
+        "done": 1,
+        "dropped": 0,
+        "total": 3,
+    }
     assert future is not None
+
+
+@pytest.mark.asyncio
+async def test_a_proposed_commitment_is_never_nagged() -> None:
+    """The whole point of the approval gate: nothing chases you about work you
+    have not agreed to, however overdue it looks."""
+    row = await repo.create(
+        title="Not agreed to yet",
+        due_at=datetime.now(timezone.utc) - timedelta(days=2),
+        status=CommitmentStatus.PROPOSED.value,
+    )
+    assert await repo.due_for_nag() == []
+
+    await repo.approve(row.id)
+    assert [c.id for c in await repo.due_for_nag()] == [row.id]
+
+
+@pytest.mark.asyncio
+async def test_approving_twice_is_a_no_op() -> None:
+    row = await repo.create(
+        title="Ship it",
+        due_at=datetime.now(timezone.utc),
+        status=CommitmentStatus.PROPOSED.value,
+    )
+    assert await repo.approve(row.id) is not None
+    assert await repo.approve(row.id) is None  # already open
+    assert (await repo.get(row.id)).status == CommitmentStatus.OPEN.value
+
+
+@pytest.mark.asyncio
+async def test_approve_for_task_only_touches_that_task() -> None:
+    from uuid import uuid4
+
+    mine, other = uuid4(), uuid4()
+    for tid in (mine, mine, other):
+        await repo.create(
+            title=f"item for {tid}",
+            due_at=datetime.now(timezone.utc),
+            task_id=tid,
+            status=CommitmentStatus.PROPOSED.value,
+        )
+    approved = await repo.approve_for_task(mine)
+    assert len(approved) == 2
+    remaining = await repo.list_all(status=CommitmentStatus.PROPOSED.value)
+    assert [r.task_id for r in remaining] == [other]

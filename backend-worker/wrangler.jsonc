@@ -71,8 +71,24 @@
   // shorter than the container's 15m sleepAfter, so the container effectively
   // stays warm — that is the cost of an assistant that keeps chasing you.
   // Raise this interval (or lower sleepAfter) to trade persistence for spend.
+  //
+  // "5 * * * *" reconciles the Google Sheet schedule hourly (no-op when
+  // SCHEDULE_SHEET_ID is unset).
+  //
+  // "15 6 * * *" (07:15 WAT) picks the day's study and practice items from the
+  // sheets in backend/config/study_sources.json — just after quiet hours end.
+  //
+  // "0 8 1 * *" (09:00 WAT, 1st of the month) files the investing routine.
   "triggers": {
-    "crons": ["*/10 * * * *", "0 6 * * 1", "30 5 * * *", "0 7 * * 6"]
+    "crons": [
+      "*/10 * * * *",
+      "5 * * * *",
+      "15 6 * * *",
+      "0 8 1 * *",
+      "0 6 * * 1",
+      "30 5 * * *",
+      "0 7 * * 6"
+    ]
   },
   "compatibility_date": "2026-08-22",
   "compatibility_flags": ["nodejs_compat"],
@@ -135,6 +151,11 @@
     "LOG_LEVEL": "INFO",
     "PUBLIC_APP_URL": "https://monster-agent-frontend-2dn.pages.dev",
     "NAG_ENABLED": "true",
+    // Reminders are suppressed 22:00-07:00 local and do not advance the
+    // escalation ladder while suppressed.
+    "QUIET_HOURS_ENABLED": "true",
+    "QUIET_HOURS_START": "22",
+    "QUIET_HOURS_END": "7",
     "USER_TIMEZONE_OFFSET_HOURS": "1",  // WAT — due times in plans are local
     "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\",\"http://localhost:8080\",\"https://monster-agent-frontend-2dn.pages.dev\",\"https://2a9f9635.monster-agent-frontend-2dn.pages.dev\"]"
   }

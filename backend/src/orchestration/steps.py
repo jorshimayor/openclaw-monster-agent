@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from ..core.logging import get_logger
 from ..core.types import AgentRole, AgentResult, PipelineStep, Task
 from .patterns import WorkflowPattern
+from .report import write_user_report
 
 if TYPE_CHECKING:
     from ..agents.base import Agent, Tool
@@ -681,48 +682,33 @@ async def step9_fix_and_revalidate(
 
 async def step10_synthesizer(
     approved_outputs: List[AgentResult],
-    orchestrator_agent: Optional["Agent"],
+    orchestrator_agent: Optional["Agent"],  # unused — see the note below
     llm: Optional["LLMRouter"],
-    tools: Optional[List[Any]] = None,
+    tools: Optional[List[Any]] = None,  # unused; kept for the caller's signature
     task_description: str = "",
 ) -> Tuple[StepResult, Dict[str, Any]]:
     # Prior-step state arrives model_dump()'d — coerce dicts back to models
     # (this exact line was the production 'dict has no attribute confidence').
     approved_outputs = ensure_agent_results(approved_outputs)
-    confidences: Dict[str, float] = {}
-    overall_conf = 0.0
-    sections: List[str] = []
-    for i, out in enumerate(approved_outputs, 1):
-        confidences[role_str(out.agent_role)] = out.confidence
-        sections.append(
-            f"## Output from {role_str(out.agent_role)} (confidence {out.confidence:.2f})\n\n{out.output}"
-        )
-    if approved_outputs:
-        overall_conf = sum(o.confidence for o in approved_outputs) / len(approved_outputs)
-
-    combined = "\n\n---\n\n".join(sections) if sections else "(no approved outputs)"
-    final_report = (
-        f"# Final Synthesized Report\n\n"
-        f"**Task**: {task_description or '(not provided)'}\n\n"
-        f"**Overall confidence**: {overall_conf:.2f}\n\n"
-        f"{combined}\n\n"
-        f"## Summary\nApproved outputs: {len(approved_outputs)}. "
-        f"Overall quality rating: {'GOOD' if overall_conf >= 0.7 else 'PARTIAL'}."
+    confidences: Dict[str, float] = {
+        role_str(out.agent_role): out.confidence for out in approved_outputs
+    }
+    overall_conf = (
+        sum(o.confidence for o in approved_outputs) / len(approved_outputs)
+        if approved_outputs
+        else 0.0
     )
 
-    if orchestrator_agent is not None and llm is not None:
-        try:
-            context = {
-                "task_description": task_description,
-                "approved_outputs": [o.model_dump(mode="json") for o in approved_outputs],
-                "context_str": combined,
-            }
-            ores = await orchestrator_agent.invoke(context, tools or [], llm)
-            if ores.output and len(ores.output) > 200:
-                final_report = ores.output
-                overall_conf = ores.confidence
-        except Exception as exc:
-            logger.warning("orchestrator_synthesizer_failed", error=str(exc))
+    # The report is what the USER reads, so it holds the answer and nothing
+    # else. Per-agent output and confidence are rendered separately by the
+    # console, so dropping them here loses no diagnostics.
+    #
+    # The orchestrator agent is deliberately NOT used to write this: it is a
+    # planner, and its "output" is a plan — that is exactly how "Task Complexity
+    # Assessment" and "Team Assembly" ended up in front of the user.
+    final_report, by_llm = await write_user_report(
+        task_description, approved_outputs, llm=llm
+    )
 
     state = SynthesizerState(
         final_report=final_report,
@@ -733,6 +719,8 @@ async def step10_synthesizer(
         "step10_synthesizer",
         outputs=len(approved_outputs),
         overall_conf=overall_conf,
+        report_chars=len(final_report),
+        written_by_llm=by_llm,
     )
     return "OK", state.model_dump()
 

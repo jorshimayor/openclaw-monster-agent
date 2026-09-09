@@ -375,6 +375,21 @@ class PersonalAssistantAgent(Agent):
         if "." not in tool_ref:
             raise ValueError(f"tool_ref must be server.tool: {tool_ref}")
         server_name, tool_name = tool_ref.split(".", 1)
+
+        # Prefer the router. Not every server speaks stdio: google_workspace is
+        # served by an in-process Google client because the npx package the spec
+        # names does not exist on npm, so it has no transport at all. Going
+        # straight to _transports made every Sheets/Calendar call fail with
+        # "handler is closed".
+        from ..mcp.manager import get_global_router
+
+        router = get_global_router()
+        if router is not None:
+            try:
+                return await router.route_tool_call(tool_ref, arguments)
+            except Exception as exc:
+                self._log.warning("pa_router_call_failed", tool=tool_ref, error=str(exc))
+
         if self._mcp_manager is None:
             self._log.warning("pa_mcp_no_manager", tool=tool_ref, args_keys=list(arguments.keys()))
             return {"stub": True, "reason": "mcp_manager_not_attached"}

@@ -35,6 +35,8 @@ class GoogleWorkspaceMcpServer:
         self.subject_email = subject_email or ""
         self._log = get_logger("mcp.servers.google_workspace")
         self._direct_client: Optional["_DirectGoogleClient"] = None
+        # Why the client is unusable, if it is — surfaced verbatim to callers.
+        self._unavailable_reason: str = ""
 
     def exposed_tools(self) -> List[Tool]:
         return [
@@ -226,6 +228,10 @@ class GoogleWorkspaceMcpServer:
 
     def _get_direct_client(self) -> Optional["_DirectGoogleClient"]:
         if not self.client_id or not self.client_secret or not self.refresh_token:
+            self._unavailable_reason = (
+                "credentials missing — set GOOGLE_WORKSPACE_CLIENT_ID, "
+                "GOOGLE_WORKSPACE_CLIENT_SECRET, and GOOGLE_WORKSPACE_REFRESH_TOKEN"
+            )
             return None
         if self._direct_client is None:
             try:
@@ -235,7 +241,20 @@ class GoogleWorkspaceMcpServer:
                     refresh_token=self.refresh_token,
                     subject_email=self.subject_email,
                 )
+                self._unavailable_reason = ""
+            except ImportError as exc:
+                # Distinct from a credentials problem, and the fix is different:
+                # the google-api-python-client family is missing from the
+                # environment. Reporting this as "set your credentials" sends
+                # you looking in entirely the wrong place.
+                self._unavailable_reason = (
+                    f"google client libraries not installed ({exc}) — "
+                    "pip install -r backend/requirements.txt"
+                )
+                self._log.warning("direct_google_client_missing_deps", error=str(exc))
+                self._direct_client = None
             except Exception as exc:
+                self._unavailable_reason = f"client init failed: {exc}"
                 self._log.warning("direct_google_client_init_failed", error=str(exc))
                 self._direct_client = None
         return self._direct_client
@@ -244,8 +263,8 @@ class GoogleWorkspaceMcpServer:
         client = self._get_direct_client()
         if client is None:
             raise RuntimeError(
-                "Direct Google client unavailable — set GOOGLE_WORKSPACE_CLIENT_ID, "
-                "GOOGLE_WORKSPACE_CLIENT_SECRET, and GOOGLE_WORKSPACE_REFRESH_TOKEN."
+                "Google Workspace unavailable — "
+                + (getattr(self, "_unavailable_reason", "") or "unknown reason")
             )
         return await client.invoke(tool_name, arguments)
 

@@ -26,6 +26,10 @@ RUN pip install --upgrade pip setuptools wheel && \
 
 # Copy the FastAPI source + container entrypoint start script
 COPY backend/src/ ./src/
+# Runtime config (study source definitions). study_sync resolves this relative
+# to the package root, so it must land at /app/config — without it the daily
+# study pick silently finds zero sources.
+COPY backend/config/ ./config/
 COPY containers/backend/start.sh ./start.sh
 RUN chmod +x ./start.sh
 

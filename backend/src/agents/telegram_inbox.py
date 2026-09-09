@@ -13,7 +13,12 @@ Commands:
   /snooze <id> [mins]    delay the next reminder (never clears the row)
   /drop <id>             give up on it, on the record
   /add <text>            file a new commitment (append "| tomorrow evening")
+  /proposed              what's waiting for your go-ahead
+  /approve all|<id>      start the reminders for it
   /nag                   force a reminder round now
+  /schedule              re-sync the Google Sheet schedule
+  /study                 today's prep and practice picks
+  /delete <id>           remove a commitment entirely
   /status                counts
   /help
 
@@ -52,7 +57,12 @@ _HELP = """<b>What I can do</b>
 <code>/snooze &lt;id&gt; 30</code> — push the next reminder back
 <code>/drop &lt;id&gt;</code> — give up on it, on the record
 <code>/add walk the dog | tomorrow morning</code> — new commitment
+<code>/proposed</code> — what's waiting on your go-ahead
+<code>/approve all</code> — start the reminders
 <code>/nag</code> — remind me right now
+<code>/schedule</code> — re-sync my Google Sheet schedule
+<code>/study</code> — today's prep and practice picks
+<code>/delete &lt;id&gt;</code> — remove one entirely (vs /drop, which records it)
 <code>/status</code> — counts
 <code>/mute 4h</code> / <code>/unmute</code> — silence status updates
   (reminders for open commitments ignore mute, by design)
@@ -250,6 +260,87 @@ async def _handle_command(cmd: str, rest: str, text: str, file_url: Optional[str
             f"{until.isoformat(timespec='minutes') if until else '?'} UTC. "
             f"Then I'm back."
         )
+
+    if cmd in ("/approve", "/ok", "/go"):
+        ref = rest.split()[0].lower() if rest.split() else ""
+        if ref in ("all", "*", ""):
+            proposed = await repo.list_all(status=CommitmentStatus.PROPOSED.value, limit=500)
+            if not proposed:
+                return "Nothing is waiting for approval. <code>/todo</code> for what's live."
+            for c in proposed:
+                await repo.approve(c.id)
+            return (
+                f"\u2705 <b>Approved {len(proposed)}.</b> Reminders start now — "
+                "I'll chase each one until you close it with an artifact."
+            )
+        row = await repo.resolve_ref(ref)
+        if row is None:
+            return "Which one? <code>/approve &lt;id&gt;</code> or <code>/approve all</code>."
+        if await repo.approve(row.id) is None:
+            return f"That one is already <b>{row.status}</b>, not waiting for approval."
+        return f"\u2705 Approved <code>{str(row.id)[:8]}</code> — {html.escape(row.title[:120])}"
+
+    if cmd in ("/proposed", "/pending", "/review"):
+        rows = await repo.list_all(status=CommitmentStatus.PROPOSED.value, limit=50)
+        if not rows:
+            return "Nothing waiting for approval."
+        lines = [f"<b>\U0001F4CB {len(rows)} awaiting your go-ahead</b>", ""]
+        for r in rows:
+            due = _aware(r.due_at)
+            lines.append(
+                f"  <code>{str(r.id)[:8]}</code> — {html.escape(r.title[:100])}\n"
+                f"       <i>due {due.isoformat(timespec='minutes') if due else '?'}</i>"
+            )
+        lines += ["", "<code>/approve all</code> to start them all."]
+        return "\n".join(lines)
+
+    if cmd in ("/study", "/practice", "/prep"):
+        from .study_sync import get_study_sync
+
+        result = await get_study_sync().sync_all()
+        if not result.get("ok"):
+            return f"\u26a0\ufe0f Study sync failed: {html.escape(str(result.get('error'))[:200])}"
+        if not result["filed"]:
+            return (
+                "Nothing new to hand you — every source is either exhausted or "
+                "already on your hook. <code>/proposed</code> to see what's waiting."
+            )
+        lines = [f"\U0001F4DA <b>{result['filed']} to prep today</b>", ""]
+        for r in result["results"]:
+            if not r.get("filed"):
+                continue
+            lines.append(f"<b>{html.escape(r['name'])}</b>")
+            for c in r["commitments"]:
+                lines.append(
+                    f"  <code>{c['short_id']}</code> — {html.escape(str(c['title'])[:90])}"
+                )
+        failed = [r for r in result["results"] if not r.get("ok")]
+        for r in failed:
+            lines.append(f"\u26a0\ufe0f {html.escape(r['key'])}: {html.escape(str(r['error'])[:90])}")
+        lines += ["", "<code>/approve all</code> to start the reminders."]
+        return "\n".join(lines)
+
+    if cmd == "/schedule":
+        from .schedule_sync import get_schedule_sync
+
+        result = await get_schedule_sync().sync()
+        if not result.get("ok"):
+            return f"⚠️ Schedule sync failed: {html.escape(str(result.get('error'))[:200])}"
+        return (
+            "📅 <b>Schedule synced</b>\n"
+            f"{result['rows_seen']} rows · {result['filed']} new · "
+            f"{result['updated']} updated · {result['closed_from_sheet']} ticked off\n"
+            f"<i>{result['written_back']} cell(s) written back</i>"
+        )
+
+    if cmd in ("/delete", "/rm", "/forget"):
+        ref = rest.split()[0] if rest.split() else ""
+        row = await repo.resolve_ref(ref)
+        if row is None:
+            return "Which one? <code>/delete &lt;id&gt;</code> — <code>/todo</code> for ids."
+        title = row.title
+        await repo.delete(row.id)
+        return f"🗑 Deleted <code>{str(row.id)[:8]}</code> — {html.escape(title[:120])}"
 
     if cmd in ("/drop", "/cancel", "/kill"):
         ref = rest.split()[0] if rest.split() else ""

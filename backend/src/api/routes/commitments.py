@@ -58,6 +58,7 @@ async def commitments_health() -> Dict[str, Any]:
     engine = get_nag_engine()
     return {
         "db_backed": repo.db_backed(),
+        "memory_fallback_allowed": repo.memory_fallback_allowed(),
         "nag": engine.state(),
         "stats": await repo.stats(),
     }
@@ -87,6 +88,28 @@ async def commitments_extract(request: Request, body: ExtractRequest) -> Dict[st
         llm=getattr(request.app.state, "llm_router", None),
     )
     return {"task_id": str(body.task_id), "filed": len(filed), "commitments": filed}
+
+
+class PurgeRequest(BaseModel):
+    task_id: Optional[UUID] = None
+    status: Optional[str] = None
+
+
+@router.post("/purge")
+async def purge_commitments(body: PurgeRequest) -> Dict[str, Any]:
+    """Bulk delete — by source task, or by status. Requires one filter, so an
+    empty body can never wipe the ledger."""
+    if body.task_id is None and not body.status:
+        raise HTTPException(status_code=400, detail="pass task_id or status")
+    if body.task_id is not None:
+        removed = await repo.delete_for_task(body.task_id)
+        return {"deleted": removed, "task_id": str(body.task_id)}
+    rows = await repo.list_all(status=body.status, limit=500)
+    removed = 0
+    for row in rows:
+        if await repo.delete(row.id):
+            removed += 1
+    return {"deleted": removed, "status": body.status}
 
 
 @router.get("")
@@ -147,6 +170,49 @@ async def complete_commitment(commitment_id: UUID, body: DoneRequest) -> Dict[st
     if updated is None:
         raise HTTPException(status_code=500, detail="could not close commitment")
     logger.info("commitment_closed", id=str(commitment_id)[:8], kind=verdict["kind"])
+    return repo.to_dict(updated)
+
+
+@router.delete("/{commitment_id}")
+async def delete_commitment(commitment_id: UUID) -> Dict[str, Any]:
+    """Remove the row entirely. Use /drop instead to record that you abandoned
+    something — that stays on the ledger; this does not."""
+    if not await repo.delete(commitment_id):
+        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
+    logger.info("commitment_deleted", id=str(commitment_id)[:8])
+    return {"deleted": True, "id": str(commitment_id)}
+
+
+class RescheduleRequest(BaseModel):
+    due_at: Optional[datetime] = None
+    day: Optional[str] = None
+    time_of_day: Optional[str] = None
+    at_time: Optional[str] = None
+
+
+@router.post("/{commitment_id}/approve")
+async def approve_commitment(commitment_id: UUID) -> Dict[str, Any]:
+    """proposed → open. Reminders start here, and not before."""
+    updated = await repo.approve(commitment_id)
+    if updated is None:
+        raise HTTPException(
+            status_code=409,
+            detail="not found, or not awaiting approval (already open, done, or dropped)",
+        )
+    logger.info("commitment_approved", id=str(commitment_id)[:8])
+    return repo.to_dict(updated)
+
+
+@router.post("/{commitment_id}/reschedule")
+async def reschedule_commitment(commitment_id: UUID, body: RescheduleRequest) -> Dict[str, Any]:
+    due = (
+        (body.due_at if body.due_at.tzinfo else body.due_at.replace(tzinfo=timezone.utc))
+        if body.due_at is not None
+        else resolve_due(body.day or "", body.time_of_day or "", body.at_time or "")
+    )
+    updated = await repo.reschedule(commitment_id, due)
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
     return repo.to_dict(updated)
 
 

@@ -18,6 +18,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import select
 
+from .config import get_settings
 from .db import get_session, is_db_available
 from .logging import get_logger
 from ..models.commitment import CommitmentDB, CommitmentStatus
@@ -26,6 +27,34 @@ logger = get_logger("core.commitment_repo")
 
 # Fallback store keyed by str(id). Only consulted when Postgres is unavailable.
 _MEM: Dict[str, CommitmentDB] = {}
+
+
+class StorageUnavailable(RuntimeError):
+    """Postgres is configured but not usable, and silently degrading is worse.
+
+    The in-memory fallback was built for local dev. In production it turned a
+    database hiccup into invisible reminders: rows lived in one container's
+    memory, nagged until that container was replaced, then vanished with no
+    trace in Postgres. Better to fail the write and say so.
+    """
+
+
+def memory_fallback_allowed() -> bool:
+    """Only when no database is configured at all — i.e. local dev and tests."""
+    try:
+        return not get_settings().database_url
+    except Exception:
+        return True
+
+
+def _require_storage() -> None:
+    if is_db_available() or memory_fallback_allowed():
+        return
+    raise StorageUnavailable(
+        "DATABASE_URL is configured but the database engine is not available — "
+        "refusing to write commitments to process memory, where they would nag "
+        "you until this container restarts and then disappear. Check /api/health/diag."
+    )
 
 
 def db_backed() -> bool:
@@ -81,6 +110,7 @@ async def create(
     source: str = "manual",
     task_id: Optional[UUID] = None,
     nag_interval_sec: int = 1800,
+    status: str = CommitmentStatus.OPEN.value,
 ) -> Optional[CommitmentDB]:
     row = CommitmentDB(
         id=uuid4(),
@@ -88,12 +118,18 @@ async def create(
         detail=(detail or "").strip()[:4000] or None,
         source=source,
         task_id=task_id,
-        status=CommitmentStatus.OPEN.value,
+        status=status,
         due_at=due_at,
         nag_interval_sec=max(300, int(nag_interval_sec)),
+        # Set explicitly: SQLAlchemy column defaults are only applied on flush,
+        # so the in-memory path would hand back None where Postgres gives 0 —
+        # and `nag_count + 1` on None raises.
+        nag_count=0,
+        escalation=0,
         created_at=_now(),
         updated_at=_now(),
     )
+    _require_storage()
     if not is_db_available():
         _MEM[str(row.id)] = row
         return row
@@ -102,9 +138,9 @@ async def create(
             session.add(row)
         return row
     except Exception as exc:
-        logger.warning("commitment_create_failed", error=str(exc))
-        _MEM[str(row.id)] = row
-        return row
+        # A failed write is reported, never quietly re-homed into memory.
+        logger.error("commitment_create_failed", error=str(exc))
+        raise StorageUnavailable(f"could not persist commitment: {exc}") from exc
 
 
 async def list_all(
@@ -179,6 +215,7 @@ async def due_for_nag(now: Optional[datetime] = None) -> List[CommitmentDB]:
 
 
 async def _mutate(commitment_id: UUID, **fields: Any) -> Optional[CommitmentDB]:
+    _require_storage()
     if not is_db_available():
         row = _MEM.get(str(commitment_id))
         if row is None:
@@ -198,8 +235,8 @@ async def _mutate(commitment_id: UUID, **fields: Any) -> Optional[CommitmentDB]:
             session.add(row)
             return row
     except Exception as exc:
-        logger.warning("commitment_update_failed", id=str(commitment_id), error=str(exc))
-        return None
+        logger.error("commitment_update_failed", id=str(commitment_id), error=str(exc))
+        raise StorageUnavailable(f"could not update commitment: {exc}") from exc
 
 
 async def mark_nagged(
@@ -239,6 +276,30 @@ async def complete(
     )
 
 
+async def approve(commitment_id: UUID) -> Optional[CommitmentDB]:
+    """proposed → open. This is the moment the chasing is allowed to start."""
+    row = await get(commitment_id)
+    if row is None or row.status != CommitmentStatus.PROPOSED.value:
+        return None
+    return await _mutate(commitment_id, status=CommitmentStatus.OPEN.value)
+
+
+async def approve_for_task(task_id: UUID) -> List[CommitmentDB]:
+    rows = await list_all(status=CommitmentStatus.PROPOSED.value, limit=500)
+    approved: List[CommitmentDB] = []
+    for row in rows:
+        if row.task_id == task_id:
+            updated = await approve(row.id)
+            if updated is not None:
+                approved.append(updated)
+    return approved
+
+
+async def reschedule(commitment_id: UUID, due_at: datetime) -> Optional[CommitmentDB]:
+    """Move a due time without disturbing status or nag history."""
+    return await _mutate(commitment_id, due_at=due_at, snooze_until=None)
+
+
 async def snooze(commitment_id: UUID, minutes: int) -> Optional[CommitmentDB]:
     minutes = max(5, min(int(minutes), 720))
     return await _mutate(commitment_id, snooze_until=_now() + timedelta(minutes=minutes))
@@ -255,9 +316,50 @@ async def stats() -> Dict[str, int]:
     now = _now()
     open_rows = [r for r in rows if r.status == CommitmentStatus.OPEN.value]
     return {
+        "proposed": len([r for r in rows if r.status == CommitmentStatus.PROPOSED.value]),
         "open": len(open_rows),
         "overdue": len([r for r in open_rows if (_aware(r.due_at) or now) <= now]),
         "done": len([r for r in rows if r.status == CommitmentStatus.DONE.value]),
         "dropped": len([r for r in rows if r.status == CommitmentStatus.DROPPED.value]),
         "total": len(rows),
     }
+
+
+async def delete(commitment_id: UUID) -> bool:
+    """Hard delete. `drop` records an abandoned commitment on the ledger;
+    this removes it entirely, for rows that should never have existed."""
+    if not is_db_available():
+        return _MEM.pop(str(commitment_id), None) is not None
+    try:
+        async with get_session() as session:
+            row = await session.get(CommitmentDB, commitment_id)
+            if row is None:
+                return False
+            await session.delete(row)
+            return True
+    except Exception as exc:
+        logger.warning("commitment_delete_failed", id=str(commitment_id), error=str(exc))
+        return False
+
+
+async def delete_for_task(task_id: UUID) -> int:
+    """Remove every commitment a task filed. Used when a task is deleted, and
+    to clean up after a bad extraction run."""
+    if not is_db_available():
+        doomed = [k for k, v in _MEM.items() if v.task_id == task_id]
+        for k in doomed:
+            _MEM.pop(k, None)
+        return len(doomed)
+    try:
+        async with get_session() as session:
+            rows = (
+                (await session.execute(select(CommitmentDB).where(CommitmentDB.task_id == task_id)))
+                .scalars()
+                .all()
+            )
+            for row in rows:
+                await session.delete(row)
+            return len(rows)
+    except Exception as exc:
+        logger.warning("commitment_delete_for_task_failed", task_id=str(task_id), error=str(exc))
+        return 0

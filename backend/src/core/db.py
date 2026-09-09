@@ -128,6 +128,7 @@ async def create_all_tables() -> None:
         # Imported for the side effect of registering each table on
         # Base.metadata before create_all runs.
         from ..models.commitment import CommitmentDB  # noqa: F401
+        from ..models.conversation import TaskMessageDB  # noqa: F401
         from ..models.knowledge import KnowledgeCrystalDB  # noqa: F401
         from ..models.task import TaskDB  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)

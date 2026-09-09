@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import html
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from ..core import commitment_repo as repo
@@ -70,6 +70,41 @@ def _human_overdue(seconds: int) -> str:
         return f"{hours}h {rem}m overdue" if rem else f"{hours}h overdue"
     days = hours // 24
     return f"{days}d {hours % 24}h overdue"
+
+
+def local_now(now: Optional[datetime] = None) -> datetime:
+    """UTC instant → the user's wall clock."""
+    return (now or _now()) + timedelta(hours=get_settings().user_timezone_offset_hours)
+
+
+def in_quiet_hours(now: Optional[datetime] = None) -> bool:
+    """True while the user is asleep.
+
+    The window wraps midnight (22:00 → 07:00), so it is a union of two ranges,
+    not a single comparison. `start == end` means a full 24h of quiet.
+    """
+    s = get_settings()
+    if not s.quiet_hours_enabled:
+        return False
+    hour = local_now(now).hour
+    start, end = s.quiet_hours_start, s.quiet_hours_end
+    if start == end:
+        return True
+    if start < end:
+        return start <= hour < end
+    return hour >= start or hour < end
+
+
+def quiet_until(now: Optional[datetime] = None) -> Optional[datetime]:
+    """When the quiet window ends, in UTC. None when not in it."""
+    if not in_quiet_hours(now):
+        return None
+    s = get_settings()
+    local = local_now(now)
+    end_local = local.replace(hour=s.quiet_hours_end, minute=0, second=0, microsecond=0)
+    if end_local <= local:
+        end_local += timedelta(days=1)
+    return end_local - timedelta(hours=s.user_timezone_offset_hours)
 
 
 def _console_url() -> str:
@@ -220,6 +255,26 @@ class NagEngine:
         if not settings.nag_enabled:
             self._last_tick_sent = 0
             return {"enabled": False, "sent": 0}
+
+        # Asleep. Nothing fires, and crucially nothing is marked as nagged —
+        # otherwise the ladder climbs all night in silence and the 7am reminder
+        # arrives already shouting.
+        if in_quiet_hours():
+            resume = quiet_until()
+            try:
+                waiting = len(await repo.due_for_nag())
+            except Exception:
+                waiting = 0
+            self._last_tick_sent = 0
+            self._log.info("nag_tick_quiet_hours", waiting=waiting)
+            return {
+                "enabled": True,
+                "quiet_hours": True,
+                "sent": 0,
+                "deferred": waiting,
+                "resumes_at": resume.isoformat() if resume else None,
+                "at": self._last_tick.isoformat(),
+            }
         try:
             due = await repo.due_for_nag()
         except Exception as exc:
@@ -270,7 +325,15 @@ class NagEngine:
         self._started = False
 
     def state(self) -> Dict[str, Any]:
+        s = get_settings()
+        resume = quiet_until()
         return {
+            "quiet_hours": {
+                "enabled": s.quiet_hours_enabled,
+                "window": f"{s.quiet_hours_start:02d}:00–{s.quiet_hours_end:02d}:00 local",
+                "active_now": in_quiet_hours(),
+                "resumes_at": resume.isoformat() if resume else None,
+            },
             "started": self._started,
             "worker_alive": self._task is not None and not self._task.done(),
             "last_tick": self._last_tick.isoformat() if self._last_tick else None,

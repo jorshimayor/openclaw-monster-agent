@@ -11,6 +11,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { api, type ResourceGroup } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -112,6 +113,9 @@ export default function HqPage() {
   const [err, setErr] = useState<string>("");
   const [tab, setTab] = useState<Tab>("today");
   const [studyIdx, setStudyIdx] = useState(0);
+  const [liveGroups, setLiveGroups] = useState<ResourceGroup[] | null>(null);
+  const [resErr, setResErr] = useState<string>("");
+  const [resExpanded, setResExpanded] = useState<Record<string, boolean>>({});
   const [docIdx, setDocIdx] = useState(0);
   const [done, setDone] = useLocal<Record<string, boolean>>("hq-ledger-done", {});
 
@@ -459,25 +463,79 @@ export default function HqPage() {
       {/* RESOURCES */}
       {tab === "resources" && (
         <div className="grid gap-4 md:grid-cols-3">
-          {RESOURCES.map((g) => (
-            <Card key={g.group}>
+          {resErr && (
+            <Card className="md:col-span-3">
+              <CardContent className="pt-6 text-sm text-[var(--theme-danger,#e5484d)]">
+                Live library unavailable ({resErr}) — showing the local shelf.
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Live groups: the resource tabs of the study sheets plus your own
+              repos. Falls back to the static shelf below when the API is down. */}
+          {(liveGroups ?? []).map((g) => (
+            <Card key={g.key}>
               <CardHeader>
-                <CardTitle className="text-sm uppercase tracking-wider">{g.group}</CardTitle>
+                <CardTitle className="text-sm uppercase tracking-wider flex items-baseline justify-between gap-2">
+                  <span>{g.name}</span>
+                  <span className="text-[10px] font-normal text-[var(--theme-text-dim)]">
+                    {g.source === "github" ? "GITHUB" : "SHEET"} · {g.items.length}
+                  </span>
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2 text-sm">
-                  {g.items.map(([name, href, note]) => (
-                    <li key={href}>
-                      <a href={href} target="_blank" rel="noreferrer noopener" className="text-[var(--theme-accent)] hover:underline">
-                        {name}
-                      </a>
-                      <span className="text-[var(--theme-text-dim)]"> — {note}</span>
-                    </li>
-                  ))}
-                </ul>
+                {g.error ? (
+                  <p className="text-xs text-[var(--theme-text-dim)]">unavailable — {g.error}</p>
+                ) : (
+                  <ul className="space-y-2 text-sm">
+                    {g.items.slice(0, resExpanded[g.key] ? 999 : 6).map((it, i) => (
+                      <li key={`${g.key}-${i}`}>
+                        {it.url ? (
+                          <a href={it.url} target="_blank" rel="noreferrer noopener" className="text-[var(--theme-accent)] hover:underline">
+                            {it.title}
+                          </a>
+                        ) : (
+                          <span>{it.title}</span>
+                        )}
+                        {it.note && <span className="text-[var(--theme-text-dim)]"> — {it.note}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {g.items.length > 6 && (
+                  <button
+                    type="button"
+                    onClick={() => setResExpanded({ ...resExpanded, [g.key]: !resExpanded[g.key] })}
+                    className="mt-2 text-[11px] uppercase tracking-wider text-[var(--theme-text-dim)] hover:text-[var(--theme-accent)]"
+                  >
+                    {resExpanded[g.key] ? "show less" : `show all ${g.items.length}`}
+                  </button>
+                )}
               </CardContent>
             </Card>
           ))}
+
+          {(liveGroups === null || liveGroups.length === 0) &&
+            RESOURCES.map((g) => (
+              <Card key={g.group}>
+                <CardHeader>
+                  <CardTitle className="text-sm uppercase tracking-wider">{g.group}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    {g.items.map(([name, href, note]) => (
+                      <li key={href}>
+                        <a href={href} target="_blank" rel="noreferrer noopener" className="text-[var(--theme-accent)] hover:underline">
+                          {name}
+                        </a>
+                        <span className="text-[var(--theme-text-dim)]"> — {note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+
           <Card className="md:col-span-3">
             <CardContent className="pt-6 text-sm text-[var(--theme-text-dim)]">
               The full 40+ resource library with progress tracking lives on{" "}

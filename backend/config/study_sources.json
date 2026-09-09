@@ -1,0 +1,220 @@
+{
+  "_comment": [
+    "Study and practice sources. Each entry says which sheet, which tab, how to",
+    "read it, and when the picked items are due. Override the whole file with the",
+    "STUDY_SOURCES_PATH env var, or a JSON list in STUDY_SOURCES.",
+    "",
+    "kind:",
+    "  backlog \u2014 a flat list of topics/questions/projects. Each sync picks the",
+    "            next `daily_count` rows you have not been given yet.",
+    "  weekly  \u2014 one row per week, keyed by a date column. Picks the row for the",
+    "            current week and emits `item_columns` from it.",
+    "",
+    "due_time is local (24h). Items land in the block of your day where that kind",
+    "of work actually happens, per your Daily-Schedule-Template."
+  ],
+  "sources": [
+    {
+      "key": "ai-tracker",
+      "name": "Applied AI Engineering tracker",
+      "sheet_id": "1Dlc9y-c3meb2MScaew7ha3x4-651QX6Fj8fD4AfPGKM",
+      "range": "Roadmap!A1:J60",
+      "kind": "backlog",
+      "daily_count": 2,
+      "due_time": "11:00",
+      "priority_order": [
+        "must",
+        "should",
+        "could"
+      ],
+      "enabled": true
+    },
+    {
+      "key": "sysdesign-interview",
+      "name": "System design interview question bank",
+      "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
+      "range": "Interview Prep!A1:F60",
+      "kind": "backlog",
+      "daily_count": 1,
+      "due_time": "14:30",
+      "enabled": true
+    },
+    {
+      "key": "sysdesign-roadmap",
+      "name": "System design 52-week roadmap",
+      "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
+      "range": "Roadmap!A1:H60",
+      "kind": "backlog",
+      "daily_count": 1,
+      "due_time": "05:45",
+      "enabled": false
+    },
+    {
+      "key": "ai-engineer-projects",
+      "name": "AI engineer portfolio projects",
+      "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
+      "range": "Projects!A1:H60",
+      "kind": "backlog",
+      "daily_count": 1,
+      "due_time": "13:00",
+      "enabled": false
+    },
+    {
+      "key": "football-calendar",
+      "name": "Football season content calendar",
+      "sheet_id": "1uhoFxYf9XvjbsTO5DVU9-uI4xl34WvXE7O0slO9ThSU",
+      "range": "Calendar!A1:H60",
+      "kind": "weekly",
+      "item_columns": [
+        "BUILD"
+      ],
+      "due_time": "19:00",
+      "enabled": true
+    },
+    {
+      "key": "investing-monthly",
+      "name": "Investing routine",
+      "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
+      "range": "Monthly Routine!A1:H24",
+      "kind": "routine",
+      "cadence": "monthly",
+      "due_time": "17:00",
+      "enabled": true
+    }
+  ],
+  "resource_tabs": [
+    {
+      "key": "sd-books",
+      "group": "System design \u00b7 books & docs",
+      "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
+      "range": "Books & Docs!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "sd-courses",
+      "group": "System design \u00b7 free courses",
+      "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
+      "range": "Free Courses!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "sd-github",
+      "group": "System design \u00b7 repos to read",
+      "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
+      "range": "GitHub Resources!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "sd-blogs",
+      "group": "System design \u00b7 engineering blogs",
+      "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
+      "range": "Engineering Blogs!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "sd-youtube",
+      "group": "System design \u00b7 video",
+      "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
+      "range": "YouTube!A1:H80",
+      "enabled": false
+    },
+    {
+      "key": "ai-papers",
+      "group": "AI \u00b7 research papers",
+      "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
+      "range": "Research Papers!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "ai-tools",
+      "group": "AI \u00b7 tools & frameworks",
+      "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
+      "range": "Tools & Frameworks!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "ai-books",
+      "group": "AI \u00b7 books & docs",
+      "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
+      "range": "Books & Docs!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "ai-repos",
+      "group": "AI \u00b7 repos to read",
+      "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
+      "range": "GitHub Repos!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "ai-datasets",
+      "group": "AI \u00b7 datasets & practice",
+      "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
+      "range": "Datasets & Practice!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "fb-sources",
+      "group": "Football \u00b7 data sources",
+      "sheet_id": "1uhoFxYf9XvjbsTO5DVU9-uI4xl34WvXE7O0slO9ThSU",
+      "range": "Sources!A1:H80",
+      "enabled": true
+    },
+    {
+      "key": "inv-signals",
+      "group": "Investing \u00b7 signals to watch",
+      "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
+      "range": "Signals!A1:H40",
+      "enabled": true
+    },
+    {
+      "key": "inv-sources",
+      "group": "Investing \u00b7 sources",
+      "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
+      "range": "Sources!A1:H40",
+      "enabled": true
+    },
+    {
+      "key": "inv-platforms",
+      "group": "Investing \u00b7 platforms",
+      "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
+      "range": "Platforms!A1:H30",
+      "enabled": true
+    },
+    {
+      "key": "inv-redflags",
+      "group": "Investing \u00b7 red flags",
+      "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
+      "range": "Red Flags!A1:H30",
+      "enabled": true
+    },
+    {
+      "key": "inv-portfolio",
+      "group": "Investing \u00b7 holdings & watchlist",
+      "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
+      "range": "Portfolio Tracker!A5:L40",
+      "enabled": true
+    },
+    {
+      "key": "stk-local",
+      "group": "Stocks 2026 \u00b7 NGX shortlist",
+      "sheet_id": "10CgdkVooD8XnOZ--FgJEmOuptnE7xhTA686WGIMVeDY",
+      "range": "Local!B2:J30",
+      "enabled": true
+    },
+    {
+      "key": "stk-intl",
+      "group": "Stocks 2026 \u00b7 international",
+      "sheet_id": "10CgdkVooD8XnOZ--FgJEmOuptnE7xhTA686WGIMVeDY",
+      "range": "International Stocks!B2:J30",
+      "enabled": true
+    }
+  ],
+  "github": {
+    "enabled": true,
+    "group": "Your repos",
+    "query": "user:jorshimayor fork:false",
+    "limit": 40
+  },
+  "curated": []
+}

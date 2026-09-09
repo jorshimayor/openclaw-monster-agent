@@ -55,6 +55,11 @@ type Env = {
   TELEGRAM_WEBHOOK_SECRET?: string;
   PUBLIC_APP_URL?: string;
   NAG_ENABLED?: string;
+  QUIET_HOURS_ENABLED?: string;
+  QUIET_HOURS_START?: string;
+  QUIET_HOURS_END?: string;
+  SCHEDULE_SHEET_ID?: string;
+  SCHEDULE_SHEET_RANGE?: string;
   USER_TIMEZONE_OFFSET_HOURS?: string;
   LLM_FALLBACK_ORDER?: string;
   LOG_LEVEL?: string;
@@ -85,6 +90,11 @@ function buildEnvVars(env: Env): Record<string, string> {
     PUBLIC_APP_URL:
       env.PUBLIC_APP_URL ?? "https://monster-agent-frontend-2dn.pages.dev",
     NAG_ENABLED: env.NAG_ENABLED ?? "true",
+    QUIET_HOURS_ENABLED: env.QUIET_HOURS_ENABLED ?? "true",
+    QUIET_HOURS_START: env.QUIET_HOURS_START ?? "22",
+    QUIET_HOURS_END: env.QUIET_HOURS_END ?? "7",
+    SCHEDULE_SHEET_ID: env.SCHEDULE_SHEET_ID ?? "",
+    SCHEDULE_SHEET_RANGE: env.SCHEDULE_SHEET_RANGE ?? "Sheet1!A1:H200",
     USER_TIMEZONE_OFFSET_HOURS: env.USER_TIMEZONE_OFFSET_HOURS ?? "1",
     LLM_FALLBACK_ORDER: env.LLM_FALLBACK_ORDER ?? '["nvidia_nim","groq"]',
     LOG_LEVEL: env.LOG_LEVEL ?? "INFO",
@@ -196,6 +206,62 @@ export default {
       };
       await hit("/api/commitments/tick");
       await hit("/api/telegram/drain");
+      return;
+    }
+
+    // Daily study pick, 06:15 UTC = 07:15 WAT — just after quiet hours end, so
+    // the day opens with a finite ask rather than a backlog.
+    if (event.cron === "15 6 * * *") {
+      try {
+        const r = await stub.fetch(
+          new Request("http://container/api/study/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+          })
+        );
+        if (!r.ok) console.error(`study sync -> ${r.status}`);
+      } catch (err) {
+        console.error("study sync failed", err);
+      }
+      return;
+    }
+
+    // Monthly investing routine, 1st at 08:00 UTC = 09:00 WAT. The whole
+    // checklist comes round again; period-scoped row keys keep last month's
+    // completions from suppressing this month's.
+    if (event.cron === "0 8 1 * *") {
+      try {
+        const r = await stub.fetch(
+          new Request("http://container/api/study/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ key: "investing-monthly" }),
+          })
+        );
+        if (!r.ok) console.error(`investing routine -> ${r.status}`);
+      } catch (err) {
+        console.error("investing routine failed", err);
+      }
+      return;
+    }
+
+    // Schedule sheet reconciliation, hourly. Rows you added or edited in the
+    // Sheet become commitments; ones you ticked off close; outcomes are
+    // written back. No-ops cheaply when SCHEDULE_SHEET_ID is unset.
+    if (event.cron === "5 * * * *") {
+      try {
+        const r = await stub.fetch(
+          new Request("http://container/api/schedule/sync", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ write_back: true }),
+          })
+        );
+        if (!r.ok) console.error(`schedule sync -> ${r.status}`);
+      } catch (err) {
+        console.error("schedule sync failed", err);
+      }
       return;
     }
 

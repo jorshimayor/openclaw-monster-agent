@@ -13,6 +13,9 @@ from ..core.db import Base
 
 
 class CommitmentStatus(str, Enum):
+    # Extracted but not yet agreed to. The nag engine ignores these entirely —
+    # nothing chases you about work you never signed up for.
+    PROPOSED = "proposed"
     OPEN = "open"
     DONE = "done"
     DROPPED = "dropped"
@@ -25,6 +28,9 @@ class CommitmentDB(Base):
     bumps `nag_count`/`escalation` and stamps `last_nagged_at`, and NOTHING
     closes it except an artifact (a link, a file, or a chunk of pasted text).
     `snooze_until` only delays the next reminder — it never clears the row.
+
+    Lifecycle: proposed → open → done | dropped. A commitment only starts
+    chasing you once you have approved it.
     """
 
     __tablename__ = "commitments"
@@ -37,7 +43,9 @@ class CommitmentDB(Base):
     source: Mapped[str] = mapped_column(Text, default="manual")
     task_id: Mapped[Optional[UUID]] = mapped_column(PGUUID(as_uuid=True), nullable=True, index=True)
 
-    status: Mapped[str] = mapped_column(Text, default=CommitmentStatus.OPEN.value, index=True)
+    status: Mapped[str] = mapped_column(
+        Text, default=CommitmentStatus.PROPOSED.value, index=True
+    )
 
     due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     nag_interval_sec: Mapped[int] = mapped_column(Integer, default=1800)

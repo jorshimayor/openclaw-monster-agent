@@ -344,8 +344,18 @@ async def test_step10_synthesizer():
         approved, None, None, None, "Draft report on blockchain"
     )
     assert status == "OK"
-    assert isinstance(state["final_report"], str)
-    assert len(state["final_report"]) > 100
+    report = state["final_report"]
+    assert isinstance(report, str)
+
+    # The report carries the work, not the machinery. The old assertion here was
+    # `len(report) > 100`, which only passed because of the boilerplate header
+    # and confidence footer that used to pad every report.
+    assert "Web3 output section with analysis." in report
+    assert "Web2 output section." in report
+    for machinery in ("Output from", "confidence", "Final Synthesized Report", "CONTENT_WEB3"):
+        assert machinery not in report, f"pipeline machinery leaked: {machinery!r}"
+
+    # Confidence still travels in state for the quality gate and notifications.
     assert state["overall_confidence"] > 0.0
     for role_val, c in state["confidence_ratings"].items():
         assert 0.0 <= c <= 1.0
