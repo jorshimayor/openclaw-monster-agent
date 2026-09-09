@@ -1,0 +1,9 @@
+# Test dependencies for pip-based environments (CI, and the container image,
+# which has no poetry). The authoritative declaration is the poetry dev group in
+# pyproject.toml; test_dev_requirements_match_pyproject keeps the two in step,
+# so a package added there but not here fails a test rather than a deploy.
+-r requirements.txt
+
+pytest>=8.3.0,<9.0.0
+pytest-asyncio>=0.24.0,<0.25.0
+respx>=0.21.0,<0.22.0
