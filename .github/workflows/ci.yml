@@ -36,8 +36,16 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Test
         working-directory: backend
-        # No DATABASE_URL: the repos fall back to their in-memory store, which
-        # is exactly what the accountability suite expects.
+        env:
+          # The router tests mock every HTTP call with respx, but the providers
+          # refuse before the call when a key is absent — so on a machine with a
+          # populated backend/.env they pass, and on a clean runner they did not.
+          # These values are never sent anywhere.
+          NVIDIA_NIM_API_KEY: ci-placeholder-respx-intercepts-the-request
+          GROQ_API_KEY: ci-placeholder-respx-intercepts-the-request
+          # No DATABASE_URL on purpose: the repos fall back to their in-memory
+          # store, which is what the accountability suite expects, and it means
+          # CI can never touch production data.
         run: python -m pytest tests/ -q
 
   frontend-build:
