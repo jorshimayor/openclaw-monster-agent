@@ -31,7 +31,7 @@ type LedgerWeek = { week: number; date: string; deep: string; fast: string; ship
 type Plan = {
   season: { header: string[]; rows: string[][]; syncedAt?: string } | null;
   ledger: { start: string; weeks: LedgerWeek[]; syncedAt?: string } | null;
-  study: { sections: { num: number; title: string; body: string }[]; syncedAt?: string } | null;
+  study: { docs: { name: string; sections: { num: number; title: string; body: string }[] }[]; syncedAt?: string } | null;
 };
 
 const DAY_REPS: Record<number, string[]> = {
@@ -112,6 +112,7 @@ export default function HqPage() {
   const [err, setErr] = useState<string>("");
   const [tab, setTab] = useState<Tab>("today");
   const [studyIdx, setStudyIdx] = useState(0);
+  const [docIdx, setDocIdx] = useState(0);
   const [done, setDone] = useLocal<Record<string, boolean>>("hq-ledger-done", {});
 
   useEffect(() => {
@@ -239,7 +240,7 @@ export default function HqPage() {
 
       {/* TODAY */}
       {tab === "today" && (
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader>
               <CardTitle className="text-sm">Today&apos;s reps</CardTitle>
@@ -279,6 +280,20 @@ export default function HqPage() {
               ) : (
                 <p className="text-[var(--theme-text-dim)]">Loading the ledger…</p>
               )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Daily loop — every day, 1.5-2h</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-[var(--theme-text-dim)]">
+                <li className="flex gap-2"><span className="text-[var(--theme-accent)]">❯</span> 45 min theory on the current module</li>
+                <li className="flex gap-2"><span className="text-[var(--theme-accent)]">❯</span> 20 min notes + one open question</li>
+                <li className="flex gap-2"><span className="text-[var(--theme-accent)]">❯</span> 1 small PoC / exercise — commit it</li>
+                <li className="flex gap-2"><span className="text-[var(--theme-accent)]">❯</span> 6-10 Solodit findings: predict root cause + severity first</li>
+              </ul>
+              <p className="mt-2 font-mono text-[10px] text-[var(--theme-text-dim)]">from Bounty & Protocol Mastery · full weekly template in Study</p>
             </CardContent>
           </Card>
           <Card>
@@ -386,43 +401,58 @@ export default function HqPage() {
 
       {/* STUDY */}
       {tab === "study" && (
-        <div className="grid gap-4 md:grid-cols-[280px_1fr]">
-          <Card className="md:sticky md:top-4 md:self-start">
-            <CardHeader>
-              <CardTitle className="text-sm">
-                Study guide {plan?.study && <Badge>{plan.study.sections.length} sections</Badge>}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="max-h-[60vh] space-y-1 overflow-y-auto">
-                {plan?.study?.sections.map((s, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setStudyIdx(i)}
-                    className={`block w-full rounded px-2 py-1 text-left text-xs ${
-                      i === studyIdx
-                        ? "bg-[var(--theme-accent)]/15 text-[var(--theme-text)]"
-                        : "text-[var(--theme-text-dim)] hover:text-[var(--theme-text)]"
-                    }`}
-                  >
-                    <span className="font-mono text-[var(--theme-accent)]">{s.num >= 0 ? s.num : "·"}</span> {s.title}
-                  </button>
-                )) || <p className="text-xs text-[var(--theme-text-dim)]">Loading…</p>}
-              </div>
-              <p className="mt-3 font-mono text-[10px] text-[var(--theme-text-dim)]">
-                source: onchainsuite infra handbook · synced {plan?.study?.syncedAt?.slice(0, 10)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6">
-              {plan?.study?.sections[studyIdx] ? (
-                <Markdown source={plan.study.sections[studyIdx].body} />
-              ) : (
-                <p className="text-sm text-[var(--theme-text-dim)]">Pick a section.</p>
-              )}
-            </CardContent>
-          </Card>
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {plan?.study?.docs.map((d, di) => (
+              <Button
+                key={d.name}
+                variant={di === docIdx ? "default" : "outline"}
+                size="sm"
+                onClick={() => {
+                  setDocIdx(di);
+                  setStudyIdx(0);
+                }}
+              >
+                {d.name} <Badge className="ml-2">{d.sections.length}</Badge>
+              </Button>
+            ))}
+          </div>
+          <div className="grid gap-4 md:grid-cols-[300px_1fr]">
+            <Card className="md:sticky md:top-4 md:self-start">
+              <CardHeader>
+                <CardTitle className="text-sm">Sections</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="max-h-[60vh] space-y-1 overflow-y-auto">
+                  {plan?.study?.docs[docIdx]?.sections.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setStudyIdx(i)}
+                      className={`block w-full rounded px-2 py-1 text-left text-xs ${
+                        i === studyIdx
+                          ? "bg-[var(--theme-accent)]/15 text-[var(--theme-text)]"
+                          : "text-[var(--theme-text-dim)] hover:text-[var(--theme-text)]"
+                      }`}
+                    >
+                      <span className="font-mono text-[var(--theme-accent)]">{s.num >= 0 ? s.num : "·"}</span> {s.title}
+                    </button>
+                  )) || <p className="text-xs text-[var(--theme-text-dim)]">Loading…</p>}
+                </div>
+                <p className="mt-3 font-mono text-[10px] text-[var(--theme-text-dim)]">
+                  synced {plan?.study?.syncedAt?.slice(0, 10)} · edit the private source, run plan-sync
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="pt-6">
+                {plan?.study?.docs[docIdx]?.sections[studyIdx] ? (
+                  <Markdown source={plan.study.docs[docIdx].sections[studyIdx].body} />
+                ) : (
+                  <p className="text-sm text-[var(--theme-text-dim)]">Pick a section.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
