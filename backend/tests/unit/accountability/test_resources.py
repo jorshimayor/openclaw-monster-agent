@@ -174,3 +174,53 @@ def test_the_shipped_resource_config_is_valid() -> None:
     assert all(t.get("sheet_id") and t.get("range") and t.get("group") for t in tabs)
     assert len({t["key"] for t in tabs}) == len(tabs), "duplicate resource tab keys"
     assert config["github"]["query"]
+
+
+# ── envelopes and bands: what the real sheets and servers actually return ────
+
+def test_the_mcp_content_envelope_is_unwrapped() -> None:
+    """MCP servers may answer {"content":[{"type":"text","text":"<json>"}]}.
+    Reading .items off the envelope finds nothing — 78 repos rendered as an
+    empty group until this was handled."""
+    import json as _json
+
+    from src.agents.resources import unwrap_mcp_payload
+
+    env = {"content": [{"type": "text", "text": _json.dumps({"items": [{"full_name": "a/b"}]})}]}
+    assert unwrap_mcp_payload(env)["items"] == [{"full_name": "a/b"}]
+    assert unwrap_mcp_payload({"items": [1]})["items"] == [1]
+    assert unwrap_mcp_payload({"result": {"values": [[1]]}})["values"] == [[1]]
+    assert unwrap_mcp_payload({"content": [{"type": "text", "text": "not json"}]}) == {
+        "content": [{"type": "text", "text": "not json"}]
+    }
+
+
+WATCHLIST = [
+    ["Stock", "", "Sector", "Current Price"],
+    ["INTERNATIONAL"],
+    ["COMPANY NAME", "TICKER SYMBOL"],
+    ["", "GOOGL", "Consumer Goods", "331.41"],
+    ["", "NVDA", "Consumer Goods", "224.23"],
+    ["", "PLTR", "Consumer Goods", "315.59"],
+]
+
+
+def test_the_title_is_the_first_populated_column_not_the_first_named_one() -> None:
+    """This watchlist heads column B "Stock" and leaves it blank, with the
+    ticker in C. Trusting the header dropped every row."""
+    items = parse_resource_rows(WATCHLIST)
+    assert [i["title"] for i in items] == ["GOOGL", "NVDA", "PLTR"]
+
+
+def test_repeated_header_bands_are_not_entries() -> None:
+    assert "TICKER SYMBOL" not in [i["title"] for i in parse_resource_rows(WATCHLIST)]
+
+
+def test_one_cell_section_bands_are_not_entries() -> None:
+    rows = [
+        ["Stock", "", "Sector", "Price", "Cap"],
+        ["DOMESTIC"],
+        ["COMPANY NAME", "TICKER SYMBOL"],
+        ["Nascon Allied", "NASCON", "Consumer Goods", "71.00", "620"],
+    ]
+    assert [i["title"] for i in parse_resource_rows(rows)] == ["Nascon Allied"]

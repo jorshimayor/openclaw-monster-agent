@@ -22,6 +22,7 @@ network calls, and the underlying sheets change on the order of weeks.
 
 from __future__ import annotations
 
+import json
 import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
@@ -43,6 +44,41 @@ _NOTE_HEADERS = (
     "note", "notes", "description", "whatitis", "comment", "why",
 )
 _SKIP_HEADERS = ("free", "cost", "certificate", "freetier", "paid")
+
+# Column labels that appear again mid-sheet as a sub-header band ("COMPANY NAME
+# | TICKER SYMBOL" sitting above the tickers). They are never real entries.
+_BAND_LABELS = {
+    "companyname", "tickersymbol", "ticker", "symbol", "name", "title", "link",
+    "url", "stock", "repo", "course", "paper", "tool", "item", "project",
+    "description", "sector", "notes", "note", "owner", "provider", "type",
+}
+
+
+def unwrap_mcp_payload(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Get at the actual payload, whichever envelope the server used.
+
+    MCP servers may answer with the content envelope —
+    {"content":[{"type":"text","text":"<json string>"}]} — rather than the
+    decoded object. Reading `result["items"]` off the envelope silently finds
+    nothing, which is how 78 repos rendered as an empty group.
+    """
+    if not isinstance(result, dict):
+        return {}
+    content = result.get("content")
+    if isinstance(content, list):
+        for part in content:
+            if isinstance(part, dict) and part.get("type") == "text":
+                try:
+                    decoded = json.loads(part.get("text") or "")
+                except Exception:
+                    continue
+                if isinstance(decoded, dict):
+                    return decoded
+                if isinstance(decoded, list):
+                    return {"items": decoded}
+    if isinstance(result.get("result"), dict):
+        return result["result"]
+    return result
 
 
 def _cache() -> Dict[str, Tuple[float, Any]]:
@@ -88,12 +124,28 @@ def infer_columns(header: List[Any], rows: List[List[Any]]) -> Dict[str, Optiona
         norm = _norm_header(raw)
         if not norm:
             continue
-        if title_idx is None:
-            title_idx = idx  # first named column is the thing itself
         if link_idx is None and norm in _LINK_HEADERS:
             link_idx = idx
         if note_idx is None and norm in _NOTE_HEADERS:
             note_idx = idx
+
+    # The title is the leftmost column that is actually populated — not simply
+    # the first named one. A watchlist can head column B "Stock" and leave it
+    # blank, with the ticker in C; taking the header at face value drops every
+    # row that has a ticker but no company name.
+    sample = rows[:20]
+    width = max([len(header)] + [len(r) for r in sample]) if sample else len(header)
+    best_filled = 0
+    for idx in range(width):
+        if idx == link_idx:
+            continue
+        filled = sum(1 for r in sample if _cell(r, idx))
+        # Strictly greater keeps the leftmost column on a tie, so an ordinary
+        # sheet still titles on its first column.
+        if filled > best_filled:
+            title_idx, best_filled = idx, filled
+    if title_idx is None:
+        title_idx = next((i for i, h in enumerate(header) if _norm_header(h)), None)
 
     # No Link column? Find the column whose cells are actually URLs.
     if link_idx is None:
@@ -131,11 +183,22 @@ def parse_resource_rows(values: List[List[Any]], limit: int = 200) -> List[Dict[
     if cols["title"] is None:
         return []
 
+    # A section band ("DOMESTIC", "INTERNATIONAL") is a lone cell in a sheet
+    # whose real rows are several columns wide.
+    typical_width = max(
+        (sum(1 for c in r if str(c or "").strip()) for r in rows[:20]), default=0
+    )
+
     out: List[Dict[str, str]] = []
     for row in rows:
+        filled = sum(1 for c in row if str(c or "").strip())
+        if typical_width >= 3 and filled <= 1:
+            continue
         title = _cell(row, cols["title"])
         if not title or title == _cell(header, cols["title"]):
             continue
+        if _norm_header(title) in _BAND_LABELS:
+            continue  # a repeated header band, not an entry
         raw_link = _cell(row, cols["link"]) if cols["link"] is not None else ""
         match = _URL_RE.search(raw_link) or _URL_RE.search(" ".join(str(c) for c in row))
         out.append(
@@ -193,9 +256,7 @@ class ResourceCollector:
                 "items": [],
                 "error": str(result.get("error") or result.get("reason")),
             }
-        values = result.get("values") or []
-        if not values and isinstance(result.get("result"), dict):
-            values = result["result"].get("values") or []
+        values = result.get("values") or unwrap_mcp_payload(result).get("values") or []
         return {
             "key": spec.get("key", spec["range"]),
             "name": spec.get("group", spec["range"]),
@@ -221,8 +282,7 @@ class ResourceCollector:
                 "items": [],
                 "error": str(result.get("error") or result.get("reason")),
             }
-        # The shim may hand back the API payload at either level.
-        payload = result.get("result") if isinstance(result.get("result"), dict) else result
+        payload = unwrap_mcp_payload(result)
         repos = payload.get("items") or payload.get("repositories") or []
         items = []
         for r in repos:
