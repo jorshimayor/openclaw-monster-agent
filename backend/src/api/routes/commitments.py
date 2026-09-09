@@ -142,19 +142,27 @@ async def create_commitment(body: CreateCommitmentRequest) -> Dict[str, Any]:
     return repo.to_dict(row)
 
 
-@router.get("/{commitment_id}")
-async def get_commitment(commitment_id: UUID) -> Dict[str, Any]:
-    row = await repo.get(commitment_id)
+async def _resolve(ref: str):
+    """Accept either the full uuid or the 8-char short id.
+
+    Every surface — the console, Telegram, the reminders themselves — shows the
+    short id, so requiring a uuid here just fails with a parser error at the
+    moment someone is trying to stop a reminder.
+    """
+    row = await repo.resolve_ref(ref)
     if row is None:
-        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
-    return repo.to_dict(row)
+        raise HTTPException(status_code=404, detail=f"Commitment {ref!r} not found")
+    return row
 
 
-@router.post("/{commitment_id}/done")
-async def complete_commitment(commitment_id: UUID, body: DoneRequest) -> Dict[str, Any]:
-    row = await repo.get(commitment_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
+@router.get("/{ref}")
+async def get_commitment(ref: str) -> Dict[str, Any]:
+    return repo.to_dict(await _resolve(ref))
+
+
+@router.post("/{ref}/done")
+async def complete_commitment(ref: str, body: DoneRequest) -> Dict[str, Any]:
+    row = await _resolve(ref)
 
     verdict = classify(text=body.artifact_text or "", file_url=body.artifact_url)
     if not verdict["accepted"]:
@@ -162,25 +170,26 @@ async def complete_commitment(commitment_id: UUID, body: DoneRequest) -> Dict[st
         raise HTTPException(status_code=422, detail=verdict["reason"])
 
     updated = await repo.complete(
-        commitment_id,
+        row.id,
         artifact_kind=verdict["kind"],
         artifact_url=verdict["url"] or body.artifact_url,
         artifact_text=verdict["text"],
     )
     if updated is None:
         raise HTTPException(status_code=500, detail="could not close commitment")
-    logger.info("commitment_closed", id=str(commitment_id)[:8], kind=verdict["kind"])
+    logger.info("commitment_closed", id=str(row.id)[:8], kind=verdict["kind"])
     return repo.to_dict(updated)
 
 
-@router.delete("/{commitment_id}")
-async def delete_commitment(commitment_id: UUID) -> Dict[str, Any]:
+@router.delete("/{ref}")
+async def delete_commitment(ref: str) -> Dict[str, Any]:
     """Remove the row entirely. Use /drop instead to record that you abandoned
     something — that stays on the ledger; this does not."""
-    if not await repo.delete(commitment_id):
-        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
-    logger.info("commitment_deleted", id=str(commitment_id)[:8])
-    return {"deleted": True, "id": str(commitment_id)}
+    row = await _resolve(ref)
+    if not await repo.delete(row.id):
+        raise HTTPException(status_code=404, detail=f"Commitment {ref!r} not found")
+    logger.info("commitment_deleted", id=str(row.id)[:8])
+    return {"deleted": True, "id": str(row.id)}
 
 
 class RescheduleRequest(BaseModel):
@@ -190,53 +199,55 @@ class RescheduleRequest(BaseModel):
     at_time: Optional[str] = None
 
 
-@router.post("/{commitment_id}/approve")
-async def approve_commitment(commitment_id: UUID) -> Dict[str, Any]:
+@router.post("/{ref}/approve")
+async def approve_commitment(ref: str) -> Dict[str, Any]:
     """proposed → open. Reminders start here, and not before."""
-    updated = await repo.approve(commitment_id)
+    row = await _resolve(ref)
+    updated = await repo.approve(row.id)
     if updated is None:
         raise HTTPException(
             status_code=409,
             detail="not found, or not awaiting approval (already open, done, or dropped)",
         )
-    logger.info("commitment_approved", id=str(commitment_id)[:8])
+    logger.info("commitment_approved", id=str(row.id)[:8])
     return repo.to_dict(updated)
 
 
-@router.post("/{commitment_id}/reschedule")
-async def reschedule_commitment(commitment_id: UUID, body: RescheduleRequest) -> Dict[str, Any]:
+@router.post("/{ref}/reschedule")
+async def reschedule_commitment(ref: str, body: RescheduleRequest) -> Dict[str, Any]:
     due = (
         (body.due_at if body.due_at.tzinfo else body.due_at.replace(tzinfo=timezone.utc))
         if body.due_at is not None
         else resolve_due(body.day or "", body.time_of_day or "", body.at_time or "")
     )
-    updated = await repo.reschedule(commitment_id, due)
+    row = await _resolve(ref)
+    updated = await repo.reschedule(row.id, due)
     if updated is None:
-        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
+        raise HTTPException(status_code=404, detail=f"Commitment {ref!r} not found")
     return repo.to_dict(updated)
 
 
-@router.post("/{commitment_id}/snooze")
-async def snooze_commitment(commitment_id: UUID, body: SnoozeRequest) -> Dict[str, Any]:
-    updated = await repo.snooze(commitment_id, body.minutes)
+@router.post("/{ref}/snooze")
+async def snooze_commitment(ref: str, body: SnoozeRequest) -> Dict[str, Any]:
+    row = await _resolve(ref)
+    updated = await repo.snooze(row.id, body.minutes)
     if updated is None:
-        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
+        raise HTTPException(status_code=404, detail=f"Commitment {ref!r} not found")
     return repo.to_dict(updated)
 
 
-@router.post("/{commitment_id}/drop")
-async def drop_commitment(commitment_id: UUID) -> Dict[str, Any]:
-    updated = await repo.drop(commitment_id)
+@router.post("/{ref}/drop")
+async def drop_commitment(ref: str) -> Dict[str, Any]:
+    row = await _resolve(ref)
+    updated = await repo.drop(row.id)
     if updated is None:
-        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
+        raise HTTPException(status_code=404, detail=f"Commitment {ref!r} not found")
     return repo.to_dict(updated)
 
 
-@router.post("/{commitment_id}/nag")
-async def nag_now(commitment_id: UUID) -> Dict[str, Any]:
+@router.post("/{ref}/nag")
+async def nag_now(ref: str) -> Dict[str, Any]:
     """Force a reminder immediately — used by the console's 'poke me' button."""
-    row = await repo.get(commitment_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail=f"Commitment {commitment_id} not found")
+    row = await _resolve(ref)
     result = await get_nag_engine().nag_one(row)
     return {"nagged": result, "next_rung": ladder_for((row.nag_count or 0) + 1)}

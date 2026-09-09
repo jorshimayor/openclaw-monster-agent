@@ -230,3 +230,26 @@ async def test_approve_for_task_only_touches_that_task() -> None:
     assert len(approved) == 2
     remaining = await repo.list_all(status=CommitmentStatus.PROPOSED.value)
     assert [r.task_id for r in remaining] == [other]
+
+
+@pytest.mark.asyncio
+async def test_the_api_resolver_accepts_a_short_id() -> None:
+    """Every surface shows the 8-char short id — the reminders, the console,
+    Telegram. Requiring a uuid failed with a parser error at the exact moment
+    someone was trying to stop a reminder."""
+    from src.api.routes.commitments import _resolve
+
+    row = await _file_one("Ship the README")
+    assert (await _resolve(str(row.id)[:8])).id == row.id
+    assert (await _resolve(str(row.id))).id == row.id
+
+
+@pytest.mark.asyncio
+async def test_an_unknown_ref_is_a_404_not_a_validation_error() -> None:
+    from fastapi import HTTPException
+
+    from src.api.routes.commitments import _resolve
+
+    with pytest.raises(HTTPException) as err:
+        await _resolve("zzzzzzzz")
+    assert err.value.status_code == 404

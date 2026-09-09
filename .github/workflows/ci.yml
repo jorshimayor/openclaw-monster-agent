@@ -1,0 +1,117 @@
+# Tests on every push and PR; deploy only from main.
+#
+# Deploys are gated on the tests passing, which is the point: every deploy so
+# far has been a manual `wrangler deploy` from a laptop, and the failures were
+# environment problems (npx pulling a workerd build without its platform
+# binary, running from the wrong directory) rather than bad code.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  # A container build takes minutes; never let two overlap on main.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"   # matches containers/backend/Dockerfile
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - name: Install
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio
+      - name: Test
+        working-directory: backend
+        # No DATABASE_URL: the repos fall back to their in-memory store, which
+        # is exactly what the accountability suite expects.
+        run: python -m pytest tests/ -q
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+      - name: Typecheck
+        working-directory: frontend
+        run: npx tsc --noEmit
+      - name: Build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://monster-agent-backend.joelobafemii.workers.dev
+        run: |
+          npx next build
+          npx @cloudflare/next-on-pages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pages-bundle
+          path: frontend/.vercel/output/static
+          retention-days: 3
+
+  deploy-backend:
+    needs: [backend-tests, frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend-worker/package-lock.json
+      - name: Install
+        working-directory: backend-worker
+        run: npm ci --legacy-peer-deps
+      - name: Deploy worker + container
+        working-directory: backend-worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        # The local install carries the right workerd binary for the runner,
+        # so never invoke this through npx.
+        run: ./node_modules/.bin/wrangler deploy
+
+  deploy-frontend:
+    needs: [backend-tests, frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: pages-bundle
+          path: dist
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        working-directory: frontend
+        run: npm ci --legacy-peer-deps
+      - name: Deploy Pages
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: >
+          ./frontend/node_modules/.bin/wrangler pages deploy dist
+          --project-name monster-agent-frontend --branch main --commit-dirty=true
