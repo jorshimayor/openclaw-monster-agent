@@ -241,7 +241,9 @@ def test_the_curated_chain_resources_are_present_and_linked() -> None:
             assert item["note"], f"{item['title']} has no note saying why it matters"
 
 
-def test_curated_links_are_unique() -> None:
-    config = load_resource_config()
-    urls = [i["url"] for g in config["curated"] for i in g["items"]]
-    assert len(urls) == len(set(urls)), "the same link appears twice"
+def test_curated_links_are_unique_within_a_group() -> None:
+    """Across groups a repeat is meaningful — Solodit is both a security
+    resource and the daily loop's starting point. Twice in one group is a bug."""
+    for group in load_resource_config()["curated"]:
+        urls = [i["url"] for i in group["items"]]
+        assert len(urls) == len(set(urls)), f"{group['key']} lists a link twice"

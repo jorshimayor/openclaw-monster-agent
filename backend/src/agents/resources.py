@@ -27,6 +27,7 @@ import re
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
+from ..core.config import get_settings
 from ..core.logging import get_logger
 from .schedule_sync import _norm_header
 from .study_sync import _config_path, _cell
@@ -213,6 +214,57 @@ def parse_resource_rows(values: List[List[Any]], limit: int = 200) -> List[Dict[
     return out
 
 
+# Buckets for starred repos, checked in order — first match wins, so the more
+# specific patterns come first. 120 undifferentiated links is a wall; sorted
+# into shelves it is a place to start a session.
+_STAR_BUCKETS: List[Tuple[str, str, Tuple[str, ...]]] = [
+    # System design before interviews: a system-design-notes repo says
+    # "Interview" in its description and would otherwise land in the DSA shelf.
+    ("stars-systemdesign", "Starred · system design",
+     ("system design", "system-design", "systemdesign", "system_design",
+      "systems-from-scratch", "scalab", "distributed")),
+    ("stars-security", "Starred · security & audits",
+     ("audit", "vulnerab", "security", "reentrancy", "fuzzing", "exploit", "rekt",
+      "solodit", "bailsec", "immunefi", "erc4626", "mev")),
+    ("stars-interview", "Starred · DSA & interview drills",
+     ("leetcode", "hackerrank", "algorithm", "data_structures", "data-structures",
+      "interview", "neetcode", "coding challenge")),
+    ("stars-chains", "Starred · chains & protocol",
+     ("solana", "solidity", "evm", "yul", "move", "aptos", "sui", "axelar",
+      "algorand", "zk", "zero-knowledge", "foundry", "ethui", "web3", "blockchain",
+      "indexer", "erc", "smart contract", "smart-contract", "ethereum")),
+    ("stars-ai", "Starred · AI & ML",
+     ("llm", "machine learning", "machine-learning", "deep learning", "agent",
+      "langflow", "rag", "mcp")),
+    ("stars-craft", "Starred · engineering craft",
+     ("rustlings", "every-programmer", "cs-self-learning", "book", "ebook",
+      "docs", "roadmap", "learning", "course", "tutorial", "research paper",
+      "research-papers", "math", "rust")),
+]
+_STAR_FALLBACK = ("stars-other", "Starred · everything else")
+
+# Short needles must match whole words. As bare substrings, "erc" matches
+# "exercises", "zk" matches nothing useful, and "mev" matches "removed" — which
+# is how rustlings ended up filed under chains.
+_SHORT_NEEDLE = 5
+
+
+def _matches(haystack: str, needle: str) -> bool:
+    if len(needle) < _SHORT_NEEDLE:
+        return re.search(rf"\b{re.escape(needle)}\b", haystack) is not None
+    return needle in haystack
+
+
+def bucket_for(name: str, description: str, topics: List[str]) -> Tuple[str, str]:
+    """Which shelf a starred repo belongs on. First match wins."""
+    haystack = " ".join([name, description or "", " ".join(topics or [])]).lower()
+    haystack = re.sub(r"[/_-]", " ", haystack)
+    for key, label, needles in _STAR_BUCKETS:
+        if any(_matches(haystack, n) for n in needles):
+            return key, label
+    return _STAR_FALLBACK
+
+
 def load_resource_config() -> Dict[str, Any]:
     import json
 
@@ -224,6 +276,7 @@ def load_resource_config() -> Dict[str, Any]:
     return {
         "resource_tabs": data.get("resource_tabs", []),
         "github": data.get("github", {}),
+        "github_starred": data.get("github_starred", {}),
         "curated": data.get("curated", []),
     }
 
@@ -309,6 +362,71 @@ class ResourceCollector:
             "error": None,
         }
 
+    async def _starred_groups(self, spec: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Your starred repos, sorted onto shelves.
+
+        Fetched straight from the REST API rather than through MCP: the server
+        exposes no starred tool, and going direct avoids a second guess at which
+        envelope a shim returns.
+        """
+        token = get_settings().github_token
+        if not token:
+            return [{"key": "stars", "name": "Starred", "source": "github",
+                     "items": [], "error": "GITHUB_TOKEN is not set"}]
+        limit = int(spec.get("limit", 150))
+        repos: List[Dict[str, Any]] = []
+        try:
+            import httpx
+
+            async with httpx.AsyncClient(timeout=30) as client:
+                page = 1
+                while len(repos) < limit and page <= 5:
+                    r = await client.get(
+                        "https://api.github.com/user/starred",
+                        params={"per_page": 100, "page": page},
+                        headers={"Authorization": f"Bearer {token}",
+                                 "Accept": "application/vnd.github+json"},
+                    )
+                    if r.status_code != 200:
+                        return [{"key": "stars", "name": "Starred", "source": "github",
+                                 "items": [], "error": f"GitHub returned {r.status_code}"}]
+                    batch = r.json()
+                    if not batch:
+                        break
+                    repos.extend(batch)
+                    page += 1
+        except Exception as exc:
+            self._log.warning("starred_fetch_failed", error=str(exc))
+            return [{"key": "stars", "name": "Starred", "source": "github",
+                     "items": [], "error": str(exc)}]
+
+        shelves: Dict[str, Dict[str, Any]] = {}
+        for repo in repos[:limit]:
+            if not isinstance(repo, dict):
+                continue
+            name = str(repo.get("full_name") or "")
+            key, label = bucket_for(
+                name, str(repo.get("description") or ""), repo.get("topics") or []
+            )
+            shelf = shelves.setdefault(
+                key, {"key": key, "name": label, "source": "github", "items": [], "error": None}
+            )
+            shelf["items"].append({
+                "title": name,
+                "url": str(repo.get("html_url") or ""),
+                "note": str(repo.get("description") or "")[:200],
+                "meta": {"language": repo.get("language"),
+                         "stars": repo.get("stargazers_count"),
+                         "updated": repo.get("pushed_at")},
+            })
+
+        for shelf in shelves.values():
+            # Most-starred first: within a shelf that is the closest thing to
+            # "start here" without inventing a ranking.
+            shelf["items"].sort(key=lambda i: -(i.get("meta", {}).get("stars") or 0))
+        order = [k for k, _, _ in _STAR_BUCKETS] + [_STAR_FALLBACK[0]]
+        return [shelves[k] for k in order if k in shelves]
+
     async def collect(self, refresh: bool = False) -> Dict[str, Any]:
         if not refresh:
             cached = cache_get("resources")
@@ -325,6 +443,13 @@ class ResourceCollector:
                 groups.append(await self._sheet_group(spec))
             except Exception as exc:
                 self._log.warning("resource_tab_failed", key=spec.get("key"), error=str(exc))
+
+        starred = config.get("github_starred") or {}
+        if starred.get("enabled"):
+            try:
+                groups.extend(await self._starred_groups(starred))
+            except Exception as exc:
+                self._log.warning("starred_groups_failed", error=str(exc))
 
         gh = config.get("github") or {}
         if gh.get("enabled"):

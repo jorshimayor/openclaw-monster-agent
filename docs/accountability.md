@@ -354,6 +354,25 @@ Two things the real sheet forced:
 Rescheduling clears any snooze: dragging something to a new time is an explicit
 decision about when it happens, and a stale snooze would silently suppress it.
 
+## Your starred repos
+
+120 stars fetched from the REST API (the MCP server exposes no starred tool) and
+sorted onto shelves, because 120 undifferentiated links is a wall rather than a
+place to start: **system design · security & audits · DSA & interview drills ·
+chains & protocol · AI & ML · engineering craft · everything else**. Most-starred
+first within a shelf.
+
+Bucketing checks system design *before* interviews — a system-design-notes repo
+says "Interview" in its description and would land in the DSA shelf otherwise.
+Needles shorter than five characters match on word boundaries: as bare
+substrings `erc` matches "ex**erc**ises", which filed `rustlings` under chains.
+
+The best of them are wired into the daily tasks, so a session opens with a page
+rather than a decision — Solodit and `smart-contract-vulnerabilities` on bounty
+days, `LeetCode-Questions-CompanyWise` on interview-prep days,
+`system-design-notes` on web2 days, `Cyfrin/audit-checklist` on code-review days,
+`learn-yul` and `all-things-reentrancy` on the matching chain variants.
+
 ## /study — the shelf
 
 The material lived in eight Google Sheets, a GitHub account and a separate prep

@@ -35,15 +35,84 @@ type Plan = {
   study: { docs: { name: string; sections: { num: number; title: string; body: string }[] }[]; syncedAt?: string } | null;
 };
 
-const DAY_REPS: Record<number, string[]> = {
-  1: ["2 DSA problems, timed, out loud", "Review the model call: what did it miss?"],
-  2: ["1 system-design narration (35 min, whiteboard)", "Publish model scoring post"],
-  3: ["2 DSA problems", "1 hour contest / bounty work"],
-  4: ["STAR bank practice mode: 3 stories aloud", "Send 2 applications"],
-  5: ["Publish the model call", "1 hour bounty work", "Send 2 applications"],
-  6: ["Match-day content runs itself", "Draft the week's thread"],
-  0: ["Rest, or finish the week's thread", "Prep Monday's writing slot"]
+/**
+ * A rep with no link is a decision to make before you can start. Each one now
+ * points at where the work actually happens.
+ */
+type Rep = { text: string; href?: string; via?: string };
+
+const DAY_REPS: Record<number, Rep[]> = {
+  1: [
+    { text: "2 DSA problems, timed, out loud", href: "https://github.com/krishnadey30/LeetCode-Questions-CompanyWise", via: "by company" },
+    { text: "Review the model call: what did it miss?", href: "https://fieldtilt.joelobafemii.workers.dev/terminal" }
+  ],
+  2: [
+    { text: "1 system-design narration (35 min, whiteboard)", href: "https://github.com/liquidslr/system-design-notes", via: "notes" },
+    { text: "Publish model scoring post", href: "https://fieldtilt.joelobafemii.workers.dev/" }
+  ],
+  3: [
+    { text: "2 DSA problems", href: "https://github.com/krishnadey30/LeetCode-Questions-CompanyWise" },
+    { text: "1 hour contest / bounty work", href: "https://solodit.cyfrin.io/", via: "solodit" }
+  ],
+  4: [
+    { text: "STAR bank practice mode: 3 stories aloud", href: "https://fieldtilt.joelobafemii.workers.dev/prep", via: "star bank" },
+    { text: "Send 2 applications", href: "/day", via: "log them" }
+  ],
+  5: [
+    { text: "Publish the model call", href: "https://fieldtilt.joelobafemii.workers.dev/" },
+    { text: "1 hour bounty work", href: "https://solodit.cyfrin.io/" },
+    { text: "Send 2 applications", href: "/day", via: "log them" }
+  ],
+  6: [
+    { text: "Match-day content runs itself", href: "https://fieldtilt.joelobafemii.workers.dev/" },
+    { text: "Draft the week's thread", href: "/study", via: "sources" }
+  ],
+  0: [
+    { text: "Rest, or finish the week's thread" },
+    { text: "Prep Monday's writing slot", href: "/day" }
+  ]
 };
+
+/** The daily loop from Bounty & Protocol Mastery, with somewhere to start. */
+const DAILY_LOOP: Rep[] = [
+  { text: "45 min theory on the current module", href: "/study", via: "shelf" },
+  { text: "20 min notes + one open question" },
+  { text: "1 small PoC / exercise — commit it", href: "https://github.com/jorshimayor", via: "your repos" },
+  {
+    text: "6-10 Solodit findings: predict root cause + severity first",
+    href: "https://solodit.cyfrin.io/",
+    via: "solodit"
+  },
+  {
+    text: "One vulnerability restated from memory",
+    href: "https://github.com/kadenzipfel/smart-contract-vulnerabilities",
+    via: "starred"
+  }
+];
+
+function RepLine({ rep }: { rep: Rep }) {
+  return (
+    <span>
+      {rep.href ? (
+        <a
+          href={rep.href}
+          target={rep.href.startsWith("/") ? undefined : "_blank"}
+          rel="noreferrer noopener"
+          className="hover:text-[var(--theme-accent)] hover:underline underline-offset-2"
+        >
+          {rep.text}
+        </a>
+      ) : (
+        rep.text
+      )}
+      {rep.via && (
+        <span className="ml-1.5 text-[10px] uppercase tracking-wider text-[var(--theme-text-dim)]">
+          ↗ {rep.via}
+        </span>
+      )}
+    </span>
+  );
+}
 
 const PROPERTIES = [
   { label: "fieldtilt dashboard", href: "https://fieldtilt.joelobafemii.workers.dev/" },
@@ -252,8 +321,9 @@ export default function HqPage() {
             <CardContent>
               <ul className="space-y-2 text-sm text-[var(--theme-text-dim)]">
                 {(DAY_REPS[new Date().getDay()] || []).map((r) => (
-                  <li key={r} className="flex gap-2">
-                    <span className="text-[var(--theme-accent)]">❯</span> {r}
+                  <li key={r.text} className="flex gap-2">
+                    <span className="text-[var(--theme-accent)]">❯</span>
+                    <RepLine rep={r} />
                   </li>
                 ))}
               </ul>
@@ -292,12 +362,23 @@ export default function HqPage() {
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm text-[var(--theme-text-dim)]">
-                <li className="flex gap-2"><span className="text-[var(--theme-accent)]">❯</span> 45 min theory on the current module</li>
-                <li className="flex gap-2"><span className="text-[var(--theme-accent)]">❯</span> 20 min notes + one open question</li>
-                <li className="flex gap-2"><span className="text-[var(--theme-accent)]">❯</span> 1 small PoC / exercise — commit it</li>
-                <li className="flex gap-2"><span className="text-[var(--theme-accent)]">❯</span> 6-10 Solodit findings: predict root cause + severity first</li>
+                {DAILY_LOOP.map((r) => (
+                  <li key={r.text} className="flex gap-2">
+                    <span className="text-[var(--theme-accent)]">❯</span>
+                    <RepLine rep={r} />
+                  </li>
+                ))}
               </ul>
-              <p className="mt-2 font-mono text-[10px] text-[var(--theme-text-dim)]">from Bounty & Protocol Mastery · full weekly template in Study</p>
+              <p className="mt-2 font-mono text-[10px] text-[var(--theme-text-dim)]">
+                from Bounty &amp; Protocol Mastery ·{" "}
+                <a href="/study" className="text-[var(--theme-accent)] hover:underline">
+                  the full shelf
+                </a>{" "}
+                ·{" "}
+                <a href="/day" className="text-[var(--theme-accent)] hover:underline">
+                  today&apos;s plan
+                </a>
+              </p>
             </CardContent>
           </Card>
           <Card>

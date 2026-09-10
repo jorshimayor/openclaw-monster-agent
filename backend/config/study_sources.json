@@ -355,6 +355,62 @@
           "note": "Free structured security curriculum."
         }
       ]
+    },
+    {
+      "key": "chain-daily-loop",
+      "group": "Daily loop \u00b7 where to start",
+      "items": [
+        {
+          "title": "Solodit \u2014 findings feed",
+          "url": "https://solodit.cyfrin.io/",
+          "note": "6-10 a day. Predict root cause and severity before you read the answer."
+        },
+        {
+          "title": "smart-contract-vulnerabilities",
+          "url": "https://github.com/kadenzipfel/smart-contract-vulnerabilities",
+          "note": "One entry a day, restated from memory. Your star, 2.5k others'."
+        },
+        {
+          "title": "protocol-vulnerabilities-index",
+          "url": "https://github.com/kadenzipfel/protocol-vulnerabilities-index",
+          "note": "460+ vulns indexed by protocol type \u2014 read by the type you are auditing."
+        },
+        {
+          "title": "Cyfrin audit-checklist",
+          "url": "https://github.com/Cyfrin/audit-checklist",
+          "note": "Run a section against your own code on code-review days."
+        },
+        {
+          "title": "LeetCode by company",
+          "url": "https://github.com/krishnadey30/LeetCode-Questions-CompanyWise",
+          "note": "Two timed problems, narrated. Pick the company you are applying to."
+        },
+        {
+          "title": "system-design-notes",
+          "url": "https://github.com/liquidslr/system-design-notes",
+          "note": "One narration, 35 minutes, out loud. Notes from the Insider's Guide."
+        },
+        {
+          "title": "all-things-reentrancy",
+          "url": "https://github.com/jcsec-security/all-things-reentrancy",
+          "note": "Workshop on every reentrancy variant \u2014 the most-asked EVM question."
+        },
+        {
+          "title": "learn-yul",
+          "url": "https://github.com/andreitoma8/learn-yul",
+          "note": "Assembly inside Solidity. Separates senior from mid in interviews."
+        },
+        {
+          "title": "evm-fuzzing-resources",
+          "url": "https://github.com/perimetersec/evm-fuzzing-resources",
+          "note": "Invariant testing \u2014 what a protocol team will ask you to design."
+        },
+        {
+          "title": "Web3-Security-Library",
+          "url": "https://github.com/immunefi-team/Web3-Security-Library",
+          "note": "Immunefi's own library. Bounty context you can cite."
+        }
+      ]
     }
   ],
   "rotation": {
@@ -373,8 +429,8 @@
         "label": "Web3 bounty",
         "due_time": "07:30",
         "tasks": [
-          "Work one bounty target for 45 minutes \u2014 scope, then one contract",
-          "Read one Solodit audit report and note the bug class"
+          "6-10 Solodit findings \u2014 predict root cause and severity BEFORE reading \u2014 https://solodit.cyfrin.io/",
+          "One entry from smart-contract-vulnerabilities, explained from memory \u2014 https://github.com/kadenzipfel/smart-contract-vulnerabilities"
         ],
         "remind": true
       },
@@ -425,7 +481,7 @@
           "sysdesign-interview"
         ],
         "tasks": [
-          "One system-design narration, 35 minutes, out loud"
+          "One system-design narration, 35 minutes, out loud \u2014 https://github.com/liquidslr/system-design-notes"
         ],
         "remind": true
       },
@@ -464,7 +520,8 @@
         "label": "Code review",
         "due_time": "14:30",
         "tasks": [
-          "Review one open PR or reread one of your own modules critically"
+          "Review one open PR, or reread one of your own modules critically",
+          "One audit checklist section applied to your own code \u2014 https://github.com/Cyfrin/audit-checklist"
         ],
         "remind": true
       },
@@ -476,7 +533,7 @@
           "ai-tracker"
         ],
         "tasks": [
-          "Two DSA problems, timed, narrated out loud",
+          "Two DSA problems, timed, narrated out loud \u2014 https://github.com/krishnadey30/LeetCode-Questions-CompanyWise",
           "Three STAR stories aloud from the bank"
         ],
         "remind": true
@@ -501,32 +558,40 @@
             "name": "EVM",
             "tasks": [
               "Answer aloud: storage vs memory vs calldata, delegatecall risks, proxy storage collisions",
-              "One Ethernaut level, then write why it broke \u2014 https://ethernaut.openzeppelin.com/"
+              "One Ethernaut level, then write why it broke \u2014 https://ethernaut.openzeppelin.com/",
+              "One Yul snippet, explained line by line \u2014 https://github.com/andreitoma8/learn-yul"
             ]
           },
           {
             "name": "Solana",
             "tasks": [
               "Answer aloud: accounts model vs EVM, PDAs, rent, CPI, compute budget",
-              "Anchor: explain a program's account constraints line by line \u2014 https://www.anchor-lang.com/"
+              "Anchor: explain a program's account constraints line by line \u2014 https://www.anchor-lang.com/",
+              "Read a real indexer's hot path \u2014 https://github.com/Luganodes/Solana-Indexer"
             ]
           },
           {
             "name": "Cosmos",
             "tasks": [
               "Answer aloud: ABCI, modules, keepers, IBC light clients, validator set changes",
-              "Read one Cosmos SDK module's keeper and narrate it \u2014 https://docs.cosmos.network/"
+              "Read one Cosmos SDK module's keeper and narrate it \u2014 https://docs.cosmos.network/",
+              "Contrast with Move's resource model \u2014 https://github.com/MystenLabs/move-book"
             ]
           },
           {
             "name": "Security",
             "tasks": [
               "One Damn Vulnerable DeFi challenge, write the exploit up \u2014 https://www.damnvulnerabledefi.xyz/",
-              "One Solodit finding: restate the bug class in your own words \u2014 https://solodit.cyfrin.io/"
+              "One Solodit finding: restate the bug class in your own words \u2014 https://solodit.cyfrin.io/",
+              "One reentrancy variant from the workshop \u2014 https://github.com/jcsec-security/all-things-reentrancy"
             ]
           }
         ]
       }
     ]
+  },
+  "github_starred": {
+    "enabled": true,
+    "limit": 150
   }
 }
