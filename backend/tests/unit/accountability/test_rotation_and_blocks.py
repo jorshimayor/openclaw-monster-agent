@@ -253,16 +253,20 @@ def test_every_rotation_theme_reminds() -> None:
 
 
 def test_web3_study_visits_every_chain() -> None:
-    """Four chains sharing one slot: whichever is listed first would otherwise
-    be the only one ever studied."""
-    from src.agents.rotation import themes_for
+    """Chains sharing one slot: whichever is listed first would otherwise be the
+    only one ever studied. Read the expected set from config so adding a chain
+    does not require editing the test."""
+    from src.agents.rotation import load_rotation, themes_for
+
+    study_cfg = next(t for t in load_rotation()["daily"] if t["theme"] == "web3-study")
+    expected = {v["name"] for v in study_cfg["variants"]}
 
     seen = set()
-    for i in range(8):
+    for i in range(len(expected) * 2):
         picked = themes_for(date.fromordinal(date(2026, 9, 11).toordinal() + i))
         study = next(t for t in picked["daily"] if t.theme.startswith("web3-study"))
         seen.add(study.variant_name)
-    assert seen == {"EVM", "Solana", "Cosmos", "Infra"}
+    assert seen == expected
 
 
 def test_a_cycled_theme_advances_its_variant_on_every_appearance() -> None:
@@ -271,15 +275,23 @@ def test_a_cycled_theme_advances_its_variant_on_every_appearance() -> None:
     """
     from src.agents.rotation import load_rotation, themes_for
 
-    cycle_len = len(load_rotation()["cycle"])
+    r = load_rotation()
+    cycle_len = len(r["cycle"])
+    expected = {
+        v["name"]
+        for t in r["cycle"]
+        if t["theme"] == "chain-interviews"
+        for v in t["variants"]
+    }
+
     variants = []
     start = date(2026, 9, 11)
-    for i in range(cycle_len * 4):
+    for i in range(cycle_len * len(expected)):
         picked = themes_for(date.fromordinal(start.toordinal() + i))["cycled"]
         if picked.theme.startswith("chain-interviews"):
             variants.append(picked.variant_name)
-    assert len(variants) == 4, f"expected four appearances, got {variants}"
-    assert len(set(variants)) == 4, f"the same variant kept coming up: {variants}"
+    assert len(variants) == len(expected), f"expected one appearance each, got {variants}"
+    assert set(variants) == expected, f"a variant never came up: {sorted(set(variants))}"
 
 
 def test_a_theme_without_variants_is_untouched() -> None:

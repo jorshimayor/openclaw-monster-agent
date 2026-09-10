@@ -298,8 +298,8 @@ Four chains sharing one "web3 study" slot means whichever is listed first is the
 only one ever studied. Themes can therefore carry **variants**, and a variant
 advances per appearance:
 
-- **web3-study** (daily) → EVM → Solana → Cosmos → Infra
-- **chain-interviews** (in the cycle) → EVM → Solana → Cosmos → Security
+- **web3-study** (daily) → EVM → Solana → Cosmos → Infra → Move
+- **chain-interviews** (in the cycle) → EVM → Solana → Cosmos → Security → Move
 
 Each variant's tasks carry the link to work from, so a session never starts with
 "where do I begin".
@@ -358,7 +358,7 @@ decision about when it happens, and a stale snooze would silently suppress it.
 
 120 stars fetched from the REST API (the MCP server exposes no starred tool) and
 sorted onto shelves, because 120 undifferentiated links is a wall rather than a
-place to start: **system design · security & audits · DSA & interview drills ·
+place to start: **system design · Move, Sui & Aptos · security & audits · DSA & interview drills ·
 chains & protocol · AI & ML · engineering craft · everything else**. Most-starred
 first within a shelf.
 

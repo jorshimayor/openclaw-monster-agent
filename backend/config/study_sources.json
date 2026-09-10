@@ -411,6 +411,52 @@
           "note": "Immunefi's own library. Bounty context you can cite."
         }
       ]
+    },
+    {
+      "key": "chain-move",
+      "group": "Move \u00b7 Sui & Aptos",
+      "items": [
+        {
+          "title": "The Move Book",
+          "url": "https://move-book.com/",
+          "note": "The canonical reference. Abilities and the resource model are the interview."
+        },
+        {
+          "title": "MystenLabs/move-book",
+          "url": "https://github.com/MystenLabs/move-book",
+          "note": "Your star \u2014 the book plus the Move Reference, readable offline."
+        },
+        {
+          "title": "Sui docs",
+          "url": "https://docs.sui.io/",
+          "note": "Object ownership and the transaction model \u2014 where Sui diverges from Aptos."
+        },
+        {
+          "title": "Sui \u2014 your first app",
+          "url": "https://docs.sui.io/guides/developer/first-app",
+          "note": "Ship something small before reading further."
+        },
+        {
+          "title": "Aptos docs",
+          "url": "https://aptos.dev/",
+          "note": "Same language, different object model. Knowing the contrast is the answer."
+        },
+        {
+          "title": "aptos-labs/aptos-core",
+          "url": "https://github.com/aptos-labs/aptos-core",
+          "note": "Your star \u2014 read the framework modules, not the node."
+        },
+        {
+          "title": "Move-Audit-Resources",
+          "url": "https://github.com/0xriazaka/Move-Audit-Resources",
+          "note": "Your star \u2014 Move-specific bug classes, which are not the EVM's."
+        },
+        {
+          "title": "axelar-cgp-sui",
+          "url": "https://github.com/axelarnetwork/axelar-cgp-sui",
+          "note": "Your star \u2014 real cross-chain Move in production."
+        }
+      ]
     }
   ],
   "rotation": {
@@ -467,6 +513,13 @@
             "tasks": [
               "One Alchemy docs topic: RPC methods, webhooks or indexing \u2014 https://docs.alchemy.com/",
               "Alchemy University: one lesson, exercises done \u2014 https://www.alchemy.com/university"
+            ]
+          },
+          {
+            "name": "Move",
+            "tasks": [
+              "The Move Book: one chapter, typed out \u2014 https://move-book.com/",
+              "Sui or Aptos docs: one concept explained back from memory \u2014 https://docs.sui.io/"
             ]
           }
         ]
@@ -584,6 +637,14 @@
               "One Damn Vulnerable DeFi challenge, write the exploit up \u2014 https://www.damnvulnerabledefi.xyz/",
               "One Solodit finding: restate the bug class in your own words \u2014 https://solodit.cyfrin.io/",
               "One reentrancy variant from the workshop \u2014 https://github.com/jcsec-security/all-things-reentrancy"
+            ]
+          },
+          {
+            "name": "Move",
+            "tasks": [
+              "Answer aloud: resources vs accounts, abilities (key/store/copy/drop), object ownership on Sui",
+              "Read one module and narrate its ability constraints \u2014 https://github.com/MystenLabs/move-book",
+              "One Move audit finding, restated as a bug class \u2014 https://github.com/0xriazaka/Move-Audit-Resources"
             ]
           }
         ]

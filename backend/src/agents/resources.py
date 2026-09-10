@@ -223,6 +223,10 @@ _STAR_BUCKETS: List[Tuple[str, str, Tuple[str, ...]]] = [
     ("stars-systemdesign", "Starred · system design",
      ("system design", "system-design", "systemdesign", "system_design",
       "systems-from-scratch", "scalab", "distributed")),
+    # Move sits above security so Move-specific audit resources land on the Move
+    # shelf — it is a distinct track, not a flavour of general EVM security.
+    ("stars-move", "Starred · Move, Sui & Aptos",
+     ("move", "sui", "aptos", "mysten")),
     ("stars-security", "Starred · security & audits",
      ("audit", "vulnerab", "security", "reentrancy", "fuzzing", "exploit", "rekt",
       "solodit", "bailsec", "immunefi", "erc4626", "mev")),
