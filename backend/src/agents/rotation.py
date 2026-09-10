@@ -32,6 +32,7 @@ class Theme:
     due_time: str = "19:00"
     tasks: List[str] = field(default_factory=list)
     sources: List[str] = field(default_factory=list)
+    remind: bool = True
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "Theme":
@@ -41,6 +42,7 @@ class Theme:
             due_time=str(raw.get("due_time") or "19:00"),
             tasks=[str(t) for t in (raw.get("tasks") or [])],
             sources=[str(s) for s in (raw.get("sources") or [])],
+            remind=bool(raw.get("remind", True)),
         )
 
 

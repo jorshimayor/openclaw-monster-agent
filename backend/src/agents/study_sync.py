@@ -80,6 +80,8 @@ class StudySource:
     cadence: str = "monthly"
     # Runs only on its rotation theme's day (see agents/rotation.py).
     rotation_gated: bool = False
+    # False = tracked and shown, but never interrupts.
+    remind: bool = True
     enabled: bool = True
 
     @classmethod
@@ -96,6 +98,7 @@ class StudySource:
             priority_order=[str(p).lower() for p in (raw.get("priority_order") or [])],
             cadence=str(raw.get("cadence") or "monthly").lower(),
             rotation_gated=bool(raw.get("rotation_gated", False)),
+            remind=bool(raw.get("remind", True)),
             enabled=bool(raw.get("enabled", True)),
         )
 
@@ -467,6 +470,7 @@ class StudySync:
                     detail=f"{detail} {marker}".strip(),
                     source="study",
                     nag_interval_sec=1800,
+                    remind=source.remind,
                     status=(
                         CommitmentStatus.PROPOSED.value
                         if require_approval
@@ -518,6 +522,7 @@ class StudySync:
                         due_at=resolve_due("", "", theme.due_time),
                         detail=f"{theme.label} [theme:{marker}]",
                         source=theme.theme,
+                        remind=getattr(theme, "remind", True),
                         status=(
                             CommitmentStatus.PROPOSED.value
                             if require_approval

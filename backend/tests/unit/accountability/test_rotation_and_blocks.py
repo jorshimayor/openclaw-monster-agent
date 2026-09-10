@@ -170,3 +170,64 @@ async def test_held_back_items_keep_their_place_in_the_ladder(
         counts.append((await repo.get(r.id)).nag_count)
     counts.sort()
     assert counts == [0, 0, 0, 1, 1]
+
+
+# ── reminders are opt-in ─────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_a_silent_commitment_is_never_nagged() -> None:
+    """Tracked and shown, but it does not interrupt. This is what stops two
+    dozen study picks from becoming two dozen reminders."""
+    silent = await repo.create(
+        title="Tokens & context windows",
+        due_at=datetime.now(timezone.utc) - timedelta(hours=3),
+        status=CommitmentStatus.OPEN.value,
+        remind=False,
+    )
+    loud = await repo.create(
+        title="Work one bounty target for 45 minutes",
+        due_at=datetime.now(timezone.utc) - timedelta(hours=1),
+        status=CommitmentStatus.OPEN.value,
+        remind=True,
+    )
+    due = await repo.due_for_nag()
+    assert [c.id for c in due] == [loud.id]
+    assert silent.id not in [c.id for c in due]
+
+
+@pytest.mark.asyncio
+async def test_silence_can_be_lifted_without_recreating_anything() -> None:
+    row = await repo.create(
+        title="Design [X]. You have 45 minutes.",
+        due_at=datetime.now(timezone.utc) - timedelta(hours=2),
+        status=CommitmentStatus.OPEN.value,
+        remind=False,
+    )
+    assert await repo.due_for_nag() == []
+
+    await repo.set_remind(row.id, True)
+    assert [c.id for c in await repo.due_for_nag()] == [row.id]
+
+    await repo.set_remind(row.id, False)
+    assert await repo.due_for_nag() == []
+
+
+def test_the_bulk_study_sources_are_silent_by_configuration() -> None:
+    """The 48-topic tracker and the question bank fill the day view; they are
+    not what should be buzzing a phone."""
+    from src.agents.study_sync import load_sources
+
+    by_key = {s.key: s for s in load_sources(enabled_only=False)}
+    assert by_key["ai-tracker"].remind is False
+    assert by_key["sysdesign-interview"].remind is False
+    assert by_key["football-calendar"].remind is True
+    assert by_key["investing-monthly"].remind is True
+
+
+def test_every_rotation_theme_reminds() -> None:
+    """The themed day plan is the core work — that is the part that chases."""
+    from src.agents.rotation import load_rotation
+
+    r = load_rotation()
+    assert all(t.get("remind", True) for t in r["daily"] + r["cycle"])

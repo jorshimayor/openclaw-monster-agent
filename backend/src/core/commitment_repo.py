@@ -86,6 +86,7 @@ def to_dict(c: CommitmentDB) -> Dict[str, Any]:
         "source": c.source,
         "task_id": str(c.task_id) if c.task_id else None,
         "status": c.status,
+        "remind": bool(getattr(c, "remind", True)),
         "due_at": iso(c.due_at),
         "nag_interval_sec": c.nag_interval_sec,
         "nag_count": c.nag_count,
@@ -111,6 +112,7 @@ async def create(
     task_id: Optional[UUID] = None,
     nag_interval_sec: int = 1800,
     status: str = CommitmentStatus.OPEN.value,
+    remind: bool = True,
 ) -> Optional[CommitmentDB]:
     row = CommitmentDB(
         id=uuid4(),
@@ -126,6 +128,7 @@ async def create(
         # and `nag_count + 1` on None raises.
         nag_count=0,
         escalation=0,
+        remind=remind,
         created_at=_now(),
         updated_at=_now(),
     )
@@ -201,6 +204,9 @@ async def due_for_nag(now: Optional[datetime] = None) -> List[CommitmentDB]:
     rows = await list_all(status=CommitmentStatus.OPEN.value, limit=500)
     out: List[CommitmentDB] = []
     for r in rows:
+        # Silent by choice: still tracked, still shown, never interrupts.
+        if not getattr(r, "remind", True):
+            continue
         due = _aware(r.due_at)
         if due is None or due > now:
             continue
@@ -298,6 +304,11 @@ async def approve_for_task(task_id: UUID) -> List[CommitmentDB]:
 async def reschedule(commitment_id: UUID, due_at: datetime) -> Optional[CommitmentDB]:
     """Move a due time without disturbing status or nag history."""
     return await _mutate(commitment_id, due_at=due_at, snooze_until=None)
+
+
+async def set_remind(commitment_id: UUID, remind: bool) -> Optional[CommitmentDB]:
+    """Turn chasing on or off for one commitment without dropping it."""
+    return await _mutate(commitment_id, remind=remind)
 
 
 async def snooze(commitment_id: UUID, minutes: int) -> Optional[CommitmentDB]:

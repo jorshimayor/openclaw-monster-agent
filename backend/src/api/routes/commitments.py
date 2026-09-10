@@ -227,6 +227,20 @@ async def reschedule_commitment(ref: str, body: RescheduleRequest) -> Dict[str, 
     return repo.to_dict(updated)
 
 
+class RemindRequest(BaseModel):
+    on: bool = True
+
+
+@router.post("/{ref}/remind")
+async def set_remind(ref: str, body: RemindRequest) -> Dict[str, Any]:
+    """Turn chasing on or off for one commitment, without dropping it."""
+    row = await _resolve(ref)
+    updated = await repo.set_remind(row.id, body.on)
+    if updated is None:
+        raise HTTPException(status_code=404, detail=f"Commitment {ref!r} not found")
+    return repo.to_dict(updated)
+
+
 @router.post("/{ref}/snooze")
 async def snooze_commitment(ref: str, body: SnoozeRequest) -> Dict[str, Any]:
     row = await _resolve(ref)

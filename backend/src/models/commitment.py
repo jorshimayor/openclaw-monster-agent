@@ -5,7 +5,7 @@ from enum import Enum
 from typing import Any, Optional
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Integer, Text
+from sqlalchemy import Boolean, DateTime, Integer, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
@@ -46,6 +46,9 @@ class CommitmentDB(Base):
     status: Mapped[str] = mapped_column(
         Text, default=CommitmentStatus.PROPOSED.value, index=True
     )
+    # Tracked but not chased. Bulk study picks belong on the day view without
+    # producing a reminder each; only the core work interrupts you.
+    remind: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     due_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     nag_interval_sec: Mapped[int] = mapped_column(Integer, default=1800)

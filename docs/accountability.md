@@ -272,6 +272,26 @@ no sheet behind them (video, writing, applications) carry `tasks` in the config
 and are filed directly, keyed `[theme:<name>@<date>#<n>]` so a re-run in the same
 day is a no-op.
 
+## What is allowed to interrupt you
+
+Being tracked and being chased are separate. Every commitment carries a `remind`
+flag; the nag engine only ever considers `remind = true`.
+
+| Source | Reminds | Why |
+|---|---|---|
+| rotation themes (web3 daily + the day's cycle) | yes | the core day plan |
+| football season BUILD | yes | the one mandatory column |
+| investing monthly routine | yes | money, once a month |
+| AI tracker topics | no | two a day, already in your study block |
+| system design question bank | no | one a day, sits in learning time |
+
+The silent ones still appear on `/day`, still close with an artifact, still count
+as progress — they just never buzz a phone. `POST /api/commitments/{ref}/remind`
+flips any single one, and `remind` in `study_sources.json` sets the default per
+source.
+
+This is what stops two dozen study picks becoming two dozen reminders.
+
 ## Reminders are capped
 
 A day with twenty approved items used to mean twenty reminders every ten minutes,
@@ -315,6 +335,17 @@ Two things the real sheet forced:
 
 Rescheduling clears any snooze: dragging something to a new time is an explicit
 decision about when it happens, and a stale snooze would silently suppress it.
+
+## /study — the shelf
+
+The material lived in eight Google Sheets, a GitHub account and a separate prep
+site, so "go and study" started with deciding where to look. `/study` is all of
+it on one page: every resource tab plus your own repos, searchable across titles
+and notes, filterable by area (System design · AI engineering · Investing ·
+Stocks · Football · Your work).
+
+Searching expands every group automatically — hiding matches behind a "show all"
+the user has to click per card defeats the search.
 
 ## The grouped reading list
 

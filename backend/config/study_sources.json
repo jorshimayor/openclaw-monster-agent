@@ -28,7 +28,8 @@
         "could"
       ],
       "enabled": true,
-      "rotation_gated": true
+      "rotation_gated": true,
+      "remind": false
     },
     {
       "key": "sysdesign-interview",
@@ -39,7 +40,8 @@
       "daily_count": 1,
       "due_time": "14:30",
       "enabled": true,
-      "rotation_gated": true
+      "rotation_gated": true,
+      "remind": false
     },
     {
       "key": "sysdesign-roadmap",
@@ -49,7 +51,8 @@
       "kind": "backlog",
       "daily_count": 1,
       "due_time": "05:45",
-      "enabled": false
+      "enabled": false,
+      "remind": false
     },
     {
       "key": "ai-engineer-projects",
@@ -59,7 +62,8 @@
       "kind": "backlog",
       "daily_count": 1,
       "due_time": "13:00",
-      "enabled": false
+      "enabled": false,
+      "remind": false
     },
     {
       "key": "football-calendar",
@@ -72,7 +76,8 @@
       ],
       "due_time": "19:00",
       "enabled": true,
-      "rotation_gated": true
+      "rotation_gated": true,
+      "remind": true
     },
     {
       "key": "investing-monthly",
@@ -82,7 +87,8 @@
       "kind": "routine",
       "cadence": "monthly",
       "due_time": "17:00",
-      "enabled": true
+      "enabled": true,
+      "remind": true
     }
   ],
   "resource_tabs": [
@@ -226,7 +232,8 @@
       "'daily' runs every day. One entry from 'cycle' runs alongside it,",
       "advancing by date so the cycle is stable across restarts and you can",
       "see what tomorrow holds. Tasks are filed proposed, like everything else.",
-      "'sources' names study_sources keys to run only on that theme's day."
+      "'sources' names study_sources keys to run only on that theme's day.",
+      "remind=false means tracked and shown on /day but never a reminder."
     ],
     "enabled": true,
     "daily": [
@@ -237,7 +244,8 @@
         "tasks": [
           "Work one bounty target for 45 minutes \u2014 scope, then one contract",
           "Read one Solodit audit report and note the bug class"
-        ]
+        ],
+        "remind": true
       },
       {
         "theme": "web3-study",
@@ -245,7 +253,8 @@
         "due_time": "05:45",
         "tasks": [
           "One RareSkills chapter, notes written as you go"
-        ]
+        ],
+        "remind": true
       }
     ],
     "cycle": [
@@ -258,7 +267,8 @@
         ],
         "tasks": [
           "One system-design narration, 35 minutes, out loud"
-        ]
+        ],
+        "remind": true
       },
       {
         "theme": "football",
@@ -269,7 +279,8 @@
         ],
         "tasks": [
           "Move this week's BUILD forward by one concrete step"
-        ]
+        ],
+        "remind": true
       },
       {
         "theme": "video",
@@ -277,7 +288,8 @@
         "due_time": "16:00",
         "tasks": [
           "Record one short: a thing you learned this week, 90 seconds"
-        ]
+        ],
+        "remind": true
       },
       {
         "theme": "articles",
@@ -285,7 +297,8 @@
         "due_time": "16:00",
         "tasks": [
           "Draft or ship one article section \u2014 no new outlines"
-        ]
+        ],
+        "remind": true
       },
       {
         "theme": "code-review",
@@ -293,7 +306,8 @@
         "due_time": "14:30",
         "tasks": [
           "Review one open PR or reread one of your own modules critically"
-        ]
+        ],
+        "remind": true
       },
       {
         "theme": "interview-prep",
@@ -305,7 +319,8 @@
         "tasks": [
           "Two DSA problems, timed, narrated out loud",
           "Three STAR stories aloud from the bank"
-        ]
+        ],
+        "remind": true
       },
       {
         "theme": "job-applications",
@@ -314,7 +329,8 @@
         "tasks": [
           "Send two applications with a tailored first line",
           "Follow up on anything sent more than a week ago"
-        ]
+        ],
+        "remind": true
       }
     ]
   }
