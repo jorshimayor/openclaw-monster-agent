@@ -34,9 +34,10 @@ def test_web3_runs_every_single_day() -> None:
     for offset in range(21):
         picked = themes_for(date.fromordinal(date(2026, 9, 10).toordinal() + offset))
         # web3-study resolves to a per-chain theme id ("web3-study-evm"), so
-        # match the family rather than the exact name.
+        # match the family rather than the exact name. Chain practice is also
+        # daily now, so this is a superset check, not equality.
         families = {t.theme.split("-")[0] + "-" + t.theme.split("-")[1] for t in picked["daily"]}
-        assert families == {"web3-bounty", "web3-study"}
+        assert {"web3-bounty", "web3-study"} <= families
 
 
 def test_the_cycle_visits_every_theme_before_repeating() -> None:
@@ -269,29 +270,39 @@ def test_web3_study_visits_every_chain() -> None:
     assert seen == expected
 
 
-def test_a_cycled_theme_advances_its_variant_on_every_appearance() -> None:
-    """The regression this guards: an 8-day cycle with 4 variants indexed on the
-    raw ordinal shows variant 0 on every appearance, forever, because 8 % 4 == 0.
-    """
-    from src.agents.rotation import load_rotation, themes_for
+def test_study_and_practice_land_on_the_same_chain(  ) -> None:
+    """The chain you read at 05:45 is the chain you are questioned on at 14:30.
+    Two independent rotations would pair Move study with EVM questions."""
+    from src.agents.rotation import themes_for
 
-    r = load_rotation()
-    cycle_len = len(r["cycle"])
-    expected = {
-        v["name"]
-        for t in r["cycle"]
-        if t["theme"] == "chain-interviews"
-        for v in t["variants"]
-    }
+    for i in range(15):
+        picked = themes_for(date.fromordinal(date(2026, 9, 11).toordinal() + i))
+        study = next(t for t in picked["daily"] if t.theme.startswith("web3-study"))
+        practice = next(
+            t for t in picked["daily"] if t.theme.startswith("chain-interviews")
+        )
+        # Position 4 is the non-chain day: infra study, security practice.
+        if study.variant_name in {"EVM", "Solana", "Cosmos", "Move"}:
+            assert study.variant_name == practice.variant_name, (
+                f"{study.variant_name} studied but {practice.variant_name} practised"
+            )
 
-    variants = []
-    start = date(2026, 9, 11)
-    for i in range(cycle_len * len(expected)):
-        picked = themes_for(date.fromordinal(start.toordinal() + i))["cycled"]
-        if picked.theme.startswith("chain-interviews"):
-            variants.append(picked.variant_name)
-    assert len(variants) == len(expected), f"expected one appearance each, got {variants}"
-    assert set(variants) == expected, f"a variant never came up: {sorted(set(variants))}"
+
+def test_move_is_practised_as_often_as_evm_and_solana() -> None:
+    """Move was one variant of a theme that surfaced once per cycle, so each
+    chain came round every forty days. Practice is daily now."""
+    from src.agents.rotation import themes_for
+
+    counts: dict = {}
+    for i in range(30):
+        picked = themes_for(date.fromordinal(date(2026, 9, 11).toordinal() + i))
+        practice = next(
+            t for t in picked["daily"] if t.theme.startswith("chain-interviews")
+        )
+        counts[practice.variant_name] = counts.get(practice.variant_name, 0) + 1
+
+    assert counts["Move"] == counts["EVM"] == counts["Solana"], counts
+    assert counts["Move"] >= 6, f"Move should come round every fifth day: {counts}"
 
 
 def test_a_theme_without_variants_is_untouched() -> None:

@@ -298,8 +298,12 @@ Four chains sharing one "web3 study" slot means whichever is listed first is the
 only one ever studied. Themes can therefore carry **variants**, and a variant
 advances per appearance:
 
-- **web3-study** (daily) → EVM → Solana → Cosmos → Infra → Move
-- **chain-interviews** (in the cycle) → EVM → Solana → Cosmos → Security → Move
+- **web3-study** (daily) → EVM → Solana → Cosmos → Move → Infra
+- **chain-interviews** (daily) → EVM → Solana → Cosmos → Move → Security
+
+Both are daily and share a variant order, so the chain you read at 05:45 is the
+chain you are questioned on at 14:30. Practice used to sit in the cycle, which
+meant each chain came round every forty days — sampling rather than practice.
 
 Each variant's tasks carry the link to work from, so a session never starts with
 "where do I begin".

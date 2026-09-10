@@ -466,7 +466,8 @@
       "advancing by date so the cycle is stable across restarts and you can",
       "see what tomorrow holds. Tasks are filed proposed, like everything else.",
       "'sources' names study_sources keys to run only on that theme's day.",
-      "remind=false means tracked and shown on /day but never a reminder."
+      "remind=false means tracked and shown on /day but never a reminder.",
+      "web3-study and chain-interviews are both daily and share a variant order, so the chain you study in the morning is the one you are questioned on in the afternoon."
     ],
     "enabled": true,
     "daily": [
@@ -509,17 +510,65 @@
             ]
           },
           {
+            "name": "Move",
+            "tasks": [
+              "The Move Book: one chapter, typed out \u2014 https://move-book.com/",
+              "Sui or Aptos docs: one concept explained back from memory \u2014 https://docs.sui.io/"
+            ]
+          },
+          {
             "name": "Infra",
             "tasks": [
               "One Alchemy docs topic: RPC methods, webhooks or indexing \u2014 https://docs.alchemy.com/",
               "Alchemy University: one lesson, exercises done \u2014 https://www.alchemy.com/university"
             ]
+          }
+        ]
+      },
+      {
+        "theme": "chain-interviews",
+        "label": "Chain interview practice",
+        "due_time": "14:30",
+        "remind": true,
+        "variants": [
+          {
+            "name": "EVM",
+            "tasks": [
+              "Answer aloud: storage vs memory vs calldata, delegatecall risks, proxy storage collisions",
+              "One Ethernaut level, then write why it broke \u2014 https://ethernaut.openzeppelin.com/",
+              "One Yul snippet, explained line by line \u2014 https://github.com/andreitoma8/learn-yul"
+            ]
+          },
+          {
+            "name": "Solana",
+            "tasks": [
+              "Answer aloud: accounts model vs EVM, PDAs, rent, CPI, compute budget",
+              "Anchor: explain a program's account constraints line by line \u2014 https://www.anchor-lang.com/",
+              "Read a real indexer's hot path \u2014 https://github.com/Luganodes/Solana-Indexer"
+            ]
+          },
+          {
+            "name": "Cosmos",
+            "tasks": [
+              "Answer aloud: ABCI, modules, keepers, IBC light clients, validator set changes",
+              "Read one Cosmos SDK module's keeper and narrate it \u2014 https://docs.cosmos.network/",
+              "Contrast with Move's resource model \u2014 https://github.com/MystenLabs/move-book"
+            ]
           },
           {
             "name": "Move",
             "tasks": [
-              "The Move Book: one chapter, typed out \u2014 https://move-book.com/",
-              "Sui or Aptos docs: one concept explained back from memory \u2014 https://docs.sui.io/"
+              "Answer aloud: resources vs accounts, abilities (key/store/copy/drop), object ownership on Sui",
+              "Read one module and narrate its ability constraints \u2014 https://github.com/MystenLabs/move-book",
+              "One Move audit finding, restated as a bug class \u2014 https://github.com/0xriazaka/Move-Audit-Resources"
+            ]
+          },
+          {
+            "name": "Security",
+            "tasks": [
+              "One Damn Vulnerable DeFi challenge, write the exploit up \u2014 https://www.damnvulnerabledefi.xyz/",
+              "One Solodit finding: restate the bug class in your own words \u2014 https://solodit.cyfrin.io/",
+              "One reentrancy variant from the workshop \u2014 https://github.com/jcsec-security/all-things-reentrancy"
             ]
           }
         ]
@@ -600,54 +649,6 @@
           "Follow up on anything sent more than a week ago"
         ],
         "remind": true
-      },
-      {
-        "theme": "chain-interviews",
-        "label": "Chain interview practice",
-        "due_time": "14:30",
-        "remind": true,
-        "variants": [
-          {
-            "name": "EVM",
-            "tasks": [
-              "Answer aloud: storage vs memory vs calldata, delegatecall risks, proxy storage collisions",
-              "One Ethernaut level, then write why it broke \u2014 https://ethernaut.openzeppelin.com/",
-              "One Yul snippet, explained line by line \u2014 https://github.com/andreitoma8/learn-yul"
-            ]
-          },
-          {
-            "name": "Solana",
-            "tasks": [
-              "Answer aloud: accounts model vs EVM, PDAs, rent, CPI, compute budget",
-              "Anchor: explain a program's account constraints line by line \u2014 https://www.anchor-lang.com/",
-              "Read a real indexer's hot path \u2014 https://github.com/Luganodes/Solana-Indexer"
-            ]
-          },
-          {
-            "name": "Cosmos",
-            "tasks": [
-              "Answer aloud: ABCI, modules, keepers, IBC light clients, validator set changes",
-              "Read one Cosmos SDK module's keeper and narrate it \u2014 https://docs.cosmos.network/",
-              "Contrast with Move's resource model \u2014 https://github.com/MystenLabs/move-book"
-            ]
-          },
-          {
-            "name": "Security",
-            "tasks": [
-              "One Damn Vulnerable DeFi challenge, write the exploit up \u2014 https://www.damnvulnerabledefi.xyz/",
-              "One Solodit finding: restate the bug class in your own words \u2014 https://solodit.cyfrin.io/",
-              "One reentrancy variant from the workshop \u2014 https://github.com/jcsec-security/all-things-reentrancy"
-            ]
-          },
-          {
-            "name": "Move",
-            "tasks": [
-              "Answer aloud: resources vs accounts, abilities (key/store/copy/drop), object ownership on Sui",
-              "Read one module and narrate its ability constraints \u2014 https://github.com/MystenLabs/move-book",
-              "One Move audit finding, restated as a bug class \u2014 https://github.com/0xriazaka/Move-Audit-Resources"
-            ]
-          }
-        ]
       }
     ]
   },
