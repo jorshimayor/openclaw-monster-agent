@@ -251,6 +251,35 @@ Runs daily at 07:15 WAT (`15 6 * * *`) — just after quiet hours end — or on
 `/study` in Telegram. `GET /api/study/preview/<key>` shows what a source would
 hand over next without filing anything.
 
+## The day view
+
+`/day` puts one day on one screen, and keeps two things deliberately apart.
+
+**Blocks** are your timetable template read from the sheet — Book Reading 05:00,
+Deep Block 1 05:45, and so on. They are the *shape* of the day: faint labels down
+the left, read-only. They repeat daily, and turning 21 recurring blocks into 21
+tracked commitments would mean 21 things nagging you every day.
+
+**Items** are real commitments — study picks, the football BUILD, reminders,
+anything you add. Drag one to a slot and it reschedules
+(`POST /api/day/items/{ref}/move`); click it to approve, close with an artifact,
+snooze, or drop. Nothing writes back to the timetable sheet, so the template
+stays intact.
+
+Drag-and-drop is the native HTML5 API, not a library — and the time field on the
+quick-add covers touch devices, where dragging is unreliable.
+
+Two things the real sheet forced:
+
+- **Times parse from ranges and stray seconds.** Cells read `5:45AM - 7:15AM` and
+  `4:00:00 PM - 5:00PM`; without allowing optional seconds the `PM` was never
+  reached and 16:00 parsed as 04:00.
+- **Days are bracketed in local time, not UTC.** An item at 00:30 local belongs to
+  that day even though it is the previous day in UTC.
+
+Rescheduling clears any snooze: dragging something to a new time is an explicit
+decision about when it happens, and a stale snooze would silently suppress it.
+
 ## The grouped reading list
 
 `GET /api/study/resources` returns one view assembled from where the material

@@ -17,6 +17,7 @@ export const metadata: Metadata = {
 
 const NAV_LINKS = [
   { href: "/", label: "Dashboard", icon: "⬢" },
+  { href: "/day", label: "The Day", icon: "◷" },
   { href: "/tasks", label: "Tasks", icon: "▤" },
   { href: "/commitments", label: "Commitments", icon: "✓" },
   { href: "/agents", label: "Agents", icon: "◎" },

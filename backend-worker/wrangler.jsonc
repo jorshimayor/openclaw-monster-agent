@@ -157,6 +157,10 @@
     "QUIET_HOURS_START": "22",
     "QUIET_HOURS_END": "7",
     "USER_TIMEZONE_OFFSET_HOURS": "1",  // WAT — due times in plans are local
+    // Daily-Schedule-Template. Not a secret (it is an id), and the day view
+    // needs it to draw the shape of the day.
+    "SCHEDULE_SHEET_ID": "1Yz9K8xaz417xGatXJUzsG_ze7HG2Q8oetwzUTgeRtuE",
+    "SCHEDULE_SHEET_RANGE": "Daily Schedule Template!A1:L60",
     "BACKEND_CORS_ORIGINS": "[\"http://localhost:3000\",\"http://localhost:8080\",\"https://monster-agent-frontend-2dn.pages.dev\",\"https://2a9f9635.monster-agent-frontend-2dn.pages.dev\"]"
   }
 }

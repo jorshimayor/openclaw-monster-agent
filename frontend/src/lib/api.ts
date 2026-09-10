@@ -46,6 +46,26 @@ export interface ChatAction {
   candidates?: string[];
 }
 
+export interface DayBlock {
+  start: string;
+  label: string;
+  duration: string;
+  raw_time: string;
+}
+
+export interface DayItem extends Commitment {
+  local_time: string;
+}
+
+export interface DayView {
+  date: string;
+  weekday: string;
+  now_local: string;
+  blocks: DayBlock[];
+  block_error: string | null;
+  items: DayItem[];
+}
+
 export interface ResourceItem {
   title: string;
   url: string;
@@ -457,6 +477,43 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw await failure(res, "syncSchedule");
+    return res.json();
+  }
+
+  async getDay(date?: string): Promise<DayView> {
+    const qs = date ? `?date=${encodeURIComponent(date)}` : "";
+    const res = await fetch(`${this.baseUrl}/api/day${qs}`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "getDay");
+    return res.json();
+  }
+
+  async addDayItem(body: {
+    title: string;
+    at_time?: string;
+    date?: string;
+    category?: string;
+  }): Promise<DayItem> {
+    const res = await fetch(`${this.baseUrl}/api/day/items`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "addDayItem");
+    return res.json();
+  }
+
+  async moveDayItem(ref: string, at_time: string, date?: string): Promise<DayItem> {
+    const res = await fetch(`${this.baseUrl}/api/day/items/${ref}/move`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ at_time, date }),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "moveDayItem");
     return res.json();
   }
 
