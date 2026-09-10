@@ -292,6 +292,24 @@ source.
 
 This is what stops two dozen study picks becoming two dozen reminders.
 
+## Chain rotation
+
+Four chains sharing one "web3 study" slot means whichever is listed first is the
+only one ever studied. Themes can therefore carry **variants**, and a variant
+advances per appearance:
+
+- **web3-study** (daily) → EVM → Solana → Cosmos → Infra
+- **chain-interviews** (in the cycle) → EVM → Solana → Cosmos → Security
+
+Each variant's tasks carry the link to work from, so a session never starts with
+"where do I begin".
+
+The index is `ordinal // stride`, where stride is the gap between appearances —
+1 for a daily theme, the cycle length for a cycled one. Indexing on the raw
+ordinal **resonates** whenever the cycle length is a multiple of the variant
+count: an 8-day cycle with 4 variants shows variant 0 on every appearance,
+forever. That is exactly what happened first, and there is a test pinning it.
+
 ## Reminders are capped
 
 A day with twenty approved items used to mean twenty reminders every ten minutes,

@@ -224,3 +224,24 @@ def test_one_cell_section_bands_are_not_entries() -> None:
         ["Nascon Allied", "NASCON", "Consumer Goods", "71.00", "620"],
     ]
     assert [i["title"] for i in parse_resource_rows(rows)] == ["Nascon Allied"]
+
+
+def test_the_curated_chain_resources_are_present_and_linked() -> None:
+    """These are the interview-prep shelf: every entry needs somewhere to go."""
+    config = load_resource_config()
+    curated = config["curated"]
+    keys = {g["key"] for g in curated}
+    assert {"chain-evm", "chain-solana", "chain-cosmos", "chain-infra"} <= keys
+
+    for group in curated:
+        assert group["items"], f"{group['key']} is empty"
+        for item in group["items"]:
+            assert item["title"], f"untitled entry in {group['key']}"
+            assert item["url"].startswith("https://"), f"{item['title']} has no usable link"
+            assert item["note"], f"{item['title']} has no note saying why it matters"
+
+
+def test_curated_links_are_unique() -> None:
+    config = load_resource_config()
+    urls = [i["url"] for g in config["curated"] for i in g["items"]]
+    assert len(urls) == len(set(urls)), "the same link appears twice"

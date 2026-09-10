@@ -23,14 +23,20 @@ def test_the_shipped_rotation_is_valid() -> None:
     assert len(r["cycle"]) >= 5
     keys = [c["theme"] for c in r["cycle"]] + [c["theme"] for c in r["daily"]]
     assert len(keys) == len(set(keys)), "duplicate theme keys"
-    assert all(c.get("tasks") for c in r["cycle"]), "a themed day with no tasks does nothing"
+    # A theme carries either its own tasks or a set of variants that do.
+    assert all(
+        c.get("tasks") or c.get("variants") for c in r["cycle"]
+    ), "a themed day with neither tasks nor variants does nothing"
 
 
 def test_web3_runs_every_single_day() -> None:
     """It is the stated priority — it must never be crowded out by the cycle."""
     for offset in range(21):
         picked = themes_for(date.fromordinal(date(2026, 9, 10).toordinal() + offset))
-        assert {t.theme for t in picked["daily"]} == {"web3-bounty", "web3-study"}
+        # web3-study resolves to a per-chain theme id ("web3-study-evm"), so
+        # match the family rather than the exact name.
+        families = {t.theme.split("-")[0] + "-" + t.theme.split("-")[1] for t in picked["daily"]}
+        assert families == {"web3-bounty", "web3-study"}
 
 
 def test_the_cycle_visits_every_theme_before_repeating() -> None:
@@ -62,7 +68,17 @@ def test_cycle_index_is_stable_and_wraps() -> None:
 
 
 def test_only_todays_themed_sources_are_allowed() -> None:
-    allowed = active_source_keys(date(2026, 9, 11))  # interview prep day
+    from src.agents.rotation import themes_for
+
+    # Find the interview-prep day rather than hardcoding one: adding a theme
+    # shifts every date, and a hardcoded date makes this test brittle.
+    start = date(2026, 9, 11)
+    day = next(
+        date.fromordinal(start.toordinal() + i)
+        for i in range(30)
+        if themes_for(date.fromordinal(start.toordinal() + i))["cycled"].theme == "interview-prep"
+    )
+    allowed = active_source_keys(day)
     assert allowed is not None
     assert "ai-tracker" in allowed
     assert "football-calendar" not in allowed
@@ -231,3 +247,59 @@ def test_every_rotation_theme_reminds() -> None:
 
     r = load_rotation()
     assert all(t.get("remind", True) for t in r["daily"] + r["cycle"])
+
+
+# ── chain variants ───────────────────────────────────────────────────────────
+
+
+def test_web3_study_visits_every_chain() -> None:
+    """Four chains sharing one slot: whichever is listed first would otherwise
+    be the only one ever studied."""
+    from src.agents.rotation import themes_for
+
+    seen = set()
+    for i in range(8):
+        picked = themes_for(date.fromordinal(date(2026, 9, 11).toordinal() + i))
+        study = next(t for t in picked["daily"] if t.theme.startswith("web3-study"))
+        seen.add(study.variant_name)
+    assert seen == {"EVM", "Solana", "Cosmos", "Infra"}
+
+
+def test_a_cycled_theme_advances_its_variant_on_every_appearance() -> None:
+    """The regression this guards: an 8-day cycle with 4 variants indexed on the
+    raw ordinal shows variant 0 on every appearance, forever, because 8 % 4 == 0.
+    """
+    from src.agents.rotation import load_rotation, themes_for
+
+    cycle_len = len(load_rotation()["cycle"])
+    variants = []
+    start = date(2026, 9, 11)
+    for i in range(cycle_len * 4):
+        picked = themes_for(date.fromordinal(start.toordinal() + i))["cycled"]
+        if picked.theme.startswith("chain-interviews"):
+            variants.append(picked.variant_name)
+    assert len(variants) == 4, f"expected four appearances, got {variants}"
+    assert len(set(variants)) == 4, f"the same variant kept coming up: {variants}"
+
+
+def test_a_theme_without_variants_is_untouched() -> None:
+    from src.agents.rotation import Theme
+
+    plain = Theme(theme="video", label="Video", tasks=["Record one short"])
+    assert plain.resolve(date(2026, 9, 11)) is plain
+
+
+def test_every_chain_task_carries_a_resource_link() -> None:
+    """A practice task with no pointer means opening a browser and deciding
+    where to start, which is the friction this is meant to remove."""
+    from src.agents.rotation import load_rotation
+
+    r = load_rotation()
+    themed = [t for t in r["daily"] + r["cycle"] if t.get("variants")]
+    assert themed, "no variant-based themes configured"
+    for theme in themed:
+        for variant in theme["variants"]:
+            assert variant["tasks"], f"{theme['theme']}/{variant['name']} has no tasks"
+            assert any(
+                "http" in task for task in variant["tasks"]
+            ), f"{theme['theme']}/{variant['name']} has no link to work from"

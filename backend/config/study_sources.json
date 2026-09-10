@@ -225,7 +225,138 @@
     "query": "user:jorshimayor fork:false",
     "limit": 40
   },
-  "curated": [],
+  "curated": [
+    {
+      "key": "chain-evm",
+      "group": "EVM \u00b7 study & interview",
+      "items": [
+        {
+          "title": "RareSkills \u2014 Learn Solidity",
+          "url": "https://rareskills.io/learn-solidity",
+          "note": "The rigorous track, in order. The spine of EVM prep."
+        },
+        {
+          "title": "evm.codes",
+          "url": "https://www.evm.codes/",
+          "note": "Every opcode with gas cost. Interviewers ask about these directly."
+        },
+        {
+          "title": "RareSkills \u2014 Proxy patterns",
+          "url": "https://rareskills.io/proxy-patterns",
+          "note": "Storage collisions and delegatecall \u2014 a standard interview trap."
+        },
+        {
+          "title": "Ethernaut",
+          "url": "https://ethernaut.openzeppelin.com/",
+          "note": "One level per session; write up why it broke."
+        },
+        {
+          "title": "Ethereum developer docs",
+          "url": "https://ethereum.org/en/developers/docs/",
+          "note": "Canonical reference when a concept is fuzzy."
+        },
+        {
+          "title": "RareSkills \u2014 Uniswap V3 book",
+          "url": "https://rareskills.io/uniswap-v3-book",
+          "note": "Each chapter is also an article seed."
+        },
+        {
+          "title": "RareSkills \u2014 ZK book",
+          "url": "https://rareskills.io/zk-book",
+          "note": "One chapter a week during a ZK phase."
+        }
+      ]
+    },
+    {
+      "key": "chain-solana",
+      "group": "Solana \u00b7 study & interview",
+      "items": [
+        {
+          "title": "Solana docs",
+          "url": "https://solana.com/docs",
+          "note": "Accounts, rent, CPI, compute budget \u2014 the interview vocabulary."
+        },
+        {
+          "title": "Solana Cookbook",
+          "url": "https://solanacookbook.com/",
+          "note": "Recipes to type out, not copy."
+        },
+        {
+          "title": "Anchor",
+          "url": "https://www.anchor-lang.com/",
+          "note": "Account constraints are what you will be asked to read aloud."
+        },
+        {
+          "title": "solana-developers/program-examples",
+          "url": "https://github.com/solana-developers/program-examples",
+          "note": "Whole programs, short enough to read end to end."
+        },
+        {
+          "title": "RareSkills \u2014 Solana course",
+          "url": "https://rareskills.io/post/solana-developer",
+          "note": "Written for someone who already knows the EVM."
+        }
+      ]
+    },
+    {
+      "key": "chain-cosmos",
+      "group": "Cosmos \u00b7 study & interview",
+      "items": [
+        {
+          "title": "Cosmos SDK docs",
+          "url": "https://docs.cosmos.network/",
+          "note": "Modules and keepers \u2014 narrate one from memory."
+        },
+        {
+          "title": "Cosmos developer tutorials",
+          "url": "https://tutorials.cosmos.network/",
+          "note": "Build a chain locally; nothing else makes ABCI concrete."
+        },
+        {
+          "title": "IBC",
+          "url": "https://ibc.cosmos.network/",
+          "note": "Packet flow and light clients. Expect to draw this."
+        }
+      ]
+    },
+    {
+      "key": "chain-infra",
+      "group": "Infra & RPC \u00b7 Alchemy",
+      "items": [
+        {
+          "title": "Alchemy docs",
+          "url": "https://docs.alchemy.com/",
+          "note": "RPC methods, webhooks, indexing \u2014 infra-role interview ground."
+        },
+        {
+          "title": "Alchemy University",
+          "url": "https://www.alchemy.com/university",
+          "note": "Structured bootcamp; do the exercises, not just the videos."
+        }
+      ]
+    },
+    {
+      "key": "chain-security",
+      "group": "Security practice",
+      "items": [
+        {
+          "title": "Damn Vulnerable DeFi",
+          "url": "https://www.damnvulnerabledefi.xyz/",
+          "note": "Publish every solve \u2014 it doubles as content."
+        },
+        {
+          "title": "Solodit",
+          "url": "https://solodit.cyfrin.io/",
+          "note": "One finding a day; restate the bug class in your own words."
+        },
+        {
+          "title": "Cyfrin Updraft",
+          "url": "https://updraft.cyfrin.io/",
+          "note": "Free structured security curriculum."
+        }
+      ]
+    }
+  ],
   "rotation": {
     "_comment": [
       "Themes are picked per day so no area quietly eats the week.",
@@ -251,10 +382,38 @@
         "theme": "web3-study",
         "label": "Web3 study",
         "due_time": "05:45",
-        "tasks": [
-          "One RareSkills chapter, notes written as you go"
-        ],
-        "remind": true
+        "tasks": [],
+        "remind": true,
+        "variants": [
+          {
+            "name": "EVM",
+            "tasks": [
+              "RareSkills: one chapter, notes written as you go \u2014 https://rareskills.io/learn-solidity",
+              "Read one opcode's semantics on evm.codes and explain gas cost aloud \u2014 https://www.evm.codes/"
+            ]
+          },
+          {
+            "name": "Solana",
+            "tasks": [
+              "One Solana Cookbook recipe, typed out not copied \u2014 https://solanacookbook.com/",
+              "Read one program-examples repo end to end \u2014 https://github.com/solana-developers/program-examples"
+            ]
+          },
+          {
+            "name": "Cosmos",
+            "tasks": [
+              "One Cosmos SDK tutorial module, built locally \u2014 https://tutorials.cosmos.network/",
+              "Explain IBC packet flow from memory, then check \u2014 https://ibc.cosmos.network/"
+            ]
+          },
+          {
+            "name": "Infra",
+            "tasks": [
+              "One Alchemy docs topic: RPC methods, webhooks or indexing \u2014 https://docs.alchemy.com/",
+              "Alchemy University: one lesson, exercises done \u2014 https://www.alchemy.com/university"
+            ]
+          }
+        ]
       }
     ],
     "cycle": [
@@ -331,6 +490,42 @@
           "Follow up on anything sent more than a week ago"
         ],
         "remind": true
+      },
+      {
+        "theme": "chain-interviews",
+        "label": "Chain interview practice",
+        "due_time": "14:30",
+        "remind": true,
+        "variants": [
+          {
+            "name": "EVM",
+            "tasks": [
+              "Answer aloud: storage vs memory vs calldata, delegatecall risks, proxy storage collisions",
+              "One Ethernaut level, then write why it broke \u2014 https://ethernaut.openzeppelin.com/"
+            ]
+          },
+          {
+            "name": "Solana",
+            "tasks": [
+              "Answer aloud: accounts model vs EVM, PDAs, rent, CPI, compute budget",
+              "Anchor: explain a program's account constraints line by line \u2014 https://www.anchor-lang.com/"
+            ]
+          },
+          {
+            "name": "Cosmos",
+            "tasks": [
+              "Answer aloud: ABCI, modules, keepers, IBC light clients, validator set changes",
+              "Read one Cosmos SDK module's keeper and narrate it \u2014 https://docs.cosmos.network/"
+            ]
+          },
+          {
+            "name": "Security",
+            "tasks": [
+              "One Damn Vulnerable DeFi challenge, write the exploit up \u2014 https://www.damnvulnerabledefi.xyz/",
+              "One Solodit finding: restate the bug class in your own words \u2014 https://solodit.cyfrin.io/"
+            ]
+          }
+        ]
       }
     ]
   }

@@ -29,6 +29,7 @@ const AREA_FROM_KEY: { prefix: string; area: string }[] = [
   { prefix: "inv-", area: "Investing" },
   { prefix: "stk-", area: "Stocks" },
   { prefix: "fb-", area: "Football" },
+  { prefix: "chain-", area: "Blockchain" },
   { prefix: "github", area: "Your work" }
 ];
 

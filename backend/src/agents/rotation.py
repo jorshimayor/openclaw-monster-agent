@@ -26,6 +26,26 @@ logger = get_logger("agents.rotation")
 
 
 @dataclass
+class Variant:
+    """One rotation inside a theme.
+
+    Four chains sharing a single "web3 study" slot would mean whichever one is
+    listed first gets studied every day. A variant advances per day, so EVM,
+    Solana, Cosmos and infra each come round in turn.
+    """
+
+    name: str
+    tasks: List[str] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, raw: Dict[str, Any]) -> "Variant":
+        return cls(
+            name=str(raw.get("name") or "variant"),
+            tasks=[str(t) for t in (raw.get("tasks") or [])],
+        )
+
+
+@dataclass
 class Theme:
     theme: str
     label: str
@@ -33,6 +53,8 @@ class Theme:
     tasks: List[str] = field(default_factory=list)
     sources: List[str] = field(default_factory=list)
     remind: bool = True
+    variants: List[Variant] = field(default_factory=list)
+    variant_name: Optional[str] = None
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "Theme":
@@ -43,6 +65,31 @@ class Theme:
             tasks=[str(t) for t in (raw.get("tasks") or [])],
             sources=[str(s) for s in (raw.get("sources") or [])],
             remind=bool(raw.get("remind", True)),
+            variants=[Variant.from_dict(v) for v in (raw.get("variants") or [])],
+        )
+
+    def resolve(self, day: date_cls, stride: int = 1) -> "Theme":
+        """Pick today's variant, folding its tasks and name into the theme.
+
+        `stride` is how many days pass between appearances of this theme — 1 for
+        a daily theme, the cycle length for a cycled one. Indexing on the raw
+        ordinal instead resonates whenever the cycle length is a multiple of the
+        variant count: an 8-day cycle with 4 variants would show variant 0 on
+        every single appearance, forever.
+        """
+        if not self.variants:
+            return self
+        occurrence = day.toordinal() // max(1, stride)
+        picked = self.variants[occurrence % len(self.variants)]
+        return Theme(
+            theme=f"{self.theme}-{picked.name.lower().replace(' ', '-').replace('/', '-')}",
+            label=f"{self.label} · {picked.name}",
+            due_time=self.due_time,
+            tasks=list(picked.tasks) + list(self.tasks),
+            sources=list(self.sources),
+            remind=self.remind,
+            variants=[],
+            variant_name=picked.name,
         )
 
 
@@ -79,15 +126,19 @@ def themes_for(day: Optional[date_cls] = None) -> Dict[str, Any]:
     if not config.get("enabled"):
         return {"date": day.isoformat(), "enabled": False, "daily": [], "cycled": None, "upcoming": []}
 
-    daily = [Theme.from_dict(t) for t in config.get("daily", [])]
+    daily = [Theme.from_dict(t).resolve(day) for t in config.get("daily", [])]
     cycle = [Theme.from_dict(t) for t in config.get("cycle", [])]
-    cycled = cycle[cycle_index(day, len(cycle))] if cycle else None
+    stride = max(1, len(cycle))
+    cycled = cycle[cycle_index(day, len(cycle))].resolve(day, stride) if cycle else None
 
     upcoming = []
     for ahead in range(1, min(4, len(cycle) + 1)):
         nxt = date_cls.fromordinal(day.toordinal() + ahead)
         upcoming.append(
-            {"date": nxt.isoformat(), "theme": cycle[cycle_index(nxt, len(cycle))].label}
+            {
+                "date": nxt.isoformat(),
+                "theme": cycle[cycle_index(nxt, len(cycle))].resolve(nxt, stride).label,
+            }
         )
 
     return {
