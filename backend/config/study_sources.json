@@ -27,7 +27,8 @@
         "should",
         "could"
       ],
-      "enabled": true
+      "enabled": true,
+      "rotation_gated": true
     },
     {
       "key": "sysdesign-interview",
@@ -37,7 +38,8 @@
       "kind": "backlog",
       "daily_count": 1,
       "due_time": "14:30",
-      "enabled": true
+      "enabled": true,
+      "rotation_gated": true
     },
     {
       "key": "sysdesign-roadmap",
@@ -69,7 +71,8 @@
         "BUILD"
       ],
       "due_time": "19:00",
-      "enabled": true
+      "enabled": true,
+      "rotation_gated": true
     },
     {
       "key": "investing-monthly",
@@ -216,5 +219,103 @@
     "query": "user:jorshimayor fork:false",
     "limit": 40
   },
-  "curated": []
+  "curated": [],
+  "rotation": {
+    "_comment": [
+      "Themes are picked per day so no area quietly eats the week.",
+      "'daily' runs every day. One entry from 'cycle' runs alongside it,",
+      "advancing by date so the cycle is stable across restarts and you can",
+      "see what tomorrow holds. Tasks are filed proposed, like everything else.",
+      "'sources' names study_sources keys to run only on that theme's day."
+    ],
+    "enabled": true,
+    "daily": [
+      {
+        "theme": "web3-bounty",
+        "label": "Web3 bounty",
+        "due_time": "07:30",
+        "tasks": [
+          "Work one bounty target for 45 minutes \u2014 scope, then one contract",
+          "Read one Solodit audit report and note the bug class"
+        ]
+      },
+      {
+        "theme": "web3-study",
+        "label": "Web3 study",
+        "due_time": "05:45",
+        "tasks": [
+          "One RareSkills chapter, notes written as you go"
+        ]
+      }
+    ],
+    "cycle": [
+      {
+        "theme": "web2",
+        "label": "Web2 / systems",
+        "due_time": "09:00",
+        "sources": [
+          "sysdesign-interview"
+        ],
+        "tasks": [
+          "One system-design narration, 35 minutes, out loud"
+        ]
+      },
+      {
+        "theme": "football",
+        "label": "Football",
+        "due_time": "19:00",
+        "sources": [
+          "football-calendar"
+        ],
+        "tasks": [
+          "Move this week's BUILD forward by one concrete step"
+        ]
+      },
+      {
+        "theme": "video",
+        "label": "Video",
+        "due_time": "16:00",
+        "tasks": [
+          "Record one short: a thing you learned this week, 90 seconds"
+        ]
+      },
+      {
+        "theme": "articles",
+        "label": "Writing",
+        "due_time": "16:00",
+        "tasks": [
+          "Draft or ship one article section \u2014 no new outlines"
+        ]
+      },
+      {
+        "theme": "code-review",
+        "label": "Code review",
+        "due_time": "14:30",
+        "tasks": [
+          "Review one open PR or reread one of your own modules critically"
+        ]
+      },
+      {
+        "theme": "interview-prep",
+        "label": "Interview prep",
+        "due_time": "14:30",
+        "sources": [
+          "ai-tracker"
+        ],
+        "tasks": [
+          "Two DSA problems, timed, narrated out loud",
+          "Three STAR stories aloud from the bank"
+        ]
+      },
+      {
+        "theme": "job-applications",
+        "label": "Job applications",
+        "due_time": "17:00",
+        "tasks": [
+          "Send two applications with a tailored first line",
+          "Follow up on anything sent more than a week ago"
+        ]
+      }
+    ]
+  }
 }

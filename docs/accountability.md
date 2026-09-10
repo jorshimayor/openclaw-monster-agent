@@ -251,6 +251,37 @@ Runs daily at 07:15 WAT (`15 6 * * *`) — just after quiet hours end — or on
 `/study` in Telegram. `GET /api/study/preview/<key>` shows what a source would
 hand over next without filing anything.
 
+## Theme rotation
+
+Left alone, whichever area has the most sheet rows eats the week: the AI tracker
+has 48 topics and the football calendar has one BUILD, so the tracker would
+dominate every day while video, writing, code review and job applications never
+appeared.
+
+Each day gets the **daily** themes — Web3 bounty and Web3 study, the stated
+priority — plus exactly **one** theme from the cycle:
+
+`web2 → football → video → articles → code review → interview prep → job applications`
+
+The position comes from `date.toordinal() % len(cycle)`, not a stored counter, so
+the rotation survives restarts, never drifts, and tomorrow is predictable. Ordinals
+rather than day-of-year matter: day-of-year repeats or skips a theme every January.
+
+Study sources marked `rotation_gated` run only on their theme's day. Themes with
+no sheet behind them (video, writing, applications) carry `tasks` in the config
+and are filed directly, keyed `[theme:<name>@<date>#<n>]` so a re-run in the same
+day is a no-op.
+
+## Reminders are capped
+
+A day with twenty approved items used to mean twenty reminders every ten minutes,
+which trains you to ignore all of them. One round now sends at most
+`NAG_MAX_PER_ROUND` (default **2**), longest-ignored first, and says how many are
+held back so a quiet queue is never mistaken for an empty one.
+
+Being held back is not being reminded: `nag_count` is untouched, so nothing
+escalates without actually having been sent.
+
 ## The day view
 
 `/day` puts one day on one screen, and keeps two things deliberately apart.
@@ -259,6 +290,11 @@ hand over next without filing anything.
 Deep Block 1 05:45, and so on. They are the *shape* of the day: faint labels down
 the left, read-only. They repeat daily, and turning 21 recurring blocks into 21
 tracked commitments would mean 21 things nagging you every day.
+
+Blocks can be **ticked off per day**. The template cell is shared across all
+seven weekdays, so completion is recorded in `day_block_state` keyed by
+(day, slot, label) rather than written back to the sheet — Thursday's tick would
+otherwise mark every day.
 
 **Items** are real commitments — study picks, the football BUILD, reminders,
 anything you add. Drag one to a slot and it reschedules

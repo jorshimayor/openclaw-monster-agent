@@ -51,6 +51,13 @@ export interface DayBlock {
   label: string;
   duration: string;
   raw_time: string;
+  done: boolean;
+}
+
+export interface DayThemes {
+  daily: string[];
+  cycled: string | null;
+  upcoming: { date: string; theme: string }[];
 }
 
 export interface DayItem extends Commitment {
@@ -64,6 +71,7 @@ export interface DayView {
   blocks: DayBlock[];
   block_error: string | null;
   items: DayItem[];
+  themes: DayThemes;
 }
 
 export interface ResourceItem {
@@ -503,6 +511,22 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw await failure(res, "addDayItem");
+    return res.json();
+  }
+
+  async setBlockDone(
+    slot: string,
+    label: string,
+    done: boolean,
+    date?: string
+  ): Promise<{ done: boolean }> {
+    const res = await fetch(`${this.baseUrl}/api/day/blocks/done`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ slot, label, done, date }),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "setBlockDone");
     return res.json();
   }
 

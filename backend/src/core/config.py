@@ -172,6 +172,13 @@ class Settings(BaseSettings):
     # Quiet hours, in the user's LOCAL clock (see user_timezone_offset_hours).
     # Reminders do not fire in this window and do not advance the escalation
     # ladder — you wake up to reminder #4, not reminder #40.
+    # How many reminders one round may send. A day with twenty approved items
+    # otherwise produces twenty reminders every ten minutes, which trains you to
+    # ignore all of them. The rest are counted and mentioned, not sent.
+    nag_max_per_round: int = Field(
+        default=2, ge=1, le=50,
+        validation_alias=AliasChoices("nag_max_per_round", "NAG_MAX_PER_ROUND"),
+    )
     quiet_hours_enabled: bool = Field(
         default=True, validation_alias=AliasChoices("quiet_hours_enabled", "QUIET_HOURS_ENABLED")
     )

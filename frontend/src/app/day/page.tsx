@@ -147,6 +147,27 @@ export default function DayPage() {
     }
   };
 
+  const toggleBlock = async (block: DayBlock) => {
+    if (!day) return;
+    setBusy(true);
+    // Optimistic: ticking a block is the fastest interaction on the page and
+    // should not wait on a round trip.
+    setDay({
+      ...day,
+      blocks: day.blocks.map((b) =>
+        b.start === block.start && b.label === block.label ? { ...b, done: !b.done } : b
+      )
+    });
+    try {
+      await api.setBlockDone(block.start, block.label, !block.done, day.date);
+    } catch (e) {
+      setError((e as Error).message);
+      await load(day.date);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !day) return;
@@ -231,6 +252,21 @@ export default function DayPage() {
           Your timetable shape isn&apos;t showing: {day.block_error}. Items still work.
         </div>
       )}
+      {day?.themes?.cycled && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-matrix/25 rounded px-4 py-2.5 text-xs">
+          <span className="text-matrix-dim tracking-widest text-[10px]">TODAY</span>
+          {day.themes.daily.map((t) => (
+            <Badge key={t} variant="success">
+              {t.toUpperCase()} · DAILY
+            </Badge>
+          ))}
+          <Badge variant="default">{day.themes.cycled.toUpperCase()}</Badge>
+          <span className="text-[10px] text-matrix-dim tracking-wider ml-auto">
+            next: {day.themes.upcoming.map((u) => u.theme).join(" → ")}
+          </span>
+        </div>
+      )}
+
       {proposed.length > 0 && (
         <div className="flex items-center justify-between gap-3 flex-wrap border border-warning/40 bg-warning/5 rounded px-4 py-2.5">
           <span className="text-xs">
@@ -317,14 +353,29 @@ export default function DayPage() {
                     {isNow && <div className="text-[9px] text-matrix">now</div>}
                   </div>
 
-                  <div className="w-44 shrink-0 pt-1">
+                  <div className="w-44 shrink-0 pt-1 space-y-0.5">
                     {row.blocks.map((b, i) => (
-                      <div key={i} className="text-[11px] text-matrix-dim/80 leading-tight">
-                        {b.label}
-                        {b.duration && (
-                          <span className="text-matrix-dim/50"> · {b.duration}</span>
+                      <button
+                        key={i}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => toggleBlock(b)}
+                        title={b.done ? "Done — click to undo" : "Mark this block done"}
+                        className={cn(
+                          "flex w-full items-start gap-1.5 text-left text-[11px] leading-tight transition-colors",
+                          b.done
+                            ? "text-matrix-dim/40 line-through"
+                            : "text-matrix-dim/80 hover:text-matrix"
                         )}
-                      </div>
+                      >
+                        <span className="shrink-0 mt-[1px]">{b.done ? "☑" : "☐"}</span>
+                        <span>
+                          {b.label}
+                          {b.duration && (
+                            <span className="text-matrix-dim/50"> · {b.duration}</span>
+                          )}
+                        </span>
+                      </button>
                     ))}
                   </div>
 
@@ -448,9 +499,10 @@ export default function DayPage() {
       </Card>
 
       <p className="text-[10px] text-matrix-dim tracking-wider">
-        Faint labels are your timetable template — the shape of the day, read from
-        the sheet and not tracked. Cards are commitments: drag one to move it, click
-        to close it. Reminders stay quiet 22:00–07:00.
+        Tick the faint labels to mark a timetable block done — that is recorded per
+        day, never written back to the shared sheet. Cards are commitments: drag one
+        to move it, click to close it with an artifact. Reminders are capped at two
+        per round and stay quiet 22:00–07:00.
       </p>
     </div>
   );

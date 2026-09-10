@@ -56,6 +56,13 @@ class AddItemRequest(BaseModel):
     approved: bool = True  # things you type yourself need no approval step
 
 
+class BlockDoneRequest(BaseModel):
+    slot: str
+    label: str
+    done: bool = True
+    date: Optional[str] = None
+
+
 class MoveItemRequest(BaseModel):
     at_time: str = Field(..., description="HH:MM in your local clock")
     date: Optional[str] = None
@@ -148,7 +155,14 @@ async def get_day(date: Optional[str] = None) -> Dict[str, Any]:
     except ValueError:
         raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
 
+    from ...agents.rotation import themes_for
+    from ...core import day_block_repo
+
     blocks, block_error = await _blocks_for(day)
+    done = {(d["slot"], d["label"]) for d in await day_block_repo.done_slots(day)}
+    for b in blocks:
+        b["done"] = (b["start"], b["label"]) in done
+
     start_utc, end_utc = _local_bounds(day)
 
     items: List[Dict[str, Any]] = []
@@ -165,6 +179,7 @@ async def get_day(date: Optional[str] = None) -> Dict[str, Any]:
         items.append(entry)
     items.sort(key=lambda i: i["local_time"])
 
+    picked = themes_for(day)
     return {
         "date": day.isoformat(),
         "weekday": day.strftime("%A"),
@@ -173,6 +188,11 @@ async def get_day(date: Optional[str] = None) -> Dict[str, Any]:
         "blocks": blocks,
         "block_error": block_error,
         "items": items,
+        "themes": {
+            "daily": [t.label for t in picked["daily"]],
+            "cycled": picked["cycled"].label if picked["cycled"] else None,
+            "upcoming": picked["upcoming"],
+        },
     }
 
 
@@ -205,6 +225,23 @@ async def add_item(body: AddItemRequest) -> Dict[str, Any]:
     result = repo.to_dict(row)
     result["local_time"] = hhmm
     return result
+
+
+@router.post("/blocks/done")
+async def set_block_done(body: BlockDoneRequest) -> Dict[str, Any]:
+    """Tick a timetable block off for one day.
+
+    The template cell is shared across all seven weekdays, so this is recorded
+    separately rather than written back to the sheet.
+    """
+    from ...core import day_block_repo
+
+    try:
+        day = date_cls.fromisoformat(body.date) if body.date else _local_now().date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+    await day_block_repo.set_done(day, body.slot, body.label, body.done)
+    return {"date": day.isoformat(), "slot": body.slot, "label": body.label, "done": body.done}
 
 
 @router.post("/items/{ref}/move")

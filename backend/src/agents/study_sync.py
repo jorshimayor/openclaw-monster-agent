@@ -78,6 +78,8 @@ class StudySource:
     priority_order: List[str] = field(default_factory=list)
     # `routine` only: how often the whole list comes round again.
     cadence: str = "monthly"
+    # Runs only on its rotation theme's day (see agents/rotation.py).
+    rotation_gated: bool = False
     enabled: bool = True
 
     @classmethod
@@ -93,6 +95,7 @@ class StudySource:
             item_columns=[str(c) for c in (raw.get("item_columns") or [])],
             priority_order=[str(p).lower() for p in (raw.get("priority_order") or [])],
             cadence=str(raw.get("cadence") or "monthly").lower(),
+            rotation_gated=bool(raw.get("rotation_gated", False)),
             enabled=bool(raw.get("enabled", True)),
         )
 
@@ -482,11 +485,79 @@ class StudySync:
             "commitments": filed,
         }
 
+    async def _rotation_tasks(self) -> List[Dict[str, Any]]:
+        """File the day's themed tasks — the ones with no sheet behind them.
+
+        Keyed by theme and date so a re-run in the same day is a no-op, and
+        tomorrow's set is untouched by today's.
+        """
+        from .rotation import themes_for
+
+        picked = themes_for()
+        if not picked["enabled"]:
+            return []
+        day = picked["date"]
+        require_approval = get_settings().commitment_require_approval
+
+        existing = {
+            (c.detail or "").split("[theme:", 1)[-1].split("]", 1)[0]
+            for c in await repo.list_all(limit=500)
+            if "[theme:" in (c.detail or "")
+        }
+
+        out: List[Dict[str, Any]] = []
+        for theme in list(picked["daily"]) + ([picked["cycled"]] if picked["cycled"] else []):
+            filed: List[Dict[str, Any]] = []
+            for idx, task in enumerate(theme.tasks):
+                marker = f"{theme.theme}@{day}#{idx}"
+                if marker in existing:
+                    continue
+                try:
+                    row = await repo.create(
+                        title=task,
+                        due_at=resolve_due("", "", theme.due_time),
+                        detail=f"{theme.label} [theme:{marker}]",
+                        source=theme.theme,
+                        status=(
+                            CommitmentStatus.PROPOSED.value
+                            if require_approval
+                            else CommitmentStatus.OPEN.value
+                        ),
+                    )
+                    if row is not None:
+                        filed.append(repo.to_dict(row))
+                except Exception as exc:
+                    self._log.warning("rotation_file_failed", theme=theme.theme, error=str(exc))
+            if filed:
+                out.append(
+                    {"key": theme.theme, "name": theme.label, "ok": True,
+                     "filed": len(filed), "commitments": filed}
+                )
+        return out
+
     async def sync_all(self) -> Dict[str, Any]:
+        from .rotation import active_source_keys, themes_for
+
         sources = load_sources()
         if not sources:
             return {"ok": False, "error": "no enabled study sources configured", "results": []}
+
+        # Themed sources only run on their theme's day, so the biggest sheet
+        # cannot quietly become every day's work.
+        allowed = active_source_keys()
+        skipped_by_rotation: List[str] = []
+        if allowed is not None:
+            runnable = []
+            for src in sources:
+                gated = getattr(src, "rotation_gated", False)
+                if gated and src.key not in allowed:
+                    skipped_by_rotation.append(src.key)
+                else:
+                    runnable.append(src)
+            sources = runnable
+
         results = [await self.sync_source(s) for s in sources]
+        results.extend(await self._rotation_tasks())
         total = sum(r.get("filed", 0) for r in results)
         logger.info(
             "study_sync_done",
@@ -494,11 +565,17 @@ class StudySync:
             filed=total,
             failed=[r["key"] for r in results if not r.get("ok")],
         )
+        picked = themes_for()
         return {
             "ok": True,
             "sources": len(sources),
             "filed": total,
             "results": results,
+            "themes": {
+                "daily": [t.label for t in picked["daily"]],
+                "cycled": picked["cycled"].label if picked["cycled"] else None,
+                "skipped_by_rotation": skipped_by_rotation,
+            },
             "at": datetime.now(timezone.utc).isoformat(),
         }
 

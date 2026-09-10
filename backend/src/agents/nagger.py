@@ -48,6 +48,12 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _aware(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is None:
+        return None
+    return dt if dt.tzinfo is not None else dt.replace(tzinfo=timezone.utc)
+
+
 def ladder_for(nag_count: int) -> Dict[str, Any]:
     """Highest rung whose miss-count floor the commitment has reached."""
     rung_idx = 0
@@ -111,7 +117,9 @@ def _console_url() -> str:
     return get_settings().public_app_url.rstrip("/")
 
 
-def compose_nag(c: CommitmentDB, nag_count: int, tier: str) -> str:
+def compose_nag(
+    c: CommitmentDB, nag_count: int, tier: str, also_waiting: int = 0
+) -> str:
     """Telegram HTML. Tone escalates with the miss count — deliberately."""
     short = str(c.id)[:8]
     overdue = _human_overdue(
@@ -156,8 +164,15 @@ def compose_nag(c: CommitmentDB, nag_count: int, tier: str) -> str:
         f"  <code>/done {short} &lt;paste 40+ chars of what you wrote&gt;</code>",
         "",
         f"Other options: <code>/snooze {short} 30</code> · <code>/drop {short}</code>",
-        f'<a href="{_console_url()}/commitments">open the console</a>',
     ]
+    if also_waiting:
+        # Say what is being held back, so a quiet queue is never mistaken for
+        # an empty one.
+        lines.append(
+            f"<i>{also_waiting} more due — held back so this isn't a wall of "
+            f"messages. <code>/todo</code> for the list.</i>"
+        )
+    lines.append(f'<a href="{_console_url()}/day">open the day</a>')
     return "\n".join(lines)
 
 
@@ -232,9 +247,9 @@ class NagEngine:
 
     # ── the loop ──────────────────────────────────────────────────────────
 
-    async def nag_one(self, c: CommitmentDB) -> Dict[str, Any]:
+    async def nag_one(self, c: CommitmentDB, also_waiting: int = 0) -> Dict[str, Any]:
         rung = ladder_for(c.nag_count or 0)
-        text = compose_nag(c, c.nag_count or 0, rung["tier"])
+        text = compose_nag(c, c.nag_count or 0, rung["tier"], also_waiting=also_waiting)
         res = await self._telegram(text, pin=rung["tier"] == "P0", silent=False)
         if rung["slack"]:
             await self._slack(compose_nag_slack(c, c.nag_count or 0))
@@ -280,10 +295,17 @@ class NagEngine:
         except Exception as exc:
             self._log.warning("nag_tick_query_failed", error=str(exc))
             return {"enabled": True, "sent": 0, "error": str(exc)}
+        # Longest-ignored first, then only a handful. Twenty reminders every ten
+        # minutes is indistinguishable from noise; the ladder still escalates
+        # per item, so nothing is forgotten — it just waits its turn.
+        due.sort(key=lambda c: _aware(c.due_at) or _now())
+        cap = max(1, get_settings().nag_max_per_round)
+        sending, holding = due[:cap], max(0, len(due) - cap)
+
         results: List[Dict[str, Any]] = []
-        for c in due:
+        for c in sending:
             try:
-                results.append(await self.nag_one(c))
+                results.append(await self.nag_one(c, also_waiting=holding))
             except Exception as exc:
                 self._log.warning("nag_send_failed", commitment=str(c.id)[:8], error=str(exc))
         self._last_tick_sent = len(results)
@@ -291,6 +313,7 @@ class NagEngine:
             "enabled": True,
             "checked": len(due),
             "sent": len(results),
+            "held_back": holding,
             "results": results,
             "at": self._last_tick.isoformat(),
         }
