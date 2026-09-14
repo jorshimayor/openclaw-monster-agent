@@ -20,7 +20,8 @@ from .rules import (
     LIST_BUDGET_PER_1000_WORDS, MARKETING_WORDS, MAX_PARAGRAPH_SENTENCES,
     MAX_SENTENCE_WORDS, MEASUREMENT_PATTERN, MIN_LIST_ITEM_WORDS,
     PERFORMANCE_CLAIMS, PREREQUISITE_TELLS, Profile, ROADMAP_TELLS,
-    RULES_BY_KEY, SHORT_FORM_ADVISORY, SUPERLATIVES, TECHNICAL_ADVISORY,
+    EXHAUSTIVE_CLAIM, RULES_BY_KEY, SHORT_FORM_ADVISORY, SUPERLATIVES,
+    TECHNICAL_ADVISORY, TOPIC_ANNOUNCEMENTS, _NUMBER_WORDS,
     TECHNICAL_DEPTH_WORDS, VAGUE_QUANTIFIERS, WORDS_PER_CODE_BLOCK, Severity,
     rules_for,
 )
@@ -382,9 +383,48 @@ _STAKE_DISCLOSED = re.compile(
 )
 
 
+_EXHAUSTIVE = re.compile(EXHAUSTIVE_CLAIM, re.I)
+_ENUMERATED = re.compile(r"^\s*(?:\d+[.)]|[-*+])\s+", re.M)
+
+
 def _check_short_form(text: str) -> List[Finding]:
     """The @Jeyffre rules: the number carries the claim."""
     out: List[Finding] = []
+    body = _strip_code(text)
+
+    # A stated count is a promise the post is then read for.
+    m = _EXHAUSTIVE.search(body)
+    if m:
+        raw = m.group(1).lower()
+        promised = _NUMBER_WORDS.get(raw, int(raw) if raw.isdigit() else 0)
+        delivered = len(_ENUMERATED.findall(body))
+        if 0 < promised <= 10 and delivered < promised:
+            r = RULES_BY_KEY["unfilled_count"]
+            out.append(Finding(
+                r.key, r.severity, r.title, r.why, r.source,
+                body[:m.start()].count("\n") + 1, m.group(0),
+                f"Promised {promised}, enumerated {delivered}. Deliver all "
+                f"{promised} or drop the count.",
+            ))
+
+    # He uses superlatives; he does not leave them standing alone.
+    sup_rule = RULES_BY_KEY["unbacked_superlative"]
+    for line_no, para in _paragraphs(text):
+        lowered = para.lower()
+        hit = next((p for p in SUPERLATIVES if p in lowered), None)
+        if not hit:
+            continue
+        backed = re.search(
+            r"\b(because|since|which is why|that is why|this is why|so that|"
+            r"the reason|what makes|as shown|measured)\b", lowered
+        ) or _MEASURED.search(para)
+        if not backed:
+            out.append(Finding(
+                sup_rule.key, sup_rule.severity, sup_rule.title, sup_rule.why,
+                sup_rule.source, line_no, para[:140],
+                "Say what makes it true in the next sentence, as he does, or cut it.",
+            ))
+
     out += _find_phrases(
         text, VAGUE_QUANTIFIERS, "vague_quantifier",
         "Replace it with the figure. “5 minutes” beats “incredibly fast”.",
@@ -392,20 +432,14 @@ def _check_short_form(text: str) -> List[Finding]:
 
     lines = [l for l in _strip_code(text).splitlines() if l.strip()]
     if lines:
-        opener = lines[0]
-        has_number = re.search(r"\d", opener)
-        has_question = "?" in opener
-        has_named = re.search(
-            r"(@\w+|[A-Z][a-zA-Z]+(?:'s)?\s+"
-            r"(?:paper|post|thread|claim|article|talk|report|docs?))",
-            opener,
-        )
-        if not (has_number or has_question or has_named):
-            r = RULES_BY_KEY["soft_opener"]
+        opener = lines[0].lower()
+        hit = next((p for p in TOPIC_ANNOUNCEMENTS if p in opener), None)
+        if hit:
+            r = RULES_BY_KEY["topic_opener"]
             out.append(Finding(
-                r.key, r.severity, r.title, r.why, r.source, 1, opener.strip()[:140],
-                "Name the thing and quote its number, or ask the question the "
-                "post answers.",
+                r.key, r.severity, r.title, r.why, r.source, 1,
+                lines[0].strip()[:140],
+                "Open on the claim itself — the thing someone could disagree with.",
             ))
 
     body = _strip_code(text)

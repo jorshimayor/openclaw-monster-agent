@@ -292,19 +292,60 @@ compressed into posts.
 
 Select **SHORT FORM** to check against it.
 
-### The opener carries a figure
+### The opener is a claim, not a topic
 
-His most-read thread opens:
+Every opener is a proposition that could be wrong:
 
-> "I read Google's paper about their quantum computer so you don't have to.
-> They claim to have ran a quantum computation in 5 minutes that would take a
-> normal computer 10^25 years. But what was that computation? Does it live up to
-> the hype? I will break it down."
+> "Your ability to grind is not what separates you from your peers."
+>
+> "If you can't explain things well, people are just going to assume you are a
+> slop cannon and you don't understand how your own projects work."
+>
+> "I read Google's paper about their quantum computer so you don't have to."
 
-Four moves in four lines: **service framing**, the **claim with its numbers**, the
-**question the thread exists to answer**, and the **format signal**. The linter
-requires an opener to carry at least one of a figure, a named subject, or a
-question.
+What fails is an opener with no truth value — "Some thoughts on X", "Let's talk
+about X", "A thread about X". There is nothing there to agree or disagree with,
+and so no reason to read on.
+
+An earlier version of this rule demanded a **figure** in the first line. It was
+derived from one thread and a wider sample refuted it: four of his six openers
+carry no number at all. The rule is now about propositions, and his own openers
+are in the test suite precisely so an overfitted rule fails loudly next time.
+
+### Wrong answer first, then refine
+
+His most distinctive device:
+
+> "Your ability to grind is **not** what separates you from your peers. In India,
+> Singapore, and China, grinding is part of the culture. Grinding is **necessary
+> but not sufficient**. Your ability to grind *with uncertain and delayed
+> payoffs* is what separates you."
+
+State the belief the reader probably holds, name the specific counter-evidence
+(three countries, not "many places"), then give the refinement. The reader arrives
+at the answer having watched the wrong one fail.
+
+Note the vocabulary: **necessary but not sufficient**, **prerequisites**, **phase
+transition**. Exact logical terms used exactly.
+
+### Exhaustive enumeration
+
+> "If you are not learning as fast as you want to, there are **only three
+> possible reasons**: 1) You lack the prerequisites… 2) You lack good…"
+
+A stated count is a promise. The linter flags a count the post does not deliver,
+because "only three reasons" followed by two reads as an unfinished draft.
+
+### Superlatives are allowed — backed
+
+He writes "RareSkills has the **best** writers and the industry's **best** writing
+process", which your house style bans outright. The next line is why it survives:
+
+> "People understand our articles exactly the way we intend them to."
+
+The claim is not the problem; the bare claim is. In this profile the blanket
+superlative ban is replaced by `unbacked_superlative`: a superlative with no
+reason beside it.
 
 ### Vague words are the enemy, explicitly
 
@@ -349,11 +390,17 @@ exactly that.
 
 ## What is still missing
 
-Only the parts of his short-form work behind X's login wall. Unauthenticated
-requests return HTTP 402 and the browser is cut off after roughly six posts, so
-this profile rests on those six openers and his bio rather than a broad sample.
+The sample is now thirteen posts, which is enough for the rules above — every one
+of them recurs across several. Two gaps remain.
 
-It is enough for the rules above, all of which recur across every visible post.
-It is not enough to say anything about how he structures the *middle* of a long
-thread, or how he closes one. If you want that, paste three or four threads you
-rate into a Doc and the same extraction can run over them.
+**The close.** Most posts in the sample are truncated by "Show more", so how he
+lands a long thread is still unknown. The rules say nothing about it.
+
+**Register range.** The sample is opinion and argument. His technical threads
+almost certainly behave differently, closer to the RareSkills article method, and
+nothing here distinguishes the two.
+
+If either matters, paste the full text of three or four threads you rate and the
+same extraction can run over them. The method is the one used here: read
+structure, never style; check every derived rule against the source writing; and
+throw the rule away when the writing contradicts it.

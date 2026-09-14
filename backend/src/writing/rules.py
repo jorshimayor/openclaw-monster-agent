@@ -162,10 +162,33 @@ VAGUE_QUANTIFIERS = [
     "way better", "way faster", "so much better", "10x better",
 ]
 
-# What a strong opener contains: a figure, a named subject, or the question the
-# post exists to answer.
-_OPENER_NUMBER = r"\d"
-_OPENER_NAMED = r"(@\w+|[A-Z][a-zA-Z]+(?:'s)?\s+(?:paper|post|thread|claim|article|talk|report))"
+# "there are only three possible reasons: 1) … 2) …" — he states a count and
+# then delivers it. A stated count that the post does not fill is the one
+# mechanical failure this structure is prone to.
+EXHAUSTIVE_CLAIM = (
+    r"\b(?:only\s+)?(one|two|three|four|five|six|seven|\d+)\s+"
+    r"(?:possible\s+|main\s+|key\s+)?"
+    r"(reasons?|ways?|options?|things?|causes?|factors?|steps?|kinds?|types?)\b"
+)
+_NUMBER_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4,
+    "five": 5, "six": 6, "seven": 7,
+}
+
+# Openers that announce a topic instead of making a claim.
+#
+# An earlier version of this rule demanded a figure in the first line, derived
+# from a single thread. A wider sample refutes it: "Your ability to grind is not
+# what separates you from your peers", "If you can't explain things well, people
+# are going to assume you are a slop cannon" — no numbers, and both are strong
+# openers. What they share is a proposition that could be wrong. What fails is
+# an opener with no truth value at all.
+TOPIC_ANNOUNCEMENTS = [
+    "some thoughts on", "a few thoughts on", "here are my thoughts",
+    "let's talk about", "lets talk about", "let's discuss", "a thread about",
+    "a thread on", "i wanted to share", "here's what i learned about",
+    "quick thread on", "in this thread", "today i want to talk",
+]
 
 # ── thresholds ───────────────────────────────────────────────────────────────
 
@@ -254,12 +277,21 @@ RULES: List[Rule] = [
          "His whole objection to a claim is that a vague word “glosses over a "
          "lot of physical constraints”. Put the figure in, or drop the claim.",
          "@Jeyffre — the number carries the claim", Profile.SHORT_FORM),
-    Rule("soft_opener", Severity.WARN, "Opener carries nothing concrete",
-         "His openers name a subject and quote a figure: “They claim to have ran "
-         "a quantum computation in 5 minutes that would take a normal computer "
-         "10^25 years.” An opener with no number, no named subject and no "
-         "question has not earned the scroll.",
-         "@Jeyffre — concrete first line", Profile.SHORT_FORM),
+    Rule("topic_opener", Severity.WARN, "Opener announces a topic instead of making a claim",
+         "Every one of his openers is a proposition that could be wrong — "
+         "“Your ability to grind is not what separates you from your peers.” "
+         "“Some thoughts on X” has no truth value and nothing to disagree with.",
+         "@Jeyffre — the first line is a claim", Profile.SHORT_FORM),
+    Rule("unfilled_count", Severity.WARN, "Stated a count, did not deliver it",
+         "“there are only three possible reasons” is a promise, and the post is "
+         "then read for three. Delivering two reads as a draft.",
+         "@Jeyffre — exhaustive enumeration", Profile.SHORT_FORM),
+    Rule("unbacked_superlative", Severity.NOTE, "Superlative with nothing behind it",
+         "He does write “the best writers” — and the very next line says what "
+         "makes it true: “People understand our articles exactly the way we "
+         "intend them to.” The claim is fine; the unbacked claim is not.",
+         "@Jeyffre — a strong claim is followed by its reason",
+         Profile.SHORT_FORM),
     Rule("undisclosed_stake", Severity.WARN, "Promotes something without disclosing the stake",
          "He states it outright — “I'm the founder of @RareSkills_io” — which is "
          "what lets him recommend it at all.",
@@ -285,6 +317,10 @@ PROFILE_EXEMPT = {
         # "I read Google's paper so you don't have to" — first person is the
         # form, and the ban on it is an article rule about false authority.
         "first_person",
+        # He writes "RareSkills has the best writers" and then immediately says
+        # what makes it true. The blanket warning is replaced by
+        # `unbacked_superlative`, which is the claim he actually avoids.
+        "superlative",
         # "I will break it down.🧵" is his actual practice. My earlier guidance
         # said never announce a thread; the exemplar says otherwise, and the
         # exemplar wins.
@@ -306,6 +342,15 @@ def rules_for(profile: str) -> List[Rule]:
 
 # Judgements a linter cannot make. These are the review questions, not checks.
 SHORT_FORM_ADVISORY: List[str] = [
+    "Does the post state the wrong answer first and then refine it? "
+    "(“Your ability to grind is not what separates you… grinding is necessary "
+    "but not sufficient… grinding with uncertain and delayed payoffs is.”)",
+    "Are counter-examples named — “In India, Singapore, and China” — rather "
+    "than gestured at?",
+    "If you claim a list is exhaustive, is it? And is each item genuinely "
+    "distinct from the others?",
+    "Is the logical vocabulary exact — necessary, sufficient, prerequisite — "
+    "or approximate?",
     "Does the first line name a specific claim, with its number, rather than a "
     "topic?",
     "Is the question the post exists to answer actually asked, or only implied?",

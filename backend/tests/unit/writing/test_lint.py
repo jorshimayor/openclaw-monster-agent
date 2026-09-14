@@ -295,28 +295,81 @@ def test_a_size_word_doing_a_number_s_job_is_blocked(text: str) -> None:
     assert any(f["rule"] == "vague_quantifier" for f in result["findings"])
 
 
-def test_an_opener_with_no_number_question_or_named_subject_is_flagged() -> None:
-    assert any(
-        f["rule"] == "soft_opener"
-        for f in check("Some thoughts on developer productivity today.",
-                       profile=Profile.SHORT_FORM)["findings"]
-    )
-
-
 @pytest.mark.parametrize(
     "opener",
     [
-        "They claim 5 minutes against 10^25 years.",   # a number
-        "But does it live up to the hype?",            # a question
-        "I read Google's paper so you don't have to.", # a named subject
-        "@RareSkills_io published the benchmark.",     # a handle
+        "Some thoughts on developer productivity today.",
+        "Let's talk about gas optimization.",
+        "A thread about Solidity storage.",
     ],
 )
-def test_a_concrete_opener_passes(opener: str) -> None:
-    assert not any(
-        f["rule"] == "soft_opener"
+def test_an_opener_that_announces_a_topic_is_flagged(opener: str) -> None:
+    assert any(
+        f["rule"] == "topic_opener"
         for f in check(opener, profile=Profile.SHORT_FORM)["findings"]
     )
+
+
+# Verbatim openers from his account. A rule that fires on these is overfitted,
+# which is exactly what happened to the first version of this check: it demanded
+# a figure in the first line, derived from a single thread, and would have failed
+# four of the six below.
+@pytest.mark.parametrize(
+    "opener",
+    [
+        "If you can't explain things well, people are just going to assume you are a slop cannon.",
+        "Your ability to grind is not what separates you from your peers.",
+        "If you learn by reading or watching videos, the total time spent studying will be higher.",
+        "I read Google's paper about their quantum computer so you don't have to.",
+        "There are only three possible reasons:\n\n1) a\n\n2) b\n\n3) c",
+    ],
+)
+def test_his_real_openers_all_pass(opener: str) -> None:
+    result = check(opener, profile=Profile.SHORT_FORM)
+    assert result["findings"] == [], [f["rule"] for f in result["findings"]]
+
+
+def test_a_stated_count_must_be_delivered() -> None:
+    """“there are only three possible reasons” is a promise the post is read for."""
+    short = "There are only three possible reasons:\n\n1) Prerequisites.\n\n2) Instruction."
+    assert any(
+        f["rule"] == "unfilled_count"
+        for f in check(short, profile=Profile.SHORT_FORM)["findings"]
+    )
+
+    full = short + "\n\n3) Time."
+    assert not any(
+        f["rule"] == "unfilled_count"
+        for f in check(full, profile=Profile.SHORT_FORM)["findings"]
+    )
+
+
+def test_a_superlative_is_fine_when_the_next_line_says_why() -> None:
+    """He writes "RareSkills has the best writers" — and immediately says what
+    makes it true. The claim is not the problem; the bare claim is."""
+    backed = (
+        "This is why RareSkills has the best writers.\n\n"
+        "People understand our articles exactly the way we intend them to."
+    )
+    assert not any(
+        f["rule"] == "unbacked_superlative"
+        for f in check(backed, profile=Profile.SHORT_FORM)["findings"]
+    )
+
+    bare = "RareSkills has the best writers in the industry."
+    assert any(
+        f["rule"] == "unbacked_superlative"
+        for f in check(bare, profile=Profile.SHORT_FORM)["findings"]
+    )
+
+
+def test_the_blanket_superlative_warning_does_not_apply_to_short_writing() -> None:
+    """The house rule bans them outright. He uses them and backs them, so the
+    blanket rule is replaced rather than inherited."""
+    bare = "RareSkills has the best writers in the industry."
+    fired = {f["rule"] for f in check(bare, profile=Profile.SHORT_FORM)["findings"]}
+    assert "superlative" not in fired
+    assert any(f["rule"] == "superlative" for f in check("## A\n\nIt is the best option.")["findings"])
 
 
 def test_promoting_your_own_thing_requires_saying_so() -> None:
