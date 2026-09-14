@@ -36,6 +36,7 @@ from .routes.telegram import router as telegram_router
 from .routes.schedule import router as schedule_router
 from .routes.study import router as study_router
 from .routes.day import router as day_router
+from .routes.writing import router as writing_router
 
 
 class LLMTestRequest(BaseModel):
@@ -444,6 +445,7 @@ def create_app() -> FastAPI:
     app.include_router(schedule_router)
     app.include_router(study_router)
     app.include_router(day_router)
+    app.include_router(writing_router)
     return app
 
 

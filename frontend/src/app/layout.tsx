@@ -21,6 +21,7 @@ const NAV_LINKS = [
   { href: "/tasks", label: "Tasks", icon: "▤" },
   { href: "/commitments", label: "Commitments", icon: "✓" },
   { href: "/study", label: "Study", icon: "▧" },
+  { href: "/write", label: "Draft Check", icon: "✎" },
   { href: "/agents", label: "Agents", icon: "◎" },
   { href: "/knowledge", label: "Knowledge", icon: "◈" },
   { href: "/hq", label: "Career HQ", icon: "★" },

@@ -74,6 +74,26 @@ export interface DayView {
   themes: DayThemes;
 }
 
+export interface DraftFinding {
+  rule: string;
+  severity: "block" | "warn" | "note";
+  title: string;
+  why: string;
+  source: string;
+  line: number;
+  excerpt: string;
+  suggestion: string;
+}
+
+export interface DraftCheck {
+  title: string;
+  words: number;
+  passes: boolean;
+  counts: { block: number; warn: number; note: number };
+  findings: DraftFinding[];
+  review_questions: string[];
+}
+
 export interface ResourceItem {
   title: string;
   url: string;
@@ -538,6 +558,17 @@ export class ApiClient {
       cache: "no-store"
     });
     if (!res.ok) throw await failure(res, "moveDayItem");
+    return res.json();
+  }
+
+  async checkDraft(text: string, title?: string, kind = "article"): Promise<DraftCheck> {
+    const res = await fetch(`${this.baseUrl}/api/writing/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ text, title, kind }),
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "checkDraft");
     return res.json();
   }
 
