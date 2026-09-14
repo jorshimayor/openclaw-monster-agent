@@ -23,7 +23,8 @@ import {
   Flame,
   KeyRound,
   PenLine,
-  Target
+  Target,
+  Trophy
 } from "lucide-react";
 
 const PLAN_API = "https://fieldtilt.joelobafemii.workers.dev/api/plan";
@@ -124,7 +125,7 @@ const PROPERTIES = [
   { label: "github", href: "https://github.com/jorshimayor" }
 ];
 
-type Tab = "today" | "timetable" | "study" | "resources";
+type Tab = "today" | "football" | "timetable" | "study" | "resources";
 
 const RESOURCES: { group: string; items: [string, string, string][] }[] = [
   {
@@ -180,6 +181,57 @@ const RESOURCES: { group: string; items: [string, string, string][] }[] = [
   }
 ];
 
+const GQL_API = "https://fieldtilt.joelobafemii.workers.dev/api/graphql";
+
+type Football = {
+  clubInfo: { name: string; league: string; season: string };
+  standings: { rank: number; team: string; played: number; points: number; goalsFor: number; goalsAgainst: number }[];
+  xgTable: { team: string; xG: number; xGA: number }[];
+  recentResults: { opponent: string; score: string; outcome: string; isHome: boolean }[];
+  nextFixtures: { home: string; away: string; competition: string; dateUtc: string }[];
+  modelCall: {
+    gameweek: number | null;
+    predictedAt: string;
+    fixtures: { home: string; away: string; pHome: number; pDraw: number; pAway: number }[];
+  } | null;
+  modelScore: {
+    matches: number;
+    brier: number;
+    brierBaseline: number;
+    beatBaseline: boolean;
+    results: { fixture: string; final: string; called: string; actual: string }[];
+  } | null;
+};
+
+const FOOTBALL_QUERY = `{
+  clubInfo { name league season }
+  standings { rank team played points goalsFor goalsAgainst }
+  xgTable { team xG xGA }
+  recentResults(count: 6) { opponent score outcome isHome }
+  nextFixtures(count: 3) { home away competition dateUtc }
+  modelCall { gameweek predictedAt fixtures { home away pHome pDraw pAway } }
+  modelScore { matches brier brierBaseline beatBaseline results { fixture final called actual } }
+}`;
+
+/**
+ * The prioritised run, spelled out so the page answers "what now" and not
+ * just "what exists". The BUILD line for each week comes from the season
+ * calendar itself; this is the ordering on top of it.
+ */
+const ARTICLE_QUEUE = [
+  { n: 1, title: "The state of free football data in 2026, source by source", why: "week 4's unwritten blog — you have the receipts: FBref's Cloudflare wall, Sofascore 403s, API-Football capped at 2022-24, football-data blind to cups" },
+  { n: 2, title: "The package launch write-up", why: "design decisions, one install command, one honest limitations section" },
+  { n: 3, title: "I built an xG model. Here's where it's wrong.", why: "on the StatsBomb loader — and your JSDSS submission" }
+];
+
+const DEFERRED = [
+  "ZK daily — a 16-week ramp toward a market you aren't applying to yet",
+  "Three articles a week — one per fortnight is what actually ships",
+  "New study ladders — you have four; a fifth is procrastination in a productive costume"
+];
+
+const foldTeam = (t: string) => t.toLowerCase().replace(/ fc$| afc$/g, "").trim();
+
 function useLocal<T>(key: string, initial: T): [T, (v: T) => void] {
   const [v, setV] = useState<T>(initial);
   useEffect(() => {
@@ -213,6 +265,8 @@ export default function HqPage() {
   // the guides total ~400KB and this page used to pull all of it every load.
   const [sectionBody, setSectionBody] = useState<string>("");
   const [sectionLoading, setSectionLoading] = useState(false);
+  const [fb, setFb] = useState<Football | null>(null);
+  const [fbErr, setFbErr] = useState("");
   const [done, setDone] = useLocal<Record<string, boolean>>("hq-ledger-done", {});
 
   useEffect(() => {
@@ -251,6 +305,18 @@ export default function HqPage() {
       cancelled = true;
     };
   }, [key, plan, docIdx, studyIdx]);
+
+  // Football data is the public GraphQL API — no key, cached 10 min at source.
+  useEffect(() => {
+    fetch(GQL_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: FOOTBALL_QUERY })
+    })
+      .then((r) => r.json())
+      .then((j) => (j.data ? setFb(j.data) : setFbErr(j.errors?.[0]?.message || "no data")))
+      .catch((e) => setFbErr(e.message));
+  }, []);
 
   const ledgerCur = useMemo(() => {
     if (!plan?.ledger) return -1;
@@ -343,6 +409,7 @@ export default function HqPage() {
         {(
           [
             ["today", "Today", Flame],
+            ["football", "Football", Trophy],
             ["timetable", "Timetable", CalendarDays],
             ["study", "Study guide", BookOpen],
             ["resources", "Resources", Target]
@@ -442,6 +509,245 @@ export default function HqPage() {
               )}
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* FOOTBALL — the run, the model record, the data */}
+      {tab === "football" && (
+        <div className="space-y-4">
+          {fbErr && <p className="font-mono text-sm text-[var(--theme-danger)]">❯ football data: {fbErr}</p>}
+
+          {/* the run, straight off the season calendar */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">The run — ship the package</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-xs text-[var(--theme-text-dim)]">
+                One artifact a hiring manager can <code>pip install</code>. Everything else hangs off it.
+              </p>
+              {seasonCur >= 0 &&
+                plan?.season?.rows.slice(seasonCur, seasonCur + 3).map((r, i) => (
+                  <div
+                    key={r[0]}
+                    className={`rounded border p-3 ${
+                      i === 0 ? "border-[var(--theme-accent)]" : "border-[var(--theme-bg-border)]"
+                    }`}
+                  >
+                    <p className="font-mono text-[11px] uppercase tracking-wider">
+                      <span className="text-[var(--theme-accent)]">week {r[0]}</span>
+                      <span className="text-[var(--theme-text-dim)]"> · {r[1]}</span>
+                      {i === 0 && <span className="text-[var(--theme-success)]"> ← now</span>}
+                    </p>
+                    <p className="mt-1 text-sm text-[var(--theme-text)]">{r[4]}</p>
+                    {r[5] && <p className="mt-1 text-xs text-[var(--theme-text-dim)]">post: {r[5]}</p>}
+                  </div>
+                ))}
+            </CardContent>
+          </Card>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* article queue */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Article queue — in order</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {ARTICLE_QUEUE.map((a) => (
+                  <div key={a.n} className="flex gap-2">
+                    <span className="font-mono text-[var(--theme-accent)]">{a.n}</span>
+                    <span>
+                      <span className="text-[var(--theme-text)]">{a.title}</span>
+                      <span className="block text-xs text-[var(--theme-text-dim)]">{a.why}</span>
+                    </span>
+                  </div>
+                ))}
+                <p className="pt-1 font-mono text-[10px] uppercase tracking-wider text-[var(--theme-text-dim)]">
+                  medium long-form → thread on @fieldtiltcfc, same day
+                </p>
+              </CardContent>
+            </Card>
+
+            {/* model record */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">
+                  Model record{" "}
+                  {fb?.modelScore && (
+                    <Badge variant={fb.modelScore.beatBaseline ? "success" : "warning"}>
+                      {fb.modelScore.beatBaseline ? "beat baseline" : "lost to baseline"}
+                    </Badge>
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {fb?.modelScore ? (
+                  <>
+                    <div className="flex gap-6">
+                      <div>
+                        <p className="text-2xl font-bold text-[var(--theme-text)]">{fb.modelScore.brier}</p>
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--theme-text-dim)]">brier (lower better)</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-[var(--theme-text-dim)]">{fb.modelScore.brierBaseline}</p>
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--theme-text-dim)]">baseline</p>
+                      </div>
+                      <div>
+                        <p className="text-2xl font-bold text-[var(--theme-text)]">
+                          {fb.modelScore.results.filter((r) => r.called === r.actual).length}/{fb.modelScore.matches}
+                        </p>
+                        <p className="font-mono text-[10px] uppercase tracking-wider text-[var(--theme-text-dim)]">called right</p>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-xs text-[var(--theme-text-dim)]">
+                      Published before kickoff, scored after. This record is the rarest thing in the portfolio — it compounds every week it runs.
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-[var(--theme-text-dim)]">No scored round yet.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* current model call */}
+          {fb?.modelCall && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Latest model call · MD{fb.modelCall.gameweek}</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {fb.modelCall.fixtures.map((f) => (
+                  <div key={f.home + f.away}>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-[var(--theme-text-dim)]">
+                        {f.home} <span className="opacity-60">vs</span> {f.away}
+                      </span>
+                      <span className="font-mono text-[var(--theme-text-dim)]">
+                        {Math.round(f.pHome * 100)}% / {Math.round(f.pDraw * 100)}% / {Math.round(f.pAway * 100)}%
+                      </span>
+                    </div>
+                    <div className="mt-1 flex h-1.5 overflow-hidden bg-[var(--theme-bg-border)]">
+                      <span style={{ width: `${f.pHome * 100}%` }} className="bg-[var(--theme-accent)]" />
+                      <span style={{ width: `${f.pDraw * 100}%` }} className="bg-[var(--theme-text-dim)]" />
+                      <span style={{ width: `${f.pAway * 100}%` }} className="bg-[var(--theme-text-dim)] opacity-50" />
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="grid gap-4 md:grid-cols-2">
+            {/* form + next */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">{fb?.clubInfo.name || "Club"} — form and next</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-2">
+                  {(fb?.recentResults || []).map((r, i) => (
+                    <span
+                      key={i}
+                      title={`${r.isHome ? "vs" : "at"} ${r.opponent} ${r.score}`}
+                      className={`mr-1 inline-block w-6 text-center font-mono font-bold ${
+                        r.outcome === "W"
+                          ? "text-[var(--theme-success)]"
+                          : r.outcome === "L"
+                            ? "text-[var(--theme-danger)]"
+                            : "text-[var(--theme-text-dim)]"
+                      }`}
+                    >
+                      {r.outcome}
+                    </span>
+                  ))}
+                  <span className="ml-1 text-[10px] uppercase tracking-wider text-[var(--theme-text-dim)]">most recent first</span>
+                </p>
+                {(fb?.nextFixtures || []).map((f) => (
+                  <div key={f.dateUtc} className="flex justify-between border-t border-[var(--theme-bg-border)] py-1 text-xs">
+                    <span className="text-[var(--theme-text-dim)]">
+                      {f.home} <span className="opacity-60">vs</span> {f.away}
+                    </span>
+                    <span className="font-mono text-[var(--theme-text-dim)]">
+                      {f.competition} · {new Date(f.dateUtc).toLocaleDateString([], { day: "numeric", month: "short" })}
+                    </span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* deferred */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">Deliberately not doing</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-xs text-[var(--theme-text-dim)]">
+                  {DEFERRED.map((d) => (
+                    <li key={d} className="flex gap-2">
+                      <span className="text-[var(--theme-danger)]">✕</span> {d}
+                    </li>
+                  ))}
+                </ul>
+                <p className="mt-3 text-xs text-[var(--theme-text-dim)]">
+                  A plan you cannot execute is a plan that picks for you. These are the picks.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* league table with xG */}
+          {fb?.standings?.length ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm">{fb.clubInfo.league} · {fb.clubInfo.season}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs" style={{ fontVariantNumeric: "tabular-nums" }}>
+                    <thead>
+                      <tr className="text-[10px] uppercase tracking-wider text-[var(--theme-text-dim)]">
+                        <th className="p-1 text-left">#</th>
+                        <th className="p-1 text-left">team</th>
+                        <th className="p-1 text-right">p</th>
+                        <th className="p-1 text-right">gf</th>
+                        <th className="p-1 text-right">ga</th>
+                        <th className="p-1 text-right">xg</th>
+                        <th className="p-1 text-right">xga</th>
+                        <th className="p-1 text-right">pts</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {fb.standings.slice(0, 10).map((t) => {
+                        const x = fb.xgTable.find(
+                          (q) => foldTeam(q.team).includes(foldTeam(t.team)) || foldTeam(t.team).includes(foldTeam(q.team))
+                        );
+                        const mine = foldTeam(t.team).includes(foldTeam(fb.clubInfo.name));
+                        return (
+                          <tr
+                            key={t.team}
+                            className={mine ? "font-bold text-[var(--theme-text)]" : "text-[var(--theme-text-dim)]"}
+                          >
+                            <td className={`p-1 ${mine ? "text-[var(--theme-accent)]" : ""}`}>{t.rank}</td>
+                            <td className="p-1">{t.team}</td>
+                            <td className="p-1 text-right">{t.played}</td>
+                            <td className="p-1 text-right">{t.goalsFor}</td>
+                            <td className="p-1 text-right">{t.goalsAgainst}</td>
+                            <td className="p-1 text-right">{x ? x.xG.toFixed(1) : "-"}</td>
+                            <td className="p-1 text-right">{x ? x.xGA.toFixed(1) : "-"}</td>
+                            <td className="p-1 text-right">{t.points}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-2 font-mono text-[10px] text-[var(--theme-text-dim)]">
+                  xG: Understat · table: football-data · model: season-forecast-v1
+                </p>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       )}
 
