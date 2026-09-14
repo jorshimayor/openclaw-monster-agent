@@ -208,18 +208,85 @@ is the first fifteen seconds.
   `robust` and `game-changing` reappear under pressure — do not let them.
 - Close on the concrete next step, not "follow for more".
 
-## What this standard does not yet contain
+## The RareSkills method
 
-The RareSkills and @Jeyffre standards are not represented here. Nothing in the
-five documents describes them, and writing a rubric from my impression of
-somebody's work would be exactly the invented authority this is meant to prevent.
+Derived by reading four of their articles — storage layout, delegatecall, gas
+optimization, and the interview question bank — and analysing structure rather
+than subject. Select **RARESKILLS** in the profile picker to check against it.
 
-What can be said about RareSkills from their published material is narrow and
-structural: derivations run from first principles, claims are demonstrated in
-code rather than asserted, and the reader is assumed to want the mechanism rather
-than the summary. That is a direction, not a standard.
+### Where it agrees with the house style
 
-To fold either in properly, put three or four pieces you consider exemplary in a
-Google Doc and share it. The specifics — how they open, where they put the
-payoff, how much they explain before showing code — can then be extracted the
-same way these rules were, and checked the same way.
+Explanation before code, every time. Progressive complexity: the simple case,
+then the real one, then the counterintuitive one. Pitfalls shown happening in an
+example rather than warned about in the abstract. Impersonal voice with occasional
+second person.
+
+### Where it genuinely disagrees
+
+**RareSkills states the answer in sentence one.** Gas optimization opens: "Gas
+optimization in Ethereum is re-writing Solidity code to accomplish the same
+business logic while consuming fewer gas units in the EVM." Storage layout opens
+by classifying where variables live. Your house style forbids exactly this.
+
+Both are right for their reader. A Cherry Servers reader arrives from search, may
+be new, and will leave if they think they have the answer — so the answer *is* the
+article, and giving it away ends the visit. A RareSkills reader came deliberately
+for a mechanism; the definition is a signpost confirming they are in the right
+place, and it costs nothing because the payoff was never the definition. It was
+the sixty code blocks below it.
+
+**The rule for choosing:** if a competent reader could act on your one-sentence
+answer and close the tab without loss, do not put it in the introduction. If the
+value is in the demonstration, state the scope immediately and get to work.
+
+The linter keeps the disagreement rather than resolving it: the roadmap rule is
+exempt in the technical profile and enforced in the explanatory one.
+
+### What the technical profile adds
+
+**Every claim is demonstrated.** This is the single most distinctive trait. Gas
+optimization quotes "4860 gas vs. 2758 gas" and "saves 2,102 gas". Delegatecall
+shows the storage-collision bug happening, with the wrong number on screen.
+Storage layout maps bytes to slots in diagrams. A claim about speed, cost or
+efficiency with no measurement beside it is **blocked**.
+
+**Prerequisites are declared.** "To fully understand the tricks in this tutorial,
+you'll need to understand how the EVM works." "This information is a prerequisite
+to understanding how proxies work." Past ~1,200 words, a piece with no statement
+of what it assumes is flagged.
+
+**Density of demonstration.** Their articles run 3,500–11,000 words carrying
+20–60 runnable blocks. Roughly one per 400 words is the floor. A mechanism
+explained only in prose is a summary, and the reader came for the mechanism.
+
+**Hedging is empirical, not verbal.** They do not soften language; they tell you
+to measure. "Some gas optimization tricks do not always work." "You should
+actually measure the effect." "Test both alternatives." Where a technique is
+conditional, say so and hand the reader the benchmark — do not write "may
+generally tend to".
+
+**Ends forward, never in summary.** "In Part 2, we will cover…", the next
+article, the deeper course. Not a restatement of what was just read.
+
+### Their structural devices, worth stealing
+
+- **Parallel pairs.** Before/after code, Caller/Called contracts. Difference is
+  shown side by side rather than described.
+- **"Why?" before the counterintuitive result.** A genuine question the reader is
+  about to ask, immediately answered — and occasionally left to them: "can you
+  figure out why?"
+- **Table of contents on anything long.** Their own concession to skim readers.
+- **Tiered difficulty.** The interview bank runs Easy → Medium → Hard → Advanced,
+  questions only, no answers, each answerable "in three sentences or less". That
+  constraint is itself a standard: if your answer needs more than three
+  sentences, you have not understood it yet.
+
+## What this standard still does not contain
+
+The @Jeyffre standard is not represented. I have not read enough of that writing
+to derive anything defensible, and a rubric built from an impression would be the
+invented authority this document exists to prevent.
+
+Share three or four pieces you consider exemplary — a Doc, or just the links —
+and the specifics can be extracted the same way the RareSkills rules were: by
+reading structure, not by guessing at style.

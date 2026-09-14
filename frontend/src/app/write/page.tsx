@@ -35,6 +35,7 @@ export default function WritePage() {
   const [text, setText] = useState("");
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState("article");
+  const [profile, setProfile] = useState<"explanatory" | "technical">("explanatory");
   const [result, setResult] = useState<DraftCheck | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,13 +46,13 @@ export default function WritePage() {
     setBusy(true);
     setError(null);
     try {
-      setResult(await api.checkDraft(text, title || undefined, kind));
+      setResult(await api.checkDraft(text, title || undefined, kind, profile));
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [text, title, kind]);
+  }, [text, title, kind, profile]);
 
   const findings = (result?.findings ?? []).filter(
     (f) => filter === "all" || f.severity === filter
@@ -78,6 +79,15 @@ export default function WritePage() {
               placeholder="How Does a Hypervisor Allocate Resources?"
               className="flex-1 bg-bg/50 border border-matrix/30 rounded px-3 py-2 text-sm focus:border-matrix focus:outline-none placeholder:text-matrix-dim/50"
             />
+            <select
+              value={profile}
+              onChange={(e) => setProfile(e.target.value as "explanatory" | "technical")}
+              title="Explanatory = the house style. Technical = the RareSkills method: prove every claim, declare prerequisites, show the mechanism."
+              className="lg:w-44 bg-bg/50 border border-matrix/30 rounded px-3 py-2 text-xs tracking-widest focus:border-matrix focus:outline-none"
+            >
+              <option value="explanatory">HOUSE STYLE</option>
+              <option value="technical">RARESKILLS</option>
+            </select>
             <select
               value={kind}
               onChange={(e) => setKind(e.target.value)}

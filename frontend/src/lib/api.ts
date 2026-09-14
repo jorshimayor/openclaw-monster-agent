@@ -87,6 +87,7 @@ export interface DraftFinding {
 
 export interface DraftCheck {
   title: string;
+  profile: string;
   words: number;
   passes: boolean;
   counts: { block: number; warn: number; note: number };
@@ -561,11 +562,16 @@ export class ApiClient {
     return res.json();
   }
 
-  async checkDraft(text: string, title?: string, kind = "article"): Promise<DraftCheck> {
+  async checkDraft(
+    text: string,
+    title?: string,
+    kind = "article",
+    profile: "explanatory" | "technical" = "explanatory"
+  ): Promise<DraftCheck> {
     const res = await fetch(`${this.baseUrl}/api/writing/check`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ text, title, kind }),
+      body: JSON.stringify({ text, title, kind, profile }),
       cache: "no-store"
     });
     if (!res.ok) throw await failure(res, "checkDraft");

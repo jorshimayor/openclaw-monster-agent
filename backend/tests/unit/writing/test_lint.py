@@ -141,3 +141,98 @@ def test_review_questions_are_returned_for_the_judgement_calls() -> None:
     result = check(CLEAN)
     assert result["review_questions"] == ADVISORY
     assert any("buried" in q for q in result["review_questions"])
+
+
+# ── the technical profile (RareSkills method) ────────────────────────────────
+
+from src.writing.rules import Profile, TECHNICAL_ADVISORY  # noqa: E402
+
+# Past TECHNICAL_DEPTH_WORDS, which is where the method expects a piece to
+# declare its assumptions and carry working code.
+LONG_PROSE = "\n\n".join(
+    ["Each paragraph explains part of the mechanism in ordinary prose without "
+     "showing any of it running or measuring anything at all."] * 60
+)
+
+
+def test_a_performance_claim_without_a_measurement_fails() -> None:
+    """Their articles put the number next to the claim: "4860 gas vs 2758 gas"."""
+    text = "## How Does Packing Work?\n\nPacking is more efficient and saves gas."
+    result = check(text, profile=Profile.TECHNICAL)
+    assert result["passes"] is False
+    assert any(f["rule"] == "unproven_claim" for f in result["findings"])
+
+
+def test_a_measurement_in_the_same_paragraph_discharges_the_claim() -> None:
+    text = (
+        "## How Does Packing Work?\n\n"
+        "Packing is more efficient: 22,790 gas against 26,145 gas for separate slots."
+    )
+    assert not any(
+        f["rule"] == "unproven_claim"
+        for f in check(text, profile=Profile.TECHNICAL)["findings"]
+    )
+
+
+def test_performance_claims_are_not_checked_in_the_explanatory_profile() -> None:
+    """The rule is RareSkills', not the house style's — it must not leak."""
+    text = "## How Does Packing Work?\n\nPacking is more efficient and saves gas."
+    assert not any(
+        f["rule"] == "unproven_claim" for f in check(text)["findings"]
+    )
+
+
+def test_a_long_technical_piece_must_declare_its_prerequisites() -> None:
+    text = f"# Storage\n\n## What Is a Slot?\n\n{LONG_PROSE}\n\nRead Part 2 next."
+    fired = {f["rule"] for f in check(text, profile=Profile.TECHNICAL)["findings"]}
+    assert "no_prerequisites" in fired
+
+    with_prereq = text.replace(
+        "## What Is a Slot?",
+        "This assumes you understand how the EVM addresses storage.\n\n## What Is a Slot?",
+    )
+    fired2 = {f["rule"] for f in check(with_prereq, profile=Profile.TECHNICAL)["findings"]}
+    assert "no_prerequisites" not in fired2
+
+
+def test_a_mechanism_explained_only_in_prose_is_flagged() -> None:
+    """A mechanism article with no runnable code is a summary, and the reader
+    came for the mechanism."""
+    text = f"# Storage\n\n## What Is a Slot?\n\n{LONG_PROSE}\n\nRead Part 2 next."
+    assert any(
+        f["rule"] == "thin_on_code"
+        for f in check(text, profile=Profile.TECHNICAL)["findings"]
+    )
+
+
+def test_a_technical_piece_should_point_somewhere_next() -> None:
+    text = f"# Storage\n\nThis assumes you know the EVM.\n\n## What Is a Slot?\n\n{LONG_PROSE}"
+    assert any(
+        f["rule"] == "no_forward_path"
+        for f in check(text, profile=Profile.TECHNICAL)["findings"]
+    )
+
+
+def test_stating_the_answer_up_front_is_allowed_in_the_technical_profile() -> None:
+    """The two houses genuinely disagree here, and the disagreement is kept
+    rather than reconciled: RareSkills opens by defining scope, because for a
+    reader who came for the mechanism the definition is a signpost, not the
+    payoff."""
+    text = "## What Is Gas?\n\nIn this article, we will cover three optimizations."
+    assert not any(
+        f["rule"] == "roadmap" for f in check(text, profile=Profile.TECHNICAL)["findings"]
+    )
+    assert any(f["rule"] == "roadmap" for f in check(text)["findings"])
+
+
+def test_the_house_rules_still_apply_in_the_technical_profile() -> None:
+    """Profiles change what is added and exempted, not everything."""
+    text = "## A\n\nThis robust and seamless approach is revolutionary."
+    fired = {f["rule"] for f in check(text, profile=Profile.TECHNICAL)["findings"]}
+    assert "marketing" in fired
+
+
+def test_the_technical_profile_adds_its_own_review_questions() -> None:
+    result = check(CLEAN, profile=Profile.TECHNICAL)
+    assert all(q in result["review_questions"] for q in TECHNICAL_ADVISORY)
+    assert any("reproduce every result" in q for q in result["review_questions"])

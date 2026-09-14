@@ -18,8 +18,10 @@ from typing import Any, Dict, List, Optional, Tuple
 from .rules import (
     ABSOLUTES, ADVISORY, BRITISH_SPELLINGS, CLICHE_OPENERS, FILLER_PHRASES,
     LIST_BUDGET_PER_1000_WORDS, MARKETING_WORDS, MAX_PARAGRAPH_SENTENCES,
-    MAX_SENTENCE_WORDS, MIN_LIST_ITEM_WORDS, ROADMAP_TELLS, RULES_BY_KEY,
-    SUPERLATIVES, Severity,
+    MAX_SENTENCE_WORDS, MEASUREMENT_PATTERN, MIN_LIST_ITEM_WORDS,
+    PERFORMANCE_CLAIMS, PREREQUISITE_TELLS, Profile, ROADMAP_TELLS,
+    RULES_BY_KEY, SUPERLATIVES, TECHNICAL_ADVISORY, TECHNICAL_DEPTH_WORDS,
+    WORDS_PER_CODE_BLOCK, Severity, rules_for,
 )
 
 _CODE_FENCE = re.compile(r"```.*?```", re.S)
@@ -310,8 +312,72 @@ def _check_structure(text: str) -> List[Finding]:
     return out
 
 
-def check(text: str, title: str = "") -> Dict[str, Any]:
+_MEASURED = re.compile(MEASUREMENT_PATTERN, re.I)
+
+
+def _check_technical(text: str) -> List[Finding]:
+    """The RareSkills rules: demonstrate, declare, show, point onward."""
+    out: List[Finding] = []
+    stripped = _strip_code(text)
+    words = len(re.findall(r"\w+", stripped))
+    code_blocks = len(_CODE_FENCE.findall(text))
+
+    # A performance claim with no measurement in the same paragraph.
+    claim_rule = RULES_BY_KEY["unproven_claim"]
+    for line_no, para in _paragraphs(text):
+        lowered = para.lower()
+        if _MEASURED.search(para):
+            continue  # the paragraph carries its own evidence
+        for phrase in PERFORMANCE_CLAIMS:
+            m = re.search(rf"(?<!\w){re.escape(phrase)}(?!\w)", lowered)
+            if m:
+                out.append(Finding(
+                    claim_rule.key, claim_rule.severity, claim_rule.title,
+                    claim_rule.why, claim_rule.source, line_no,
+                    para[max(0, m.start() - 50): m.end() + 50].strip(),
+                    "Put the measurement beside the claim, or cut the claim. "
+                    "“4860 gas vs 2758 gas”, not “more efficient”.",
+                ))
+                break  # one per paragraph is enough to make the point
+
+    if words >= TECHNICAL_DEPTH_WORDS:
+        lowered_all = stripped.lower()
+        if not any(tell in lowered_all for tell in PREREQUISITE_TELLS):
+            r = RULES_BY_KEY["no_prerequisites"]
+            out.append(Finding(
+                r.key, r.severity, r.title, r.why, r.source, 1,
+                f"{words} words, no statement of what the reader must know",
+                "Say what this assumes: “you'll need to understand how X works”.",
+            ))
+
+        expected = max(1, words // WORDS_PER_CODE_BLOCK)
+        if code_blocks < expected:
+            r = RULES_BY_KEY["thin_on_code"]
+            out.append(Finding(
+                r.key, r.severity, r.title, r.why, r.source, 1,
+                f"{code_blocks} code blocks in {words} words",
+                f"Around {expected} would match the method. Show the mechanism "
+                f"running; do not describe it.",
+            ))
+
+        tail = "\n".join(stripped.splitlines()[-12:]).lower()
+        if not re.search(r"(next|part 2|further|read more|see also|continue|deeper|"
+                         r"follow[- ]up|related)", tail):
+            r = RULES_BY_KEY["no_forward_path"]
+            out.append(Finding(
+                r.key, r.severity, r.title, r.why, r.source, 1,
+                "(no forward reference near the end)",
+                "Close on where to go next, not on a summary of what was read.",
+            ))
+    return out
+
+
+def check(
+    text: str, title: str = "", profile: str = Profile.EXPLANATORY
+) -> Dict[str, Any]:
     """Lint a draft. Returns findings, counts, and the review questions."""
+    active = {r.key for r in rules_for(profile)}
+
     findings: List[Finding] = []
     findings += _find_phrases(text, MARKETING_WORDS, "marketing",
                               "Describe the specific capability instead.")
@@ -330,7 +396,12 @@ def check(text: str, title: str = "") -> Dict[str, Any]:
     findings += _check_acronyms(text)
     findings += _check_length(text)
     findings += _check_structure(text)
+    if profile == Profile.TECHNICAL:
+        findings += _check_technical(text)
 
+    # Drop anything the profile exempts — the explanatory ban on stating the
+    # answer up front does not apply to a mechanism article.
+    findings = [f for f in findings if f.rule in active]
     findings.sort(key=lambda f: (f.line, f.rule))
     counts = {s: sum(1 for f in findings if f.severity == s)
               for s in (Severity.BLOCK, Severity.WARN, Severity.NOTE)}
@@ -338,9 +409,14 @@ def check(text: str, title: str = "") -> Dict[str, Any]:
 
     return {
         "title": title,
+        "profile": profile,
         "words": words,
         "passes": counts[Severity.BLOCK] == 0,
         "counts": counts,
         "findings": [asdict(f) for f in findings],
-        "review_questions": ADVISORY,
+        "review_questions": (
+            ADVISORY + TECHNICAL_ADVISORY
+            if profile == Profile.TECHNICAL
+            else ADVISORY
+        ),
     }
