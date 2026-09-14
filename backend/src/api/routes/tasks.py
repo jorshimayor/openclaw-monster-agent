@@ -13,7 +13,7 @@ from pydantic import BaseModel
 from ...agents.bus import get_event_bus
 from ...core.config import get_settings
 from ...core.logging import get_logger
-from ...core.task_repo import load_recent_tasks, load_task, save_task
+from ...core.task_repo import load_recent_task_summaries, load_task, save_task
 from ...core.types import Task, TaskStatus
 from ..sse import EventSourceResponse
 
@@ -41,9 +41,16 @@ async def list_tasks(
     # Postgres is the durable record; overlay hot in-memory copies (fresher
     # for tasks currently running in this process).
     merged: Dict[str, Task] = {
-        str(t.id): t for t in await load_recent_tasks(limit=max(1, min(limit + skip, 500)))
+        str(t.id): t
+        for t in await load_recent_task_summaries(limit=max(1, min(limit + skip, 500)))
     }
-    merged.update({tid: t for tid, t in _TASK_STORE.items()})
+    # In-memory rows carry full outputs; strip them to the same shape as the
+    # projected DB rows so one heavy task can't re-inflate the list response.
+    for tid, t in _TASK_STORE.items():
+        created = t.outputs.get("created_at") if isinstance(t.outputs, dict) else None
+        merged[tid] = t.model_copy(
+            update={"outputs": {"created_at": created} if created else {}}
+        )
     items = list(merged.values())
     items.sort(
         key=lambda t: (
@@ -141,7 +148,9 @@ async def _handle_schedule(task: Task, request: Request) -> str:
 @router.get("/count")
 async def count_tasks() -> Dict[str, int]:
     """Total rows, so the console can paginate instead of guessing."""
-    durable = await load_recent_tasks(limit=500)
+    # Summaries, not full tasks: this endpoint needs ids to merge with the
+    # in-memory store, never the report bodies it used to drag along.
+    durable = await load_recent_task_summaries(limit=500)
     merged = {str(t.id) for t in durable} | set(_TASK_STORE.keys())
     return {"total": len(merged)}
 

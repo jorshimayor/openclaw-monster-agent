@@ -127,6 +127,48 @@ async def load_task(task_id: UUID) -> Optional[Task]:
         return None
 
 
+async def load_recent_task_summaries(limit: int = 50) -> List[Task]:
+    """Recent tasks WITHOUT their result payloads.
+
+    List views need id/description/status/step/created_at and nothing else,
+    but `result` holds whole research reports. Selecting it for a list turned
+    /api/tasks into a 2.6MB response — and, polled every 5s by the dashboard,
+    into gigabytes of Neon egress per hour. The column projection here means
+    Postgres never puts the JSONB on the wire in the first place; fetch the
+    full task from load_task() when someone opens one.
+    """
+    if not is_db_available():
+        return []
+    try:
+        async with get_session() as session:
+            rows = (
+                await session.execute(
+                    select(
+                        TaskDB.id,
+                        TaskDB.description,
+                        TaskDB.status,
+                        TaskDB.current_step,
+                        TaskDB.created_at,
+                    )
+                    .order_by(TaskDB.created_at.desc())
+                    .limit(limit)
+                )
+            ).all()
+            return [
+                Task(
+                    id=r.id,
+                    description=r.description,
+                    status=_FROM_DB.get(r.status, TaskStatus.FAILED),
+                    step=None,
+                    outputs={"created_at": r.created_at.isoformat()} if r.created_at else {},
+                )
+                for r in rows
+            ]
+    except Exception as exc:
+        logger.warning("task_summaries_failed", error=str(exc))
+        return []
+
+
 async def load_recent_tasks(limit: int = 50) -> List[Task]:
     if not is_db_available():
         return []

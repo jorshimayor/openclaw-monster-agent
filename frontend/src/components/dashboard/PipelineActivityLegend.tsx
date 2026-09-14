@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { PipelineStep, Task } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, pollWhileVisible } from "@/lib/utils";
 
 const STEPS: { n: number; key: PipelineStep; label: string }[] = [
   { n: 1, key: "complexity", label: "COMPLEXITY" },
@@ -36,10 +36,10 @@ export default function PipelineActivityLegend() {
         .then((rows) => !cancelled && setTasks(rows))
         .catch(() => !cancelled && setTasks([]));
     load();
-    const id = setInterval(load, 5000);
+    const stop = pollWhileVisible(load, 20000);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      stop();
     };
   }, []);
 

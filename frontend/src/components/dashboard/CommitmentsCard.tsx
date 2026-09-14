@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { api } from "@/lib/api";
 import type { Commitment } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { cn, pollWhileVisible } from "@/lib/utils";
 
 function overdueLabel(sec: number): string {
   const mins = Math.floor(sec / 60);
@@ -36,10 +36,10 @@ export default function CommitmentsCard() {
           setError(e.message);
         });
     load();
-    const id = setInterval(load, 10000);
+    const stopLoad = pollWhileVisible(load, 30000);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      stopLoad();
     };
   }, []);
 

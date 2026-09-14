@@ -42,3 +42,26 @@ export function normalizePipelineStep(step: unknown): string | undefined {
   if (typeof step !== "string" || !step) return undefined;
   return STEP_ALIASES[step.toUpperCase()] ?? step.toLowerCase();
 }
+
+/**
+ * setInterval that skips ticks while the tab is hidden, and fires once on
+ * the way back to visible so the view is never stale on return.
+ *
+ * A background tab polling task lists cost real money: the dashboard's 5s
+ * pollers ran forever in tabs nobody was looking at, and every tick pulled
+ * rows out of Postgres. Returns a cleanup function for useEffect.
+ */
+export function pollWhileVisible(fn: () => void, ms: number): () => void {
+  const tick = () => {
+    if (typeof document === "undefined" || document.visibilityState === "visible") fn();
+  };
+  const id = setInterval(tick, ms);
+  const onVisible = () => {
+    if (document.visibilityState === "visible") fn();
+  };
+  document.addEventListener("visibilitychange", onVisible);
+  return () => {
+    clearInterval(id);
+    document.removeEventListener("visibilitychange", onVisible);
+  };
+}

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { Task } from "@/lib/types";
-import { formatDate, truncate } from "@/lib/utils";
+import { formatDate, truncate, pollWhileVisible } from "@/lib/utils";
 
 const PAGE_SIZE = 20;
 
@@ -38,8 +38,7 @@ export default function TasksPage() {
 
   useEffect(() => {
     reload();
-    const id = setInterval(reload, 5000);
-    return () => clearInterval(id);
+    return pollWhileVisible(reload, 20000);
   }, [reload]);
 
   const remove = async (task: Task) => {

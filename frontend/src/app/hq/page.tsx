@@ -32,7 +32,7 @@ type LedgerWeek = { week: number; date: string; deep: string; fast: string; ship
 type Plan = {
   season: { header: string[]; rows: string[][]; syncedAt?: string } | null;
   ledger: { start: string; weeks: LedgerWeek[]; syncedAt?: string } | null;
-  study: { docs: { name: string; sections: { num: number; title: string; body: string }[] }[]; syncedAt?: string } | null;
+  study: { docs: { name: string; sections: { num: number; title: string }[] }[]; syncedAt?: string } | null;
 };
 
 /**
@@ -52,7 +52,7 @@ const DAY_REPS: Record<number, Rep[]> = {
   ],
   3: [
     { text: "2 DSA problems", href: "https://github.com/krishnadey30/LeetCode-Questions-CompanyWise" },
-    { text: "1 hour contest / bounty work", href: "https://solodit.cyfrin.io/", via: "solodit" }
+    { text: "1 hour audit contest — closed contest, grade vs the public report", href: "https://code4rena.com/reports", via: "answer key" }
   ],
   4: [
     { text: "STAR bank practice mode: 3 stories aloud", href: "https://fieldtilt.joelobafemii.workers.dev/prep", via: "star bank" },
@@ -60,7 +60,7 @@ const DAY_REPS: Record<number, Rep[]> = {
   ],
   5: [
     { text: "Publish the model call", href: "https://fieldtilt.joelobafemii.workers.dev/" },
-    { text: "1 hour bounty work", href: "https://solodit.cyfrin.io/" },
+    { text: "1 hour live contest / bounty", href: "https://code4rena.com/audits", via: "live" },
     { text: "Send 2 applications", href: "/day", via: "log them" }
   ],
   6: [
@@ -87,7 +87,9 @@ const DAILY_LOOP: Rep[] = [
     text: "One vulnerability restated from memory",
     href: "https://github.com/kadenzipfel/smart-contract-vulnerabilities",
     via: "starred"
-  }
+  },
+  { text: "ZK: 25 min topic + write it in your own words", href: "/hq", via: "zk ladder" },
+  { text: "Podcast on the commute — one note, or it did not count", href: "https://zeroknowledge.fm/", via: "zk podcast" }
 ];
 
 function RepLine({ rep }: { rep: Rep }) {
@@ -148,6 +150,27 @@ const RESOURCES: { group: string; items: [string, string, string][] }[] = [
     ]
   },
   {
+    group: "zk — the daily ladder",
+    items: [
+      ["RareSkills ZK book", "https://rareskills.io/zk-book", "the rigorous path: fields, curves, circuits"],
+      ["Circom docs", "https://docs.circom.io/", "phase 1 — write constraints, not opinions"],
+      ["Semaphore", "https://docs.semaphore.pse.dev/", "phase 3 — identity, nullifiers, the article you owe"],
+      ["zkSync Era docs", "https://docs.zksync.io/", "phase 4 — rollup architecture, native AA"],
+      ["zkSecurity blog", "https://blog.zksecurity.xyz/", "phase 5 — real ZK audit findings"],
+      ["ZK Whiteboard Sessions", "https://zkhack.dev/whiteboard/", "proof systems, explained on video"]
+    ]
+  },
+  {
+    group: "podcasts — the free hours",
+    items: [
+      ["Zero Knowledge Podcast", "https://zeroknowledge.fm/", "the field's own record; start with PLONK + STARK episodes"],
+      ["a16z crypto", "https://a16zcrypto.com/posts/podcasts/", "protocol design and mechanism thinking"],
+      ["Epicenter", "https://epicenter.tv/", "long-form protocol interviews"],
+      ["Signals & Threads", "https://signalsandthreads.com/", "not crypto: the best systems-engineering show there is"],
+      ["Oxide and Friends", "https://oxide.computer/podcasts", "systems war stories, engineering culture"]
+    ]
+  },
+  {
     group: "ai + agents",
     items: [
       ["CMU agents course", "https://www.cmu-agents.com/#/", "academic grounding for what you ship"],
@@ -186,6 +209,10 @@ export default function HqPage() {
   const [resErr, setResErr] = useState<string>("");
   const [resExpanded, setResExpanded] = useState<Record<string, boolean>>({});
   const [docIdx, setDocIdx] = useState(0);
+  // Section bodies are fetched when opened, not shipped with the index:
+  // the guides total ~400KB and this page used to pull all of it every load.
+  const [sectionBody, setSectionBody] = useState<string>("");
+  const [sectionLoading, setSectionLoading] = useState(false);
   const [done, setDone] = useLocal<Record<string, boolean>>("hq-ledger-done", {});
 
   useEffect(() => {
@@ -208,6 +235,22 @@ export default function HqPage() {
         setErr(e.message === "bad-key" ? "Key rejected — paste the current fieldtilt admin key." : `Could not reach the plan API: ${e.message}`)
       );
   }, [key]);
+
+  useEffect(() => {
+    if (!key || !plan?.study?.docs[docIdx]?.sections[studyIdx]) return;
+    let cancelled = false;
+    setSectionLoading(true);
+    fetch(`${PLAN_API}?doc=${docIdx}&section=${studyIdx}`, {
+      headers: { Authorization: `Bearer ${key}` }
+    })
+      .then((r) => r.json())
+      .then((d) => !cancelled && setSectionBody(d.body || d.error || ""))
+      .catch((e) => !cancelled && setSectionBody(`Could not load this section: ${e.message}`))
+      .finally(() => !cancelled && setSectionLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [key, plan, docIdx, studyIdx]);
 
   const ledgerCur = useMemo(() => {
     if (!plan?.ledger) return -1;
@@ -530,8 +573,10 @@ export default function HqPage() {
             </Card>
             <Card>
               <CardContent className="pt-6">
-                {plan?.study?.docs[docIdx]?.sections[studyIdx] ? (
-                  <Markdown source={plan.study.docs[docIdx].sections[studyIdx].body} />
+                {sectionLoading ? (
+                  <p className="text-sm text-[var(--theme-text-dim)]">Loading section…</p>
+                ) : sectionBody ? (
+                  <Markdown source={sectionBody} />
                 ) : (
                   <p className="text-sm text-[var(--theme-text-dim)]">Pick a section.</p>
                 )}

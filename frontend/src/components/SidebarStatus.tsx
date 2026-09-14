@@ -1,5 +1,7 @@
 "use client";
 
+import { pollWhileVisible } from "@/lib/utils";
+
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
@@ -55,10 +57,10 @@ export default function SidebarStatus() {
     };
 
     poll();
-    const id = setInterval(poll, 10000);
+    const stop = pollWhileVisible(poll, 30000);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      stop();
     };
   }, []);
 

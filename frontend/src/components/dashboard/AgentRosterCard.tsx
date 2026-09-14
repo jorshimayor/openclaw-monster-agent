@@ -1,5 +1,7 @@
 "use client";
 
+import { pollWhileVisible } from "@/lib/utils";
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,10 +28,10 @@ export default function AgentRosterCard() {
           setError(e.message);
         });
     load();
-    const id = setInterval(load, 15000);
+    const stopLoad = pollWhileVisible(load, 45000);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      stopLoad();
     };
   }, []);
 

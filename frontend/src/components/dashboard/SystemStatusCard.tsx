@@ -1,5 +1,7 @@
 "use client";
 
+import { pollWhileVisible } from "@/lib/utils";
+
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -72,10 +74,10 @@ export default function SystemStatusCard() {
     };
 
     ping();
-    const id = setInterval(ping, 10000);
+    const stopPing = pollWhileVisible(ping, 30000);
     return () => {
       cancelled = true;
-      clearInterval(id);
+      stopPing();
     };
   }, []);
 
