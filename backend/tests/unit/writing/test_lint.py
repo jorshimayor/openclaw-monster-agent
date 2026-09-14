@@ -236,3 +236,119 @@ def test_the_technical_profile_adds_its_own_review_questions() -> None:
     result = check(CLEAN, profile=Profile.TECHNICAL)
     assert all(q in result["review_questions"] for q in TECHNICAL_ADVISORY)
     assert any("reproduce every result" in q for q in result["review_questions"])
+
+
+# ── the short-form profile (@Jeyffre) ────────────────────────────────────────
+
+from src.writing.rules import SHORT_FORM_ADVISORY  # noqa: E402
+
+# His highest-performing opener, verbatim in shape: service framing, the claim,
+# its two figures, the real question, the format signal.
+EXEMPLAR_OPENER = """I read Google's paper about their quantum computer so you don't have to.
+
+They claim to have ran a quantum computation in 5 minutes that would take a
+normal computer 10^25 years.
+
+But what was that computation? Does it live up to the hype?
+
+I will break it down."""
+
+
+def test_the_exemplar_opener_passes_clean() -> None:
+    """If the standard fails the writing it was derived from, it is wrong."""
+    result = check(EXEMPLAR_OPENER, profile=Profile.SHORT_FORM)
+    assert result["passes"] is True
+    assert result["findings"] == [], [f["rule"] for f in result["findings"]]
+
+
+def test_first_person_is_the_form_in_short_writing_not_a_failure() -> None:
+    """"I read Google's paper" — the article ban on first person is about false
+    authority in explanatory prose, and does not transfer."""
+    assert not any(
+        f["rule"] == "first_person"
+        for f in check(EXEMPLAR_OPENER, profile=Profile.SHORT_FORM)["findings"]
+    )
+    assert any(f["rule"] == "first_person" for f in check("## A\n\nI read the paper.")["findings"])
+
+
+def test_announcing_a_thread_is_allowed_because_he_does_it() -> None:
+    """My own extrapolated guidance said never announce a thread. He ends with
+    "I will break it down.🧵". The exemplar beats the extrapolation."""
+    assert not any(
+        f["rule"] == "roadmap"
+        for f in check(EXEMPLAR_OPENER, profile=Profile.SHORT_FORM)["findings"]
+    )
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Quantum computing is a huge deal.",
+        "There is a lot of hype around this.",
+        "The speedup is insane.",
+        "This is incredibly important for developers.",
+    ],
+)
+def test_a_size_word_doing_a_number_s_job_is_blocked(text: str) -> None:
+    result = check(text, profile=Profile.SHORT_FORM)
+    assert result["passes"] is False
+    assert any(f["rule"] == "vague_quantifier" for f in result["findings"])
+
+
+def test_an_opener_with_no_number_question_or_named_subject_is_flagged() -> None:
+    assert any(
+        f["rule"] == "soft_opener"
+        for f in check("Some thoughts on developer productivity today.",
+                       profile=Profile.SHORT_FORM)["findings"]
+    )
+
+
+@pytest.mark.parametrize(
+    "opener",
+    [
+        "They claim 5 minutes against 10^25 years.",   # a number
+        "But does it live up to the hype?",            # a question
+        "I read Google's paper so you don't have to.", # a named subject
+        "@RareSkills_io published the benchmark.",     # a handle
+    ],
+)
+def test_a_concrete_opener_passes(opener: str) -> None:
+    assert not any(
+        f["rule"] == "soft_opener"
+        for f in check(opener, profile=Profile.SHORT_FORM)["findings"]
+    )
+
+
+def test_promoting_your_own_thing_requires_saying_so() -> None:
+    plug = "Ship faster with my course. Sign up now."
+    assert any(
+        f["rule"] == "undisclosed_stake"
+        for f in check(plug, profile=Profile.SHORT_FORM)["findings"]
+    )
+
+    disclosed = "I'm the founder of RareSkills. My course covers this in week 3."
+    assert not any(
+        f["rule"] == "undisclosed_stake"
+        for f in check(disclosed, profile=Profile.SHORT_FORM)["findings"]
+    )
+
+
+def test_article_structure_rules_do_not_apply_to_a_post() -> None:
+    """A tweet has no sections, and demanding them would fail every post."""
+    fired = {f["rule"] for f in check(EXEMPLAR_OPENER, profile=Profile.SHORT_FORM)["findings"]}
+    assert "no_h2" not in fired
+
+
+def test_the_marketing_ban_still_applies_to_short_writing() -> None:
+    """He does not write like this either — the house rule survives."""
+    assert any(
+        f["rule"] == "marketing"
+        for f in check("Our revolutionary, game-changing platform ships in 5 days.",
+                       profile=Profile.SHORT_FORM)["findings"]
+    )
+
+
+def test_short_form_gets_its_own_review_questions() -> None:
+    result = check(EXEMPLAR_OPENER, profile=Profile.SHORT_FORM)
+    assert result["review_questions"] == SHORT_FORM_ADVISORY
+    assert any("stand on its own if quoted" in q for q in result["review_questions"])

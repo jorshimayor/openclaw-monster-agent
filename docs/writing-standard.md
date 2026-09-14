@@ -203,7 +203,8 @@ is the first fifteen seconds.
 - The first tweet is the introduction: the problem and a reason to continue,
   never the answer.
 - One claim per tweet, each standing alone if quoted.
-- No thread announcing itself as a thread.
+- Announcing the thread is fine — the exemplar does it. (An earlier
+  version of this line said the opposite; it was extrapolation, and wrong.)
 - A number, a snippet, or a screenshot beats an adjective. This is where
   `robust` and `game-changing` reappear under pressure — do not let them.
 - Close on the concrete next step, not "follow for more".
@@ -281,12 +282,78 @@ article, the deeper course. Not a restatement of what was just read.
   constraint is itself a standard: if your answer needs more than three
   sentences, you have not understood it yet.
 
-## What this standard still does not contain
+## The @Jeyffre standard — and a discovery
 
-The @Jeyffre standard is not represented. I have not read enough of that writing
-to derive anything defensible, and a rubric built from an impression would be the
-invented authority this document exists to prevent.
+**@Jeyffre is Jeffrey Scholz, the founder of RareSkills.** The two standards you
+asked for are one person. His bio reads "Building the graduate school of
+blockchain engineering @rareskills_io", and the RareSkills method above is his
+editorial standard written long. What his account adds is the same epistemics
+compressed into posts.
 
-Share three or four pieces you consider exemplary — a Doc, or just the links —
-and the specifics can be extracted the same way the RareSkills rules were: by
-reading structure, not by guessing at style.
+Select **SHORT FORM** to check against it.
+
+### The opener carries a figure
+
+His most-read thread opens:
+
+> "I read Google's paper about their quantum computer so you don't have to.
+> They claim to have ran a quantum computation in 5 minutes that would take a
+> normal computer 10^25 years. But what was that computation? Does it live up to
+> the hype? I will break it down."
+
+Four moves in four lines: **service framing**, the **claim with its numbers**, the
+**question the thread exists to answer**, and the **format signal**. The linter
+requires an opener to carry at least one of a figure, a named subject, or a
+question.
+
+### Vague words are the enemy, explicitly
+
+His objection to another post was that the word "just" "glosses over a lot of
+physical constraints", answered with three concrete parallels: "You can't 'just'
+build an app or 'just' start a company or 'just' invade another country."
+
+So size and intensity words standing in for a measurement are **blocked** in this
+profile: `huge` · `massive` · `insane` · `a lot of` · `incredibly` · `extremely`.
+Where he makes a claim, the number is in the sentence — "$3,000", "$200 plan",
+"5 minutes".
+
+### The stake is stated
+
+"I'm the founder of @RareSkills_io." Said outright, which is what makes a
+recommendation usable. Promoting something you profit from without saying so is
+flagged.
+
+### Where this profile disagrees with the article rules
+
+**First person is the form, not a failure.** "I read Google's paper", "I propose",
+"I don't get". The article ban on first person exists to stop opinion being
+dressed as authoritative recommendation — a problem that does not arise when the
+whole post is visibly one person's view.
+
+**Announcing the thread is fine.** My earlier extrapolation in this document said
+never announce a thread as a thread. He ends with "I will break it down.🧵". The
+exemplar beats my extrapolation, and that earlier guidance was wrong — it is now
+corrected here and exempted in the linter.
+
+**Article structure rules do not apply.** No sections, no heading style, no table
+framing. Demanding them would fail every post ever written.
+
+What does survive is the marketing ban. He does not write `robust`,
+`game-changing` or `revolutionary` in any register.
+
+### The test
+
+His own opener, run through this profile, passes with zero findings. A standard
+that fails the writing it was derived from is wrong, and there is a test pinning
+exactly that.
+
+## What is still missing
+
+Only the parts of his short-form work behind X's login wall. Unauthenticated
+requests return HTTP 402 and the browser is cut off after roughly six posts, so
+this profile rests on those six openers and his bio rather than a broad sample.
+
+It is enough for the rules above, all of which recur across every visible post.
+It is not enough to say anything about how he structures the *middle* of a long
+thread, or how he closes one. If you want that, paste three or four threads you
+rate into a Doc and the same extraction can run over them.

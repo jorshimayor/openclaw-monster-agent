@@ -35,7 +35,9 @@ export default function WritePage() {
   const [text, setText] = useState("");
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState("article");
-  const [profile, setProfile] = useState<"explanatory" | "technical">("explanatory");
+  const [profile, setProfile] = useState<"explanatory" | "technical" | "short_form">(
+    "explanatory"
+  );
   const [result, setResult] = useState<DraftCheck | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,12 +83,15 @@ export default function WritePage() {
             />
             <select
               value={profile}
-              onChange={(e) => setProfile(e.target.value as "explanatory" | "technical")}
-              title="Explanatory = the house style. Technical = the RareSkills method: prove every claim, declare prerequisites, show the mechanism."
+              onChange={(e) =>
+                setProfile(e.target.value as "explanatory" | "technical" | "short_form")
+              }
+              title="House style = your editorial guides. RareSkills = prove every claim, declare prerequisites, show the mechanism. Short form = @Jeyffre: the number carries the claim."
               className="lg:w-44 bg-bg/50 border border-matrix/30 rounded px-3 py-2 text-xs tracking-widest focus:border-matrix focus:outline-none"
             >
               <option value="explanatory">HOUSE STYLE</option>
               <option value="technical">RARESKILLS</option>
+              <option value="short_form">SHORT FORM</option>
             </select>
             <select
               value={kind}

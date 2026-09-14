@@ -37,6 +37,11 @@ class Profile:
 
     EXPLANATORY = "explanatory"
     TECHNICAL = "technical"
+    # Jeffrey Scholz (@Jeyffre), who is also the founder of RareSkills — the two
+    # standards asked for turn out to be one person. The short-form voice is the
+    # article epistemics compressed: name a claim, quote its number, ask whether
+    # it survives. First person is the default here, not a failure.
+    SHORT_FORM = "short_form"
 
 
 class Severity:
@@ -146,6 +151,22 @@ TECHNICAL_DEPTH_WORDS = 1200
 # 400 words is a floor, not a target.
 WORDS_PER_CODE_BLOCK = 400
 
+# ── short form (@Jeyffre) ────────────────────────────────────────────────────
+
+# Size and intensity words standing in for a measurement. His openers carry the
+# number instead — "5 minutes", "10^25 years", "$3,000" — and his criticism of
+# others is precisely that a vague word "glosses over a lot of constraints".
+VAGUE_QUANTIFIERS = [
+    "a lot of", "tons of", "huge", "massive", "enormous", "insane", "crazy",
+    "mind-blowing", "unbelievable", "incredibly", "extremely", "super",
+    "way better", "way faster", "so much better", "10x better",
+]
+
+# What a strong opener contains: a figure, a named subject, or the question the
+# post exists to answer.
+_OPENER_NUMBER = r"\d"
+_OPENER_NAMED = r"(@\w+|[A-Z][a-zA-Z]+(?:'s)?\s+(?:paper|post|thread|claim|article|talk|report))"
+
 # ── thresholds ───────────────────────────────────────────────────────────────
 
 # "Three or four sentences per paragraph is a useful guideline, but clarity
@@ -228,6 +249,22 @@ RULES: List[Rule] = [
          "Their articles carry 20-60 runnable blocks. A mechanism explained "
          "only in prose is a summary, and the reader came for the mechanism.",
          "RareSkills method — show the thing working", Profile.TECHNICAL),
+    # ── short form ──
+    Rule("vague_quantifier", Severity.BLOCK, "Size word doing a number's job",
+         "His whole objection to a claim is that a vague word “glosses over a "
+         "lot of physical constraints”. Put the figure in, or drop the claim.",
+         "@Jeyffre — the number carries the claim", Profile.SHORT_FORM),
+    Rule("soft_opener", Severity.WARN, "Opener carries nothing concrete",
+         "His openers name a subject and quote a figure: “They claim to have ran "
+         "a quantum computation in 5 minutes that would take a normal computer "
+         "10^25 years.” An opener with no number, no named subject and no "
+         "question has not earned the scroll.",
+         "@Jeyffre — concrete first line", Profile.SHORT_FORM),
+    Rule("undisclosed_stake", Severity.WARN, "Promotes something without disclosing the stake",
+         "He states it outright — “I'm the founder of @RareSkills_io” — which is "
+         "what lets him recommend it at all.",
+         "@Jeyffre — disclosed interest", Profile.SHORT_FORM),
+
     Rule("no_forward_path", Severity.NOTE, "Ends without a next step",
          "They close on the next article or the deeper resource, never on a "
          "restatement of what was just read.",
@@ -244,6 +281,18 @@ PROFILE_EXEMPT = {
         # not the payoff.
         "roadmap",
     },
+    Profile.SHORT_FORM: {
+        # "I read Google's paper so you don't have to" — first person is the
+        # form, and the ban on it is an article rule about false authority.
+        "first_person",
+        # "I will break it down.🧵" is his actual practice. My earlier guidance
+        # said never announce a thread; the exemplar says otherwise, and the
+        # exemplar wins.
+        "roadmap",
+        # A post is not an article; sections and tables do not apply.
+        "no_h2", "heading_not_question", "table_context", "list_overuse",
+        "thin_list_item", "long_paragraph",
+    },
 }
 
 
@@ -256,6 +305,19 @@ def rules_for(profile: str) -> List[Rule]:
 
 
 # Judgements a linter cannot make. These are the review questions, not checks.
+SHORT_FORM_ADVISORY: List[str] = [
+    "Does the first line name a specific claim, with its number, rather than a "
+    "topic?",
+    "Is the question the post exists to answer actually asked, or only implied?",
+    "Would each post stand on its own if quoted without the rest?",
+    "Where you disagree with someone, are you arguing with a specific word or "
+    "figure of theirs, or with a summary of their position?",
+    "If you are recommending something you profit from, have you said so?",
+    "Is there a number, a snippet or a screenshot where an adjective is doing "
+    "the work?",
+]
+
+
 TECHNICAL_ADVISORY: List[str] = [
     "Is every claim about behaviour demonstrated — runnable code, a gas number, "
     "an opcode trace, a diagram — or asserted in prose?",

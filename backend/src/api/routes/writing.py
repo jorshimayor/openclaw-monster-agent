@@ -20,7 +20,7 @@ class CheckRequest(BaseModel):
     title: Optional[str] = None
     # article | outline | newsletter | tweet | video_script
     kind: str = "article"
-    # explanatory (house style) | technical (RareSkills method)
+    # explanatory (house style) | technical (RareSkills) | short_form (@Jeyffre)
     profile: str = Profile.EXPLANATORY
 
 
@@ -42,10 +42,10 @@ async def list_rules(profile: str = Profile.EXPLANATORY) -> Dict[str, Any]:
 async def check_draft(body: CheckRequest) -> Dict[str, Any]:
     if not body.text.strip():
         raise HTTPException(status_code=400, detail="text cannot be empty")
-    if body.profile not in (Profile.EXPLANATORY, Profile.TECHNICAL):
+    valid = (Profile.EXPLANATORY, Profile.TECHNICAL, Profile.SHORT_FORM)
+    if body.profile not in valid:
         raise HTTPException(
-            status_code=400,
-            detail=f"profile must be {Profile.EXPLANATORY!r} or {Profile.TECHNICAL!r}",
+            status_code=400, detail=f"profile must be one of {list(valid)}"
         )
     result = check(body.text, body.title or "", profile=body.profile)
     result["kind"] = body.kind

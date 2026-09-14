@@ -20,8 +20,9 @@ from .rules import (
     LIST_BUDGET_PER_1000_WORDS, MARKETING_WORDS, MAX_PARAGRAPH_SENTENCES,
     MAX_SENTENCE_WORDS, MEASUREMENT_PATTERN, MIN_LIST_ITEM_WORDS,
     PERFORMANCE_CLAIMS, PREREQUISITE_TELLS, Profile, ROADMAP_TELLS,
-    RULES_BY_KEY, SUPERLATIVES, TECHNICAL_ADVISORY, TECHNICAL_DEPTH_WORDS,
-    WORDS_PER_CODE_BLOCK, Severity, rules_for,
+    RULES_BY_KEY, SHORT_FORM_ADVISORY, SUPERLATIVES, TECHNICAL_ADVISORY,
+    TECHNICAL_DEPTH_WORDS, VAGUE_QUANTIFIERS, WORDS_PER_CODE_BLOCK, Severity,
+    rules_for,
 )
 
 _CODE_FENCE = re.compile(r"```.*?```", re.S)
@@ -372,6 +373,53 @@ def _check_technical(text: str) -> List[Finding]:
     return out
 
 
+_SELF_PROMO = re.compile(
+    r"\b(my|our)\s+(course|bootcamp|book|product|service|tool|newsletter|program)\b", re.I
+)
+_STAKE_DISCLOSED = re.compile(
+    r"\b(i(?:'m| am)\s+the\s+(?:founder|author|creator|maintainer)|i built|i wrote|"
+    r"i run|disclosure|full disclosure|i work (?:at|on)|my company)\b", re.I
+)
+
+
+def _check_short_form(text: str) -> List[Finding]:
+    """The @Jeyffre rules: the number carries the claim."""
+    out: List[Finding] = []
+    out += _find_phrases(
+        text, VAGUE_QUANTIFIERS, "vague_quantifier",
+        "Replace it with the figure. “5 minutes” beats “incredibly fast”.",
+    )
+
+    lines = [l for l in _strip_code(text).splitlines() if l.strip()]
+    if lines:
+        opener = lines[0]
+        has_number = re.search(r"\d", opener)
+        has_question = "?" in opener
+        has_named = re.search(
+            r"(@\w+|[A-Z][a-zA-Z]+(?:'s)?\s+"
+            r"(?:paper|post|thread|claim|article|talk|report|docs?))",
+            opener,
+        )
+        if not (has_number or has_question or has_named):
+            r = RULES_BY_KEY["soft_opener"]
+            out.append(Finding(
+                r.key, r.severity, r.title, r.why, r.source, 1, opener.strip()[:140],
+                "Name the thing and quote its number, or ask the question the "
+                "post answers.",
+            ))
+
+    body = _strip_code(text)
+    if _SELF_PROMO.search(body) and not _STAKE_DISCLOSED.search(body):
+        r = RULES_BY_KEY["undisclosed_stake"]
+        m = _SELF_PROMO.search(body)
+        out.append(Finding(
+            r.key, r.severity, r.title, r.why, r.source, 1,
+            body[max(0, m.start() - 40): m.end() + 40].strip(),
+            "Say the stake outright: “I'm the founder of …”.",
+        ))
+    return out
+
+
 def check(
     text: str, title: str = "", profile: str = Profile.EXPLANATORY
 ) -> Dict[str, Any]:
@@ -398,6 +446,8 @@ def check(
     findings += _check_structure(text)
     if profile == Profile.TECHNICAL:
         findings += _check_technical(text)
+    if profile == Profile.SHORT_FORM:
+        findings += _check_short_form(text)
 
     # Drop anything the profile exempts — the explanatory ban on stating the
     # answer up front does not apply to a mechanism article.
@@ -414,9 +464,8 @@ def check(
         "passes": counts[Severity.BLOCK] == 0,
         "counts": counts,
         "findings": [asdict(f) for f in findings],
-        "review_questions": (
-            ADVISORY + TECHNICAL_ADVISORY
-            if profile == Profile.TECHNICAL
-            else ADVISORY
-        ),
+        "review_questions": {
+            Profile.TECHNICAL: ADVISORY + TECHNICAL_ADVISORY,
+            Profile.SHORT_FORM: SHORT_FORM_ADVISORY,
+        }.get(profile, ADVISORY),
     }

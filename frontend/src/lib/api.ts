@@ -566,7 +566,7 @@ export class ApiClient {
     text: string,
     title?: string,
     kind = "article",
-    profile: "explanatory" | "technical" = "explanatory"
+    profile: "explanatory" | "technical" | "short_form" = "explanatory"
   ): Promise<DraftCheck> {
     const res = await fetch(`${this.baseUrl}/api/writing/check`, {
       method: "POST",
