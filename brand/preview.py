@@ -13,16 +13,19 @@ from __future__ import annotations
 import base64
 from pathlib import Path
 
+from motifs import MOTIFS, H, W
+
 ROOT = Path(__file__).resolve().parent
 OUT = ROOT / "out"
 
 # (file, caption, css width) — feed sizes included, because a thumbnail that
 # only works at full size does not work.
 SHEET = [
-    ("../logo-mark.svg", "logo · mark", 120),
-    ("../logo-lockup.svg", "logo · lockup", 380),
-    ("../favicon.svg", "favicon @32", 32),
-    ("../favicon.svg", "favicon @16", 16),
+    ("logo-mark.svg", "logo · mark", 120),
+    ("logo-lockup.svg", "logo · lockup", 380),
+    ("logo-mark.svg", "mark @32", 32),
+    ("favicon.svg", "favicon @32", 32),
+    ("favicon.svg", "favicon @16", 16),
     ("banner-x.svg", "banner · X (1500×500)", 760),
     ("banner-linkedin.svg", "banner · LinkedIn (1584×396)", 760),
     ("thumbnail.svg", "YouTube thumbnail (1280×720)", 480),
@@ -47,8 +50,12 @@ def uri(path: Path) -> str:
 
 
 def main() -> None:
+    """With no arguments, everything. With them, only assets matching one."""
+    import sys
+    wanted = sys.argv[1:]
+    rows = [r for r in SHEET if not wanted or any(w in r[0] for w in wanted)]
     parts = [f"<!doctype html><meta charset='utf-8'><style>{CSS}</style>"]
-    for name, caption, width in SHEET:
+    for name, caption, width in rows:
         path = (OUT / name).resolve()
         if not path.exists():
             raise SystemExit(f"missing {path} — run render.py first")
@@ -57,6 +64,27 @@ def main() -> None:
     target = OUT / "_preview.html"
     target.write_text("\n".join(parts))
     print(f"  {target.relative_to(ROOT.parent)}")
+    print(f"  {motif_sheet().relative_to(ROOT.parent)}")
+
+
+def motif_sheet() -> Path:
+    """Every subject illustration at full strength, for picking one."""
+    cards = []
+    for name in sorted(MOTIFS):
+        cards.append(
+            f"<figure><svg viewBox='0 0 {W} {H}' width='{W}' height='{H}'>"
+            f"<rect width='{W}' height='{H}' fill='#080B18'/>{MOTIFS[name]}</svg>"
+            f"<figcaption>{name}</figcaption></figure>"
+        )
+    target = OUT / "motif-gallery.html"
+    target.write_text(
+        f"<!doctype html><meta charset='utf-8'><style>{CSS}"
+        "figure{margin:0}figcaption{margin-top:6px}"
+        ".g{display:flex;flex-wrap:wrap;gap:14px}"
+        "svg{border:1px solid rgba(93,120,255,.16)}</style>"
+        f"<div class='g'>{''.join(cards)}</div>"
+    )
+    return target
 
 
 if __name__ == "__main__":

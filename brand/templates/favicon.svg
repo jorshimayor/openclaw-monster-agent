@@ -1,0 +1,6 @@
+<!-- Favicon. Same geometry as the mark, heavier strokes and a denser hexagon
+     fill: at 16px the outline version greys out into a smudge. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+  <rect width="96" height="96" rx="14" fill="#0C1124"/>
+{{MARK}}
+</svg>

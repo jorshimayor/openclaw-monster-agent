@@ -1,0 +1,17 @@
+<!-- The mark, as an injectable fragment in a 96x96 box. One glyph, three
+     claims: the braces are the code, the hexagon is the block, the three
+     linked nodes are the model. The geometry never changes between sizes —
+     only the stroke weights, which are passed in, because a 5px stroke that
+     reads correctly at 96px disappears at 16px. -->
+<g fill="none" stroke-width="{{BRACEW}}" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M28 20 C22 20 20 23 20 29 L20 41 C20 45 17 48 13 48 C17 48 20 51 20 55 L20 67 C20 73 22 76 28 76" stroke="#FFFFFF"/>
+  <path d="M68 20 C74 20 76 23 76 29 L76 41 C76 45 79 48 83 48 C79 48 76 51 76 55 L76 67 C76 73 74 76 68 76" stroke="#8B9BFF"/>
+</g>
+<path d="M48 31 L62.7 39.5 L62.7 56.5 L48 65 L33.3 56.5 L33.3 39.5 Z"
+      fill="rgba(61,90,254,{{HEXFILL}})" stroke="#5B74FF" stroke-width="{{HEXW}}" stroke-linejoin="round"/>
+<g stroke="rgba(165,178,255,0.75)" stroke-width="{{EDGEW}}" stroke-linecap="round">
+  <path d="M48 41 L42 53 M48 41 L54 53 M42 53 L54 53"/>
+</g>
+<circle cx="48" cy="41" r="{{NODER}}" fill="#3D5AFE"/>
+<circle cx="42" cy="53" r="{{NODEr}}" fill="#E8ECF7"/>
+<circle cx="54" cy="53" r="{{NODEr}}" fill="#E8ECF7"/>

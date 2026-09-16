@@ -12,7 +12,9 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "Monster Agent · J.A.R.V.I.S. Command Center",
-  description: "Multi-agent orchestration dashboard"
+  description: "Multi-agent orchestration dashboard",
+  // Written by brand/render.py — edit the template, not the public file.
+  icons: { icon: "/favicon.svg", shortcut: "/favicon.svg", apple: "/logo-mark.svg" }
 };
 
 const NAV_LINKS = [

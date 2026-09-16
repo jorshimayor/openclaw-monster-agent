@@ -26,6 +26,21 @@
 <rect width="1200" height="400" fill="url(#dots)" mask="url(#dotMask)"/>
 <rect width="1200" height="400" fill="url(#glow)"/>
 
+<g transform="translate(890,160) scale(1.0)" opacity="1.0" aria-hidden="true"><g fill="none" stroke="rgba(139,155,255,0.30)" stroke-width="2">
+  <rect x="6" y="50" width="62" height="60" rx="7"/>
+  <rect x="89" y="50" width="62" height="60" rx="7"/>
+  <rect x="172" y="50" width="62" height="60" rx="7"/>
+</g>
+<g fill="none" stroke="rgba(139,155,255,0.14)" stroke-width="2" stroke-linecap="round">
+  <path d="M18 66 H48 M18 78 H56 M18 90 H38"/>
+  <path d="M101 66 H131 M101 78 H139 M101 90 H121"/>
+  <path d="M184 66 H214 M184 78 H222 M184 90 H204"/>
+</g>
+<g fill="none" stroke="rgba(139,155,255,0.30)" stroke-width="2">
+  <path d="M68 80 H89 M151 80 H172"/>
+</g>
+<circle cx="78.5" cy="80" r="4" fill="rgba(91,116,255,0.55)"/>
+<circle cx="161.5" cy="80" r="4" fill="rgba(91,116,255,0.55)"/></g>
   <g fill="none" stroke="rgba(93,120,255,0.3)" stroke-width="1.5">
     <path d="M980 64 L1104 64 Q1122 64 1122 82 L1122 140"/>
   </g>
@@ -34,10 +49,18 @@
   <g transform="translate(72,64) scale(0.5)">
     <rect width="96" height="96" rx="20" fill="#0C1124" stroke="rgba(93,120,255,0.22)" stroke-width="1.5"/>
     <g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M36 18 C30 18 28 21 28 27 L28 40 C28 45 25 48 21 48 C25 48 28 51 28 56 L28 69 C28 75 30 78 36 78" stroke="#FFFFFF"/>
-      <path d="M60 18 C66 18 68 21 68 27 L68 40 C68 45 71 48 75 48 C71 48 68 51 68 56 L68 69 C68 75 66 78 60 78" stroke="#8B9BFF"/>
-    </g>
-    <circle cx="48" cy="48" r="6" fill="#3D5AFE"/>
+  <path d="M28 20 C22 20 20 23 20 29 L20 41 C20 45 17 48 13 48 C17 48 20 51 20 55 L20 67 C20 73 22 76 28 76" stroke="#FFFFFF"/>
+  <path d="M68 20 C74 20 76 23 76 29 L76 41 C76 45 79 48 83 48 C79 48 76 51 76 55 L76 67 C76 73 74 76 68 76" stroke="#8B9BFF"/>
+</g>
+<path d="M48 31 L62.7 39.5 L62.7 56.5 L48 65 L33.3 56.5 L33.3 39.5 Z"
+      fill="rgba(61,90,254,0.2)" stroke="#5B74FF" stroke-width="2.5" stroke-linejoin="round"/>
+<g stroke="rgba(165,178,255,0.75)" stroke-width="1.4" stroke-linecap="round">
+  <path d="M48 41 L42 53 M48 41 L54 53 M42 53 L54 53"/>
+</g>
+<circle cx="48" cy="41" r="3.1" fill="#3D5AFE"/>
+<circle cx="42" cy="53" r="2.5" fill="#E8ECF7"/>
+<circle cx="54" cy="53" r="2.5" fill="#E8ECF7"/>
+
   </g>
   <text x="132" y="100" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,monospace" font-size="20" fill="#FFFFFF" letter-spacing="0.4">the build log</text>
   <text x="1128" y="100" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,monospace" font-size="18" fill="#6E7893"

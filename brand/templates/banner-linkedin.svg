@@ -1,12 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1584 396" width="1584" height="396">
 {{SURFACE}}
+{{MOTIF}}
   <g fill="none" stroke="rgba(93,120,255,0.3)" stroke-width="1.5">
     <path d="M120 96 L232 96 Q250 96 250 114 L250 150"/>
     <path d="M1470 250 L1470 180 Q1470 162 1452 162 L1380 162"/>
   </g>
   <circle cx="250" cy="150" r="4" fill="#3D5AFE"/>
-  <rect x="300" y="180" width="120" height="70" fill="none"
-        stroke="rgba(93,120,255,0.16)" stroke-width="1.5" stroke-dasharray="5 6"/>
   <path d="M1464 232 L1478 240 L1464 248 Z" fill="#E8ECF7"/>
 
   <g transform="translate(96,70)">

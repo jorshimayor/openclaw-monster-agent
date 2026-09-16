@@ -26,20 +26,33 @@
 <rect width="1584" height="396" fill="url(#dots)" mask="url(#dotMask)"/>
 <rect width="1584" height="396" fill="url(#glow)"/>
 
+<g transform="translate(270,101) scale(0.97)" opacity="1.0" aria-hidden="true"><g fill="none" stroke="rgba(139,155,255,0.30)" stroke-width="2">
+  <rect x="6" y="50" width="62" height="60" rx="7"/>
+  <rect x="89" y="50" width="62" height="60" rx="7"/>
+  <rect x="172" y="50" width="62" height="60" rx="7"/>
+</g>
+<g fill="none" stroke="rgba(139,155,255,0.14)" stroke-width="2" stroke-linecap="round">
+  <path d="M18 66 H48 M18 78 H56 M18 90 H38"/>
+  <path d="M101 66 H131 M101 78 H139 M101 90 H121"/>
+  <path d="M184 66 H214 M184 78 H222 M184 90 H204"/>
+</g>
+<g fill="none" stroke="rgba(139,155,255,0.30)" stroke-width="2">
+  <path d="M68 80 H89 M151 80 H172"/>
+</g>
+<circle cx="78.5" cy="80" r="4" fill="rgba(91,116,255,0.55)"/>
+<circle cx="161.5" cy="80" r="4" fill="rgba(91,116,255,0.55)"/></g>
   <g fill="none" stroke="rgba(93,120,255,0.3)" stroke-width="1.5">
     <path d="M120 96 L232 96 Q250 96 250 114 L250 150"/>
     <path d="M1470 250 L1470 180 Q1470 162 1452 162 L1380 162"/>
   </g>
   <circle cx="250" cy="150" r="4" fill="#3D5AFE"/>
-  <rect x="300" y="180" width="120" height="70" fill="none"
-        stroke="rgba(93,120,255,0.16)" stroke-width="1.5" stroke-dasharray="5 6"/>
   <path d="M1464 232 L1478 240 L1464 248 Z" fill="#E8ECF7"/>
 
   <g transform="translate(96,70)">
     <circle cx="14" cy="14" r="13" fill="none" stroke="rgba(232,236,247,0.7)" stroke-width="1.5"/>
     <path d="M1 14 H27 M14 1 a17 17 0 0 1 0 26 a17 17 0 0 1 0 -26" fill="none"
           stroke="rgba(232,236,247,0.7)" stroke-width="1.3"/>
-    <text x="38" y="20" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,monospace" font-size="17" fill="#FFFFFF">jorshimayor.dev</text>
+    <text x="38" y="20" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,monospace" font-size="17" fill="#FFFFFF">jorshimayor.is-a.dev</text>
   </g>
   <g transform="translate(96,262)">
     <rect x="5" y="5" width="18" height="18" rx="3" transform="rotate(45 14 14)"

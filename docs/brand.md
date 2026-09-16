@@ -13,25 +13,34 @@ does, which is that a statement should be checkable. Everything else (grid,
 traces, glow) is the surface those claims sit on and should never compete
 with them.
 
-This is why there is no tagline anywhere in the asset set. A tagline would be
-the one unfalsifiable thing on the canvas.
+This is why nothing in the set makes a claim it cannot back. The lockup carries
+`BLOCKCHAIN · SECURITY · WRITING` — three disciplines, checkable — and not a
+slogan, which would be the one unfalsifiable thing on the canvas. Change it with
+`--tagline` if the disciplines change; do not turn it into a promise.
 
 ## The mark
 
-`brand/logo-mark.svg`, `brand/logo-lockup.svg`, `brand/favicon.svg`.
+`brand/out/logo-mark.svg`, `brand/out/logo-lockup.svg`, `brand/out/favicon.svg`,
+all rendered from `brand/templates/_mark.svg`.
 
-Braces around a node: the object from the banner, collapsed to a glyph. Drawn
-as stroked paths, never as text, so it renders identically without JetBrains
-Mono installed.
+Three claims in one glyph: the **braces** are the code, the **hexagon** is the
+block, the **three linked nodes** are the model. Web3, AI and engineering in a
+single shape rather than three icons taking turns.
 
-- Minimum size for the mark is 24px. Below that, use `favicon.svg`, which drops
-  the node's ring and thickens the strokes — the detailed version turns to mud
-  at 16px.
-- The lockup is the mark plus `jorshimayor` plus the three-word rule. Never
-  re-typeset it; if the words change, change the file.
-- Clear space on all sides is the width of one brace stem. There is no approved
-  version on a light ground — the ink background is doing structural work, not
-  decorating.
+It is one drawing at every size. Nothing is added or removed between the logo
+and the 16px favicon — only the stroke weights change, and the hexagon fill
+gets denser, because a 5px stroke that reads correctly at 96px greys out into a
+smudge at 16px. Those two weight sets are `MARK_WEIGHTS` in `render.py`; there
+is no third.
+
+- Drawn as stroked paths, never as text, so it renders identically on a machine
+  without JetBrains Mono.
+- Clear space on all sides is the width of one brace stem.
+- There is no approved version on a light ground — the ink background is doing
+  structural work, not decorating.
+- `frontend/public/favicon.svg` and `logo-mark.svg` are **written by the
+  renderer**, not copied by hand. Edit the template and re-render; do not edit
+  the files under `public/`.
 
 ## Colour
 
@@ -62,6 +71,34 @@ Tracking is `0.18em` on labels, `-0.01em` on headings. Titles are never set
 below 46px on a 1200px canvas or 52px on a thumbnail — below that the asset
 stops working at feed size, which is the only size that matters.
 
+## Subject illustrations
+
+`brand/motifs.py`. Line art, one per subject the rotation actually covers, so
+the artwork tracks the work instead of being chosen by mood:
+
+`blocks` (the default, and the broadest web3 signal) · `evm` · `solana` ·
+`move` · `cosmos` · `security` · `ai` · `football` · `systems` · `none`
+
+Every motif is drawn in the same 240×160 box, so any of them drops into any
+slot without re-fitting. They sit behind the content at low alpha and are never
+the thing read first — **if the motif is legible before the headline is, it is
+too loud.** That is the whole rule; the alphas in `motifs.py` (`LINE`, `DIM`,
+`NODE`) are what enforce it, and raising them is how this gets ruined.
+
+```bash
+python3 brand/preview.py   # also writes brand/out/motif-gallery.html
+```
+
+Pick per asset:
+
+```bash
+python3 brand/render.py --site jorshimayor.is-a.dev \
+  --motif blocks --article-motif security --thumb-motif evm
+```
+
+`--thumb-motif`, `--article-motif` and `--news-motif` each fall back to
+`--motif`. An unknown name fails with the list rather than drawing nothing.
+
 ## Canvases
 
 | Asset | Size | File |
@@ -72,28 +109,31 @@ stops working at feed size, which is the only size that matters.
 | Article header / OG | 1200×630 | `brand/out/article-header.svg` |
 | Newsletter header | 1200×400 | `brand/out/newsletter.svg` |
 
-Two crops constrain the layouts and are easy to forget:
+Three constraints on the layouts, all learned by rendering them:
 
 - **X overlays the avatar on the bottom-left corner.** Nothing below `y=340`
   sits left of `x=440`.
 - **A thumbnail is judged at 320×180.** Three words a line, three lines, one
   number. The contact sheet renders it at both sizes for this reason.
+- **Each motif sits in the one box its canvas has free**, which is why the
+  positions in `render.py` differ per asset rather than being one constant.
 
 ## Regenerating
 
 ```bash
-python3 brand/render.py --site jorshimayor.dev && python3 brand/preview.py
+python3 brand/render.py --site jorshimayor.is-a.dev && python3 brand/preview.py
 ```
 
-`render.py` fills the templates in `brand/templates/`; `preview.py` builds
-`brand/out/_preview.html`, a contact sheet to eyeball before publishing.
+`render.py` fills the templates in `brand/templates/` and also writes the
+site's favicon; `preview.py` builds `brand/out/_preview.html`, a contact sheet
+to eyeball before publishing, plus `motif-gallery.html`.
 
 Per-asset content is passed in, so a thumbnail is a command rather than a file
 to edit:
 
 ```bash
-python3 brand/render.py --site jorshimayor.dev \
-  --tag "SOLANA SECURITY" \
+python3 brand/render.py --site jorshimayor.is-a.dev \
+  --tag "SOLANA SECURITY" --thumb-motif security \
   --thumb "Reentrancy in Practice|Not the Textbook Version|17 Contracts Audited"
 ```
 
@@ -109,10 +149,11 @@ Two things in the renderer are worth knowing before changing it:
 ## What this does not cover
 
 - **Motion.** No animation, transition or video-intro spec exists.
-- **The website itself.** `tokens.css` is importable, but the frontend has not
-  been migrated onto these variables.
+- **The website itself.** `tokens.css` is importable and the favicon is wired
+  up, but the frontend has not been migrated onto these variables.
 - **Light mode.** There isn't one, by choice.
 - **Print.** Everything here is RGB on a dark ground and will not survive CMYK.
-- **Photography or illustration style.** The illustration guidance in
+- **Photography.** The motifs are diagrams, not imagery.
+- **Illustration inside articles.** The guidance in
   [`writing-standard.md`](writing-standard.md) covers diagrams in articles,
   which is a separate problem from brand imagery.

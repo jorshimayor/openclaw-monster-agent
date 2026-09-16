@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 500" width="1500" height="500">
 {{SURFACE}}
+{{MOTIF}}
   <!-- X overlays the avatar on the bottom-left corner, so everything below
        y=340 stays right of x=440 and the left column sits high. -->
   <g fill="none" stroke="rgba(93,120,255,0.35)" stroke-width="1.5">
@@ -8,24 +9,21 @@
   </g>
   <circle cx="330" cy="56" r="4" fill="#3D5AFE"/>
   <circle cx="1418" cy="340" r="4" fill="#3D5AFE"/>
-  <rect x="120" y="54" width="150" height="80" fill="none"
-        stroke="rgba(93,120,255,0.18)" stroke-width="1.5" stroke-dasharray="5 6"/>
-
   <!-- the cursor glyph from the original, sitting on the end of the trace -->
   <path d="M458 106 L476 114 L458 122 Z" fill="#E8ECF7"/>
 
-  <text x="474" y="172" font-family="{{MONO}}" font-size="19" fill="#6E7893"
-        letter-spacing="0.6" text-anchor="end">const profile = () =&gt;</text>
+  <text x="500" y="118" font-family="{{MONO}}" font-size="19" fill="#6E7893"
+        letter-spacing="0.6">const profile = () =&gt;</text>
 
   <g font-family="{{SANS}}" font-size="46" font-weight="700">
-    <text x="498" y="166" fill="#5B74FF">({</text>
-    <text x="560" y="166">
+    <text x="498" y="176" fill="#5B74FF">({</text>
+    <text x="560" y="176">
       <tspan fill="#FFFFFF">{{KEY1A}}</tspan><tspan fill="#5B74FF">_{{KEY1B}}</tspan><tspan fill="#8A93AB">: </tspan><tspan fill="#6E7893">true</tspan>
     </text>
-    <text x="560" y="246">
+    <text x="560" y="256">
       <tspan fill="#FFFFFF">{{KEY2A}}</tspan><tspan fill="#5B74FF">_{{KEY2B}}</tspan><tspan fill="#8A93AB">: </tspan><tspan fill="#6E7893">true</tspan>
     </text>
-    <text x="560" y="326">
+    <text x="560" y="336">
       <tspan fill="#FFFFFF">{{KEY3A}}</tspan><tspan fill="#5B74FF">_{{KEY3B}}</tspan><tspan fill="#8A93AB">: </tspan><tspan fill="#6E7893">true</tspan><tspan fill="#5B74FF"> })</tspan>
     </text>
   </g>

@@ -100,3 +100,4 @@ docs/private-sot
 # above would otherwise swallow it. The contact sheet stays generated.
 !brand/out/
 brand/out/_preview.html
+brand/out/motif-gallery.html

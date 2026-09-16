@@ -14,9 +14,10 @@ content moves. Change a colour in tokens.json and it changes once, here.
 from __future__ import annotations
 
 import argparse
-import json
 import re
 from pathlib import Path
+
+from motifs import motif, names as motif_names
 
 ROOT = Path(__file__).resolve().parent
 TEMPLATES = ROOT / "templates"
@@ -48,16 +49,37 @@ def esc(text: str) -> str:
     )
 
 
+def fragment(name: str) -> str:
+    raw = (TEMPLATES / f"{name}.svg").read_text()
+    return re.sub(r"^<!--.*?-->\s*", "", raw, flags=re.S)
+
+
 def surface(w: int, h: int) -> str:
-    raw = (TEMPLATES / "_surface.svg").read_text()
-    raw = re.sub(r"^<!--.*?-->\s*", "", raw, flags=re.S)
-    return raw.replace("{{W}}", str(w)).replace("{{H}}", str(h))
+    return fragment("_surface").replace("{{W}}", str(w)).replace("{{H}}", str(h))
 
 
-def render(name: str, size: tuple[int, int], values: dict) -> Path:
+# The mark is one drawing at every size; only the stroke weights are corrected,
+# because 5px that reads at 96px vanishes at 16px.
+MARK_WEIGHTS = {
+    "full": {"BRACEW": 5, "HEXW": 2.5, "HEXFILL": 0.20, "EDGEW": 1.4,
+             "NODER": 3.1, "NODEr": 2.5},
+    "small": {"BRACEW": 6.8, "HEXW": 3.4, "HEXFILL": 0.42, "EDGEW": 1.9,
+              "NODER": 3.8, "NODEr": 3.1},
+}
+
+
+def mark(weight: str = "full") -> str:
+    svg = fragment("_mark")
+    for key, value in MARK_WEIGHTS[weight].items():
+        svg = svg.replace(f"{{{{{key}}}}}", str(value))
+    return svg
+
+
+def render(name: str, size: tuple[int, int] | None, values: dict) -> Path:
     svg = (TEMPLATES / f"{name}.svg").read_text()
-    svg = svg.replace("{{SURFACE}}", surface(*size))
-    filled = {"MONO": MONO, "SANS": SANS, **values}
+    if size:
+        svg = svg.replace("{{SURFACE}}", surface(*size))
+    filled = {"MONO": MONO, "SANS": SANS, "MARK": mark(), **values}
     for key, value in filled.items():
         svg = svg.replace(f"{{{{{key}}}}}", str(value))
 
@@ -98,6 +120,12 @@ def main() -> None:
     ap.add_argument("--date", default="")
     ap.add_argument("--news-title", default="What broke when Opta|pulled out of FBref")
     ap.add_argument("--news-sub", default="and what I am building about it")
+    ap.add_argument("--tagline", default="BLOCKCHAIN · SECURITY · WRITING")
+    ap.add_argument("--motif", default="blocks",
+                    help=f"subject illustration on the banners: {', '.join(motif_names())}")
+    ap.add_argument("--thumb-motif", help="defaults to --motif")
+    ap.add_argument("--article-motif", help="defaults to --motif")
+    ap.add_argument("--news-motif", help="defaults to --motif")
     args = ap.parse_args()
 
     keys = [k.strip() for k in args.keys.split("|")]
@@ -112,15 +140,23 @@ def main() -> None:
         "KEY3A": esc(halves[2][0]), "KEY3B": esc(halves[2][1]),
     }
 
+    # Where each canvas has room for a motif without crowding what is read
+    # first. X keeps its bottom-left corner clear for the avatar.
     written = [
-        render("banner-x", (1500, 500), {**common, **key_vals}),
-        render("banner-linkedin", (1584, 396), {**common, **key_vals}),
+        render("logo-mark", None, {}),
+        render("logo-lockup", None, {"TAGLINE": esc(args.tagline)}),
+        render("favicon", None, {"MARK": mark("small")}),
+        render("banner-x", (1500, 500),
+               {**common, **key_vals, "MOTIF": motif(args.motif, 115, 150, 1.12)}),
+        render("banner-linkedin", (1584, 396),
+               {**common, **key_vals, "MOTIF": motif(args.motif, 270, 101, 0.97)}),
     ]
 
     thumb = split_lines(args.thumb, 3)
     size = fit_size(thumb, 1140, largest=82, smallest=52)
     written.append(render("thumbnail", (1280, 720), {
         **common, "TAG": esc(args.tag), "TAGW": max(160, len(args.tag) * 13 + 48),
+        "MOTIF": motif(args.thumb_motif or args.motif, 930, 476, 1.22),
         "TITLESIZE": size, "Y1": 290, "Y2": 290 + size + 10, "Y3": 290 + (size + 10) * 2,
         "LINE1": thumb[0], "LINE2": thumb[1], "LINE3": thumb[2],
         "SUBTITLE": esc(args.thumb_sub),
@@ -130,6 +166,7 @@ def main() -> None:
     size = fit_size(article, 1024, largest=74, smallest=46)
     written.append(render("article-header", (1200, 630), {
         **common, "KICKER": esc(args.kicker), "TITLESIZE": size,
+        "MOTIF": motif(args.article_motif or args.motif, 838, 56, 1.12),
         "LINE1": article[0], "LINE2": article[1], "LINE3": article[2],
         "Y2": 288 + size + 16, "Y3": 288 + (size + 16) * 2,
         "READTIME": esc(args.readtime),
@@ -141,12 +178,33 @@ def main() -> None:
     written.append(render("newsletter", (1200, 400), {
         **common, "NEWSLETTER": esc(args.newsletter), "ISSUE": esc(args.issue),
         "DATE": esc(args.date or date.today().strftime("%d %b %Y").upper()),
+        "MOTIF": motif(args.news_motif or args.motif, 890, 160, 1.0),
         "TITLESIZE": size, "Y2": 214 + size + 10,
         "LINE1": news[0], "LINE2": news[1], "SUBTITLE": esc(args.news_sub),
     }))
 
+    written += install(written)
+
     for p in written:
         print(f"  {p.relative_to(ROOT.parent)}")
+
+
+# The site's favicon is the same file, not a copy someone remembered to update.
+INSTALL = {"favicon.svg": "favicon.svg", "logo-mark.svg": "logo-mark.svg"}
+
+
+def install(rendered: list[Path]) -> list[Path]:
+    public = ROOT.parent / "frontend" / "public"
+    if not public.parent.exists():
+        return []
+    public.mkdir(exist_ok=True)
+    by_name = {p.name: p for p in rendered}
+    out = []
+    for src, dst in INSTALL.items():
+        target = public / dst
+        target.write_text(by_name[src].read_text())
+        out.append(target)
+    return out
 
 
 if __name__ == "__main__":
