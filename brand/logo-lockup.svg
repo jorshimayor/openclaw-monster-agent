@@ -1,0 +1,27 @@
+<!-- Horizontal lockup. Wordmark in mono to match the banner's `const profile`
+     scaffolding; the mark carries the colour. Use on anything wider than ~240px;
+     below that use the mark alone. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 96" width="520" height="96" role="img" aria-label="jorshimayor">
+  <title>jorshimayor</title>
+  <defs>
+    <linearGradient id="lockGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0C1124"/>
+      <stop offset="1" stop-color="#101A4D"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="96" height="96" rx="20" fill="url(#lockGlow)"/>
+  <rect x="0.75" y="0.75" width="94.5" height="94.5" rx="19.25" fill="none"
+        stroke="rgba(93,120,255,0.22)" stroke-width="1.5"/>
+  <g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M36 18 C30 18 28 21 28 27 L28 40 C28 45 25 48 21 48 C25 48 28 51 28 56 L28 69 C28 75 30 78 36 78" stroke="#FFFFFF"/>
+    <path d="M60 18 C66 18 68 21 68 27 L68 40 C68 45 71 48 75 48 C71 48 68 51 68 56 L68 69 C68 75 66 78 60 78" stroke="#8B9BFF"/>
+  </g>
+  <circle cx="48" cy="48" r="11.5" fill="none" stroke="rgba(93,120,255,0.45)" stroke-width="1.5"/>
+  <circle cx="48" cy="48" r="6" fill="#3D5AFE"/>
+
+  <text x="126" y="54" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,monospace"
+        font-size="34" font-weight="700" fill="#FFFFFF" letter-spacing="-0.5">jorshimayor</text>
+  <text x="127" y="76" font-family="'JetBrains Mono','SF Mono',Menlo,Consolas,monospace"
+        font-size="12.5" fill="#6E7893" letter-spacing="3.4">BLOCKCHAIN · SECURITY · WRITING</text>
+</svg>

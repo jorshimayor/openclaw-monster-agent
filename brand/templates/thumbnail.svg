@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" width="1280" height="720">
+{{SURFACE}}
+  <!-- A thumbnail is read at 320x180 in a feed. Everything here is sized for
+       that: three words max per line, 76px type, one accent bar. -->
+  <rect x="0" y="0" width="14" height="720" fill="#3D5AFE"/>
+  <g fill="none" stroke="rgba(93,120,255,0.3)" stroke-width="1.5">
+    <path d="M1160 84 L1230 84 Q1248 84 1248 102 L1248 170"/>
+  </g>
+  <circle cx="1248" cy="170" r="5" fill="#3D5AFE"/>
+
+  <g transform="translate(84,72)">
+    <rect width="{{TAGW}}" height="44" rx="22" fill="none" stroke="#3D5AFE" stroke-width="2"/>
+    <text x="24" y="30" font-family="{{MONO}}" font-size="19" fill="#8B9BFF"
+          letter-spacing="2.6">{{TAG}}</text>
+  </g>
+
+  <g font-family="{{SANS}}" font-weight="700" font-size="{{TITLESIZE}}" fill="#FFFFFF" letter-spacing="-1.5">
+    <text x="84" y="{{Y1}}">{{LINE1}}</text>
+    <text x="84" y="{{Y2}}">{{LINE2}}</text>
+    <text x="84" y="{{Y3}}" fill="#8B9BFF">{{LINE3}}</text>
+  </g>
+
+  <text x="84" y="566" font-family="{{MONO}}" font-size="26" fill="#6E7893">{{SUBTITLE}}</text>
+
+  <g transform="translate(84,616) scale(0.58)">
+    <rect width="96" height="96" rx="20" fill="#0C1124" stroke="rgba(93,120,255,0.22)" stroke-width="1.5"/>
+    <g fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M36 18 C30 18 28 21 28 27 L28 40 C28 45 25 48 21 48 C25 48 28 51 28 56 L28 69 C28 75 30 78 36 78" stroke="#FFFFFF"/>
+      <path d="M60 18 C66 18 68 21 68 27 L68 40 C68 45 71 48 75 48 C71 48 68 51 68 56 L68 69 C68 75 66 78 60 78" stroke="#8B9BFF"/>
+    </g>
+    <circle cx="48" cy="48" r="6" fill="#3D5AFE"/>
+  </g>
+  <text x="156" y="656" font-family="{{MONO}}" font-size="24" fill="#E8ECF7">{{SITE}}</text>
+</svg>

@@ -1,0 +1,37 @@
+/* Brand tokens, derived from the profile banners.
+   The motif is one idea: a profile expressed as code that evaluates to true.
+   Everything else — the grid, the traces, the glow — is the surface it sits on. */
+:root {
+  --ink-900: #05070f;
+  --ink-800: #080b18;
+  --ink-700: #0c1124;
+  --ink-600: #121933;
+
+  --depth-900: #101a4d;
+  --depth-700: #1b2a7a;
+  --depth-500: #2a3fa8;
+
+  --accent-600: #2f49e8;
+  --accent-500: #3d5afe;   /* primary */
+  --accent-400: #5b74ff;
+
+  --peri-400: #8b9bff;
+  --peri-300: #a5b2ff;
+
+  --paper-100: #ffffff;
+  --paper-200: #e8ecf7;
+
+  --muted-500: #6e7893;
+  --muted-400: #8a93ab;
+
+  --line-strong: rgba(93, 120, 255, 0.55);
+  --line-soft: rgba(93, 120, 255, 0.22);
+  --grid-dot: rgba(255, 255, 255, 0.045);
+
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: Inter, -apple-system, "Segoe UI", system-ui, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+}

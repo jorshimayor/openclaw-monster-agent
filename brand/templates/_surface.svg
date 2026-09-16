@@ -1,0 +1,29 @@
+<!-- Shared surface: the dark ground, the dot matrix, the glow that lifts the
+     lower third, and the circuit traces. Injected into every canvas so the
+     background is identical across formats and only the content changes. -->
+<defs>
+  <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#05070F"/>
+    <stop offset="0.55" stop-color="#080B18"/>
+    <stop offset="1" stop-color="#0C1124"/>
+  </linearGradient>
+  <radialGradient id="glow" cx="0.5" cy="1.05" r="0.75">
+    <stop offset="0" stop-color="#2A3FA8" stop-opacity="0.85"/>
+    <stop offset="0.45" stop-color="#1B2A7A" stop-opacity="0.35"/>
+    <stop offset="1" stop-color="#101A4D" stop-opacity="0"/>
+  </radialGradient>
+  <pattern id="dots" width="16" height="16" patternUnits="userSpaceOnUse">
+    <circle cx="1.5" cy="1.5" r="1.1" fill="rgba(255,255,255,0.045)"/>
+  </pattern>
+  <linearGradient id="fadeDots" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#fff" stop-opacity="0.9"/>
+    <stop offset="0.7" stop-color="#fff" stop-opacity="0.25"/>
+    <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </linearGradient>
+  <mask id="dotMask">
+    <rect width="{{W}}" height="{{H}}" fill="url(#fadeDots)"/>
+  </mask>
+</defs>
+<rect width="{{W}}" height="{{H}}" fill="url(#ground)"/>
+<rect width="{{W}}" height="{{H}}" fill="url(#dots)" mask="url(#dotMask)"/>
+<rect width="{{W}}" height="{{H}}" fill="url(#glow)"/>

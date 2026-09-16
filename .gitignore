@@ -95,3 +95,8 @@ mcp-servers/hashnode/.env
 
 # Symlink to private source-of-truth docs in chelsea_bot (career plan + season calendar) — NEVER commit
 docs/private-sot
+
+# brand/out is artwork to upload, not build output — the blanket out/ rule
+# above would otherwise swallow it. The contact sheet stays generated.
+!brand/out/
+brand/out/_preview.html
