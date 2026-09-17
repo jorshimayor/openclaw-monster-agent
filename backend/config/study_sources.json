@@ -457,6 +457,52 @@
           "note": "Your star \u2014 real cross-chain Move in production."
         }
       ]
+    },
+    {
+      "key": "bounty-agent",
+      "group": "Bounty agent \u00b7 build & benchmark",
+      "items": [
+        {
+          "title": "auditor \u2014 your scaffold",
+          "url": "https://github.com/jorshimayor/zc-ai-assistant/tree/main/auditor",
+          "note": "Phases 0-3. Start with `python3 -m auditor doctor`."
+        },
+        {
+          "title": "Damn Vulnerable DeFi",
+          "url": "https://www.damnvulnerabledefi.xyz/",
+          "note": "Solve by hand first. These are also the benchmark targets."
+        },
+        {
+          "title": "Foundry Book \u2014 invariant testing",
+          "url": "https://book.getfoundry.sh/forge/invariant-testing",
+          "note": "The mechanics of every PoC the agent writes."
+        },
+        {
+          "title": "Trail of Bits \u2014 building-secure-contracts",
+          "url": "https://github.com/crytic/building-secure-contracts",
+          "note": "Authoritative Echidna and Medusa patterns. The fuzzing layer is still unbuilt."
+        },
+        {
+          "title": "Solodit",
+          "url": "https://solodit.cyfrin.io/",
+          "note": "15k+ disclosed findings. One a day becomes one invariant a day."
+        },
+        {
+          "title": "Certora Prover",
+          "url": "https://docs.certora.com/",
+          "note": "For crown-jewel invariants once fuzzing is in place."
+        },
+        {
+          "title": "LiteLLM",
+          "url": "https://github.com/BerriAI/litellm",
+          "note": "The gateway config/model-policy.yaml expects on localhost:4000."
+        },
+        {
+          "title": "Immunefi",
+          "url": "https://immunefi.com/",
+          "note": "Authorized scopes and severity standards. Nothing goes in scope.yaml without a link from here."
+        }
+      ]
     }
   ],
   "rotation": {
@@ -479,7 +525,60 @@
           "6-10 Solodit findings \u2014 predict root cause and severity BEFORE reading \u2014 https://solodit.cyfrin.io/",
           "One entry from smart-contract-vulnerabilities, explained from memory \u2014 https://github.com/kadenzipfel/smart-contract-vulnerabilities"
         ],
-        "remind": true
+        "remind": true,
+        "_comment": [
+          "The standing tasks below run every day. The variant on top rotates the",
+          "bounty-agent work, so the tool gets built by using it rather than in a",
+          "separate project that never ships.",
+          "",
+          "Hand-solve appears twice on purpose. The rotation weights, it does not",
+          "sequence \u2014 and the build guide is explicit that you solve challenges by",
+          "hand BEFORE automating, because otherwise you cannot tell whether the",
+          "agent is missing bugs or your prompts are bad. Drop the second entry once",
+          "you have five hand-written PoCs.",
+          "",
+          "Order matters only for where the cycle starts: the variant index is",
+          "ordinal % len, so this list was rotated on 2026-09-17 to open on",
+          "Hand-solve. Benchmark needs a hand-solved target to compare against, and",
+          "Gate needs a report.json to read. Reorder freely once both exist."
+        ],
+        "variants": [
+          {
+            "name": "Gate",
+            "tasks": [
+              "Open the last run's discard pile in auditor/reports/report.json \u2014 for each, was it correctly discarded, or did the PoC prompt fail? \u2014 https://github.com/jorshimayor/zc-ai-assistant/blob/main/auditor/src/auditor/agents/poc.py",
+              "One tuning change justified by a specific discard \u2014 artifact is the commit. Without this the gate stays at whatever the first prompt happened to do \u2014 https://github.com/jorshimayor/zc-ai-assistant/tree/main/auditor"
+            ]
+          },
+          {
+            "name": "Hand-solve",
+            "tasks": [
+              "One Damn Vulnerable DeFi or Ethernaut level in Foundry, BY HAND, no agent \u2014 artifact is the passing test \u2014 https://www.damnvulnerabledefi.xyz/",
+              "Write the invariant it broke in one sentence before you write the exploit"
+            ]
+          },
+          {
+            "name": "Hand-solve",
+            "tasks": [
+              "One Damn Vulnerable DeFi or Ethernaut level in Foundry, BY HAND, no agent \u2014 artifact is the passing test \u2014 https://www.damnvulnerabledefi.xyz/",
+              "Explain from memory afterwards why the fix works, not just what it is"
+            ]
+          },
+          {
+            "name": "Library",
+            "tasks": [
+              "One Solodit finding \u2014 turn it into an invariant in auditor/src/auditor/knowledge/<vertical>.yaml \u2014 artifact is the diff \u2014 https://solodit.cyfrin.io/",
+              "State it as an assertion, not a topic. 'totalBorrows + cash == totalSupplied - reserves', not 'accounting should be correct'"
+            ]
+          },
+          {
+            "name": "Benchmark",
+            "tasks": [
+              "Run the agent at a target you already solved by hand: python3 -m auditor audit <target> --vertical <v> \u2014 https://github.com/jorshimayor/zc-ai-assistant/tree/main/auditor",
+              "Record what it found, what it missed, and what it discarded wrongly. That table IS the Phase 6 eval harness \u2014 artifact is the numbers"
+            ]
+          }
+        ]
       },
       {
         "theme": "web3-study",
