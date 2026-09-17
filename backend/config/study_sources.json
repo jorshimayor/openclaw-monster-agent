@@ -464,7 +464,7 @@
       "items": [
         {
           "title": "auditor \u2014 your scaffold",
-          "url": "https://github.com/jorshimayor/zc-ai-assistant/tree/main/auditor",
+          "url": "https://github.com/jorshimayor/openclaw-monster-agent/tree/main/auditor",
           "note": "Phases 0-3. Start with `python3 -m auditor doctor`."
         },
         {
@@ -546,8 +546,8 @@
           {
             "name": "Gate",
             "tasks": [
-              "Open the last run's discard pile in auditor/reports/report.json \u2014 for each, was it correctly discarded, or did the PoC prompt fail? \u2014 https://github.com/jorshimayor/zc-ai-assistant/blob/main/auditor/src/auditor/agents/poc.py",
-              "One tuning change justified by a specific discard \u2014 artifact is the commit. Without this the gate stays at whatever the first prompt happened to do \u2014 https://github.com/jorshimayor/zc-ai-assistant/tree/main/auditor"
+              "Open the last run's discard pile in auditor/reports/report.json \u2014 for each, was it correctly discarded, or did the PoC prompt fail? \u2014 https://github.com/jorshimayor/openclaw-monster-agent/blob/main/auditor/src/auditor/agents/poc.py",
+              "One tuning change justified by a specific discard \u2014 artifact is the commit. Without this the gate stays at whatever the first prompt happened to do \u2014 https://github.com/jorshimayor/openclaw-monster-agent/tree/main/auditor"
             ]
           },
           {
@@ -574,7 +574,7 @@
           {
             "name": "Benchmark",
             "tasks": [
-              "Run the agent at a target you already solved by hand: python3 -m auditor audit <target> --vertical <v> \u2014 https://github.com/jorshimayor/zc-ai-assistant/tree/main/auditor",
+              "Run the agent at a target you already solved by hand: python3 -m auditor audit <target> --vertical <v> \u2014 https://github.com/jorshimayor/openclaw-monster-agent/tree/main/auditor",
               "Record what it found, what it missed, and what it discarded wrongly. That table IS the Phase 6 eval harness \u2014 artifact is the numbers"
             ]
           }
