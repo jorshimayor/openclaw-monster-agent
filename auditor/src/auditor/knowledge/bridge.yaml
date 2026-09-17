@@ -1,0 +1,41 @@
+# Cross-chain & bridges. Historically the largest losses — weight it heavily.
+vertical: bridge
+anchors:
+  - "Ronin (2022) — validator key compromise, $625m"
+  - "Wormhole (2022) — signature verification bypass, $326m"
+  - "Nomad (2022) — a zero root accepted as proven, $190m"
+invariants:
+  - id: BRDG-01
+    statement: A message is only executed if it was genuinely emitted on the source chain.
+    testable_claim: "execute reverts for any proof not derived from a real source-chain event"
+    functions: [executeMessage, processMessage, receiveMessage]
+    crown_jewel: true
+  - id: BRDG-02
+    statement: A message executes at most once.
+    testable_claim: "the second execute with the same nonce or hash reverts"
+    functions: [executeMessage, process]
+    crown_jewel: true
+  - id: BRDG-03
+    statement: Supply is conserved across chains — minted on the destination never exceeds locked on the source.
+    testable_claim: "totalMinted(dest) <= totalLocked(source)"
+    functions: [lock, mint, burn, unlock]
+    crown_jewel: true
+  - id: BRDG-04
+    statement: The validator or relayer set cannot be changed by anyone the trust model does not name.
+    testable_claim: "updateValidatorSet reverts for any caller outside the governance path"
+    functions: [updateValidatorSet, setRelayer, transferOwnership]
+    crown_jewel: true
+  - id: BRDG-05
+    statement: A default or empty root is never treated as a valid proof.
+    testable_claim: "execute reverts when the root is bytes32(0) or uninitialized"
+    functions: [proveAndExecute, verify]
+    crown_jewel: true
+  - id: BRDG-06
+    statement: Finality is respected — a message from a reorganizable block is not acted on.
+    testable_claim: "execute reverts when confirmations < finalityThreshold"
+    functions: [executeMessage]
+failure_modes:
+  - Forged messages through incomplete signature verification.
+  - Replay across chains or across upgrades.
+  - Supply inflation from a mint path with no matching lock.
+  - Uninitialized storage treated as a valid proof.

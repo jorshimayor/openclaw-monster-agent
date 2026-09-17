@@ -1,0 +1,61 @@
+# Lending & borrowing — the deep library, seeded first per the guide's Phase 2.
+# Each invariant is stated so it can become an assertion, not a topic.
+vertical: lending
+anchors:
+  - "Euler (2023) — donation attack on the health check"
+  - "Mango Markets (2022) — oracle manipulation into an undercollateralized borrow"
+  - "Cream Finance (2021) — price manipulation via a manipulable LP token oracle"
+  - "bZx (2020) — flash-loaned price move against an on-chain oracle"
+
+invariants:
+  - id: LEND-01
+    statement: A position that passes the health check can never be immediately liquidatable in the same block.
+    testable_claim: "healthFactor(user) >= 1e18 after any borrow or withdraw that the contract accepted"
+    functions: [borrow, withdraw, redeem]
+    crown_jewel: true
+  - id: LEND-02
+    statement: Total borrows plus available liquidity equals total supplied minus reserves, at all times.
+    testable_claim: "totalBorrows + cash == totalSupplied - reserves"
+    functions: [supply, borrow, repay, withdraw, accrueInterest]
+    crown_jewel: true
+  - id: LEND-03
+    statement: Interest accrual is monotonic — an index never decreases.
+    testable_claim: "borrowIndex_after >= borrowIndex_before"
+    functions: [accrueInterest]
+  - id: LEND-04
+    statement: The first depositor cannot inflate the share price so later depositors round to zero shares.
+    testable_claim: "sharesMinted > 0 for any deposit above the dust threshold"
+    functions: [deposit, mint]
+    crown_jewel: true
+  - id: LEND-05
+    statement: A liquidation leaves the position healthier than it found it, and never seizes more than the close factor allows.
+    testable_claim: "healthFactor_after > healthFactor_before and seized <= closeFactor * debt"
+    functions: [liquidate, liquidateBorrow, seize]
+    crown_jewel: true
+  - id: LEND-06
+    statement: A price the protocol acts on cannot be moved within one transaction by a caller with capital.
+    testable_claim: "oracle price is unchanged across a flash-loaned swap of any size"
+    functions: [getPrice, getUnderlyingPrice, latestAnswer]
+    crown_jewel: true
+  - id: LEND-07
+    statement: Bad debt is recognized, not silently socialized into the exchange rate.
+    testable_claim: "exchangeRate does not fall when a position is left underwater"
+    functions: [liquidate, accrueInterest]
+  - id: LEND-08
+    statement: Collateral in an isolated market cannot back a borrow in a cross market.
+    testable_claim: "borrow reverts when collateral is isolated and the asset is outside the isolation set"
+    functions: [borrow, enterMarket]
+  - id: LEND-09
+    statement: Utilization maps to a rate continuously — there is no jump a borrower can straddle to pay nothing.
+    testable_claim: "borrowRate is non-decreasing in utilization across the kink"
+    functions: [getBorrowRate, utilizationRate]
+  - id: LEND-10
+    statement: Rounding always favours the protocol, never the caller.
+    testable_claim: "repaying dust cannot reduce debt by more than it pays; withdrawing dust cannot return more than it burns"
+    functions: [repay, withdraw, redeem, mint]
+
+failure_modes:
+  - Oracle manipulation — the single largest vector in this vertical; check what the price source is before anything else.
+  - Bad-debt accrual with no socialization path.
+  - Share inflation via a donation to the vault before the first real deposit.
+  - Liquidation math that lets a liquidator seize disproportionately, or that reverts when it is most needed.

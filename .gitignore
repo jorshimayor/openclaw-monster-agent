@@ -101,3 +101,8 @@ docs/private-sot
 !brand/out/
 brand/out/_preview.html
 brand/out/motif-gallery.html
+
+# Cloned audit targets and run output — never commit someone else's code,
+# and never commit an unreviewed findings report.
+auditor/targets/
+auditor/reports/

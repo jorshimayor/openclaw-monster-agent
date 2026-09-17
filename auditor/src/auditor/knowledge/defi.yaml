@@ -1,0 +1,34 @@
+# DeFi & AMMs.
+vertical: defi
+anchors:
+  - "Curve (2023) — Vyper reentrancy lock compiler bug"
+  - "Uniswap v1 (2020) — ERC-777 callback reentrancy"
+invariants:
+  - id: DEFI-01
+    statement: The pool invariant never decreases through a swap, net of fees.
+    testable_claim: "k_after >= k_before for every swap"
+    functions: [swap, exchange]
+    crown_jewel: true
+  - id: DEFI-02
+    statement: LP share accounting is exact — burning all shares returns all reserves.
+    testable_claim: "sum of redeemed reserves == pool reserves when totalSupply goes to zero"
+    functions: [mint, burn, addLiquidity, removeLiquidity]
+    crown_jewel: true
+  - id: DEFI-03
+    statement: A token callback cannot re-enter a state-changing function mid-update.
+    testable_claim: "a malicious ERC-777 or ERC-721 receiver re-entering swap or burn reverts"
+    functions: [swap, burn, mint, flashLoan]
+    crown_jewel: true
+  - id: DEFI-04
+    statement: Fee-on-transfer and rebasing tokens are accounted by measured balance delta, not by the requested amount.
+    testable_claim: "recorded amount == balanceAfter - balanceBefore"
+    functions: [deposit, addLiquidity, swap]
+  - id: DEFI-05
+    statement: A spot price read from the pool is not used as an oracle by anything that holds value.
+    testable_claim: "no value-bearing path reads getReserves as a price within one transaction"
+    functions: [getPrice, quote]
+    crown_jewel: true
+failure_modes:
+  - Price manipulation via flash loan against a spot-price oracle.
+  - LP accounting drift on tokens that do not transfer exactly what you asked.
+  - Reentrancy through token callbacks rather than through ether sends.

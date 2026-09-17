@@ -1,0 +1,30 @@
+# Authorized targets. The scope gate reads only this file and fails closed:
+# anything not matched here is refused, and there is no flag to skip it.
+#
+# The pipeline that earns a bounty is an attack tool pointed anywhere else, so
+# adding an entry is the moment you assert you are authorized to test it. Put
+# the program URL in `authorization` so that claim is auditable later.
+
+programs:
+  - name: practice
+    platform: public-practice
+    authorization: "Public exploit-practice targets, intended to be attacked."
+    repos:
+      - https://github.com/theredguild/damn-vulnerable-defi
+      - https://github.com/OpenZeppelin/ethernaut
+    paths:
+      - ./targets/practice
+
+  # Copy this for a live program. Delete `expires` at your peril: bounty scopes
+  # end, and an out-of-date allowlist is how authorized becomes unauthorized.
+  #
+  # - name: example-protocol
+  #   platform: immunefi
+  #   authorization: https://immunefi.com/bounty/example/
+  #   expires: 2026-12-31
+  #   repos:
+  #     - https://github.com/example/protocol
+  #   addresses:
+  #     - ethereum:0x0000000000000000000000000000000000000000
+  #   paths:
+  #     - ./targets/example-protocol

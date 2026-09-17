@@ -1,0 +1,33 @@
+# Starter library. Phase 5 deepens this the way lending.yaml is deepened.
+vertical: stablecoin
+anchors:
+  - "Iron Finance (2021) — reflexive mint/redeem death spiral"
+  - "UST (2022) — redemption mechanism under a falling peg"
+invariants:
+  - id: STBL-01
+    statement: Redemption is always solvent — every token in circulation can be redeemed for its claim.
+    testable_claim: "collateralValue >= totalSupply * pegTarget"
+    functions: [redeem, burn]
+    crown_jewel: true
+  - id: STBL-02
+    statement: Minting and burning conserve value; neither creates a claim it did not pay for.
+    testable_claim: "collateralIn == valueMinted and valueBurned == collateralOut, net of stated fees"
+    functions: [mint, burn]
+    crown_jewel: true
+  - id: STBL-03
+    statement: The collateralization ratio never falls below the configured threshold outside of a liquidation.
+    testable_claim: "collateralRatio() >= minCollateralRatio"
+    functions: [mint, withdrawCollateral]
+  - id: STBL-04
+    statement: The protocol rejects an oracle price that deviates beyond the configured bound instead of acting on it.
+    testable_claim: "mint and redeem revert when |price - twap| > deviationLimit"
+    functions: [getPrice, mint, redeem]
+    crown_jewel: true
+  - id: STBL-05
+    statement: Rebasing accounting is exact — the sum of balances equals total supply after any rebase.
+    testable_claim: "sum(balanceOf) == totalSupply() after rebase"
+    functions: [rebase]
+failure_modes:
+  - Depeg under redemption pressure.
+  - Collateral shortfall hidden by a stale or manipulable oracle.
+  - Mint/burn accounting drift accumulating over many small operations.
