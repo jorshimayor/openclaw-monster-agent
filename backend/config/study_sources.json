@@ -293,6 +293,119 @@
       ]
     },
     {
+      "key": "yborg-security",
+      "group": "yBorg prep \u00b7 security",
+      "items": [
+        {
+          "title": "yAudit \u2014 Common Web3 Security Issues",
+          "url": "https://github.com/yAudit/CommonWeb3SecurityIssues",
+          "note": "Start here. The issue classes you are expected to already know."
+        },
+        {
+          "title": "yAudit \u2014 DeFi Fork Bugs",
+          "url": "https://github.com/yAudit/defi-fork-bugs",
+          "note": "What breaks when a protocol is forked and the assumptions are not. Rich invariant source."
+        },
+        {
+          "title": "yAudit \u2014 audit reports",
+          "url": "https://reports.yaudit.dev/",
+          "note": "Read the finding before the fix. Predict severity, then check."
+        },
+        {
+          "title": "yAudit \u2014 fellowship audits",
+          "url": "https://github.com/yAudit/fellowship-audits",
+          "note": "What the work actually looks like at their standard."
+        },
+        {
+          "title": "yAudit \u2014 Solidity Proxy Playground",
+          "url": "https://github.com/yAudit/Solidity-Proxy-Playground",
+          "note": "Storage collisions and delegatecall, hands on. Pairs with the RareSkills proxy chapter."
+        },
+        {
+          "title": "Cyfrin Updraft \u2014 Smart Contract Security",
+          "url": "https://updraft.cyfrin.io/courses/security",
+          "note": "The structured course. Longest item on this shelf; treat it as a track, not a link."
+        },
+        {
+          "title": "Things I Wish I Knew Before Starting yAcademy (@devtooligan)",
+          "url": "https://www.youtube.com/watch?v=QeNDS2Vk4zI",
+          "note": "Watch before applying, not after."
+        },
+        {
+          "title": "Secureum \u2014 Smart Contract Security 101",
+          "url": "https://secureum.substack.com/p/smart-contract-security-101-secureum",
+          "note": "The canonical checklist reading."
+        },
+        {
+          "title": "OWASP Smart Contract Security",
+          "url": "https://scs.owasp.org/",
+          "note": "Taxonomy. Useful as a completeness check against your own invariant libraries."
+        }
+      ]
+    },
+    {
+      "key": "yborg-ai-agents",
+      "group": "yBorg prep \u00b7 AI and agents",
+      "items": [
+        {
+          "title": "Harnesses in AI, A Deep Dive",
+          "url": "https://www.youtube.com/watch?v=C_GG5g38vLU",
+          "note": "Harness design \u2014 the same problem the fellowship's Path A and auditor/ both circle."
+        },
+        {
+          "title": "The Harness Playbook",
+          "url": "https://stencil.so/blog/harness-playbook",
+          "note": "The written companion to the above."
+        },
+        {
+          "title": "AI and agents (@iiiichigo_chan)",
+          "url": "https://x.com/iiiichigo_chan/status/2095911936579805682",
+          "note": "Thread."
+        },
+        {
+          "title": "Hugging Face \u2014 Intro to LLMs",
+          "url": "https://huggingface.co/learn/llm-course/en/chapter1/1",
+          "note": "Overlaps fellowship weeks 1-2. Do whichever explains it better to you."
+        },
+        {
+          "title": "Hugging Face \u2014 Agents Course",
+          "url": "https://huggingface.co/learn/agents-course/en/unit0/introduction",
+          "note": "Overlaps fellowship weeks 3 and 9-11."
+        },
+        {
+          "title": "Learn how agents work",
+          "url": "https://twotimespi.dev/",
+          "note": "Mechanics from first principles."
+        }
+      ]
+    },
+    {
+      "key": "yborg-ai-security",
+      "group": "yBorg prep \u00b7 AI and security",
+      "items": [
+        {
+          "title": "Technical Review (@Kritt_AI)",
+          "url": "https://kritt.ai/technical-review/",
+          "note": "Where the two halves meet."
+        },
+        {
+          "title": "AI Auditing Methodology, Pt I (@xy9301)",
+          "url": "https://x.com/xy9301/status/2033186266649640980",
+          "note": "Read all three against auditor/ \u2014 this is the same problem you are already building."
+        },
+        {
+          "title": "AI Auditing Methodology, Pt II (@xy9301)",
+          "url": "https://x.com/xy9301/status/2036017855381340269",
+          "note": "Part two."
+        },
+        {
+          "title": "AI Auditing Methodology, Pt III (@xy9301)",
+          "url": "https://x.com/xy9301/status/2071845290018284002",
+          "note": "Part three. Compare their gate to yours."
+        }
+      ]
+    },
+    {
       "key": "chain-evm",
       "group": "EVM \u00b7 study & interview",
       "items": [

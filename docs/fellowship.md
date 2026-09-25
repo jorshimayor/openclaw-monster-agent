@@ -8,8 +8,8 @@ something that files commitments, chases you for them, and leaves a record.
 
 `start_date` in [`backend/config/fellowship.json`](../backend/config/fellowship.json)
 — the Monday of week 1. Every due date, every reminder and the whole timeline
-derive from it. It currently reads **2026-09-28**. Change that one line if the
-cohort starts elsewhere; nothing else needs touching.
+derive from it. It reads **2026-09-21** — the Monday of the week the cohort
+started. Change that one line if it moves; nothing else needs touching.
 
 A mid-week start still counts as week 1, and the week does not advance until
 the following Monday — twenty hours is not a Monday job, so the week's work

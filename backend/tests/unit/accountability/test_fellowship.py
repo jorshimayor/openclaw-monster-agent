@@ -46,7 +46,7 @@ def test_every_reading_link_is_a_url():
 
 
 def test_nothing_is_filed_before_week_one(config):
-    assert tasks_for(START - timedelta(days=1)) == []
+    assert tasks_for(START - timedelta(days=1), config) == []
     assert not position(START - timedelta(days=1), config).started
 
 
@@ -55,7 +55,7 @@ def test_nothing_is_filed_after_week_forty_eight(config):
     assert position(last, config).week == TOTAL_WEEKS
     after = START + timedelta(weeks=TOTAL_WEEKS)
     assert position(after, config).finished
-    assert tasks_for(after) == []
+    assert tasks_for(after, config) == []
 
 
 def test_the_week_does_not_advance_mid_week(config):

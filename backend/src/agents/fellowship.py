@@ -249,8 +249,8 @@ def scheduled_for(day: Optional[date_cls] = None, config: Optional[Dict[str, Any
     return out
 
 
-def tasks_for(day: Optional[date_cls] = None) -> List[str]:
-    return [t.text for t in scheduled_for(day)]
+def tasks_for(day: Optional[date_cls] = None, config: Optional[Dict[str, Any]] = None) -> List[str]:
+    return [t.text for t in scheduled_for(day, config)]
 
 
 def books_for(week: int, config: Optional[Dict[str, Any]] = None) -> List[str]:
