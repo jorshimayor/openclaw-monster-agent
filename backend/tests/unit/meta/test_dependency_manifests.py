@@ -54,6 +54,7 @@ def test_every_test_only_import_is_declared() -> None:
     # list by hand — the hand-written version was already missing `math`.
     stdlib_and_local = {m.lower() for m in sys.stdlib_module_names} | {
         "src",  # the package under test
+        "fellowship",  # first-party CLI at the repo root, not a dependency
         "the",  # a docstring line that the import regex catches
     }
     declared = _pip_dev_packages() | {
