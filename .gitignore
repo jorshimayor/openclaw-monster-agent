@@ -106,3 +106,9 @@ brand/out/motif-gallery.html
 # and never commit an unreviewed findings report.
 auditor/targets/
 auditor/reports/
+
+# Fellowship notebooks and notes are your working record, not source. Keep them
+# out of the repo history so a half-finished lab is never a dirty tree.
+fellowship/labs/*.ipynb
+fellowship/notes/*.md
+!fellowship/notes/README.md

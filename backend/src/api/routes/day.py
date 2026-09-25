@@ -155,6 +155,7 @@ async def get_day(date: Optional[str] = None) -> Dict[str, Any]:
     except ValueError:
         raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
 
+    from ...agents.fellowship import summary as fellowship_summary
     from ...agents.rotation import themes_for
     from ...core import day_block_repo
 
@@ -188,6 +189,9 @@ async def get_day(date: Optional[str] = None) -> Dict[str, Any]:
         "blocks": blocks,
         "block_error": block_error,
         "items": items,
+        # Where the 48 weeks stand. Separate from `themes` because it is the one
+        # thing on the page with an outside deadline attached to it.
+        "fellowship": fellowship_summary(day),
         "themes": {
             "daily": [t.label for t in picked["daily"]],
             "cycled": picked["cycled"].label if picked["cycled"] else None,

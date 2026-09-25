@@ -36,7 +36,7 @@ def test_web3_runs_every_single_day() -> None:
         # web3-study resolves to a per-chain theme id ("web3-study-evm"), so
         # match the family rather than the exact name. Chain practice is also
         # daily now, so this is a superset check, not equality.
-        families = {t.theme.split("-")[0] + "-" + t.theme.split("-")[1] for t in picked["daily"]}
+        families = {"-".join(t.theme.split("-")[:2]) for t in picked["daily"]}
         assert {"web3-bounty", "web3-study"} <= families
 
 

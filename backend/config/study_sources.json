@@ -227,6 +227,72 @@
   },
   "curated": [
     {
+      "key": "fellowship",
+      "group": "Flow fellowship \u00b7 Applied AI Engineering",
+      "items": [
+        {
+          "title": "Knowledge Base",
+          "url": "https://learn.flowresearch.tech/",
+          "note": "Where cohort material and assignments land."
+        },
+        {
+          "title": "Flow Research \u2014 GitHub",
+          "url": "https://github.com/Flow-Research",
+          "note": "The team's code. Read it before proposing anything at week 25."
+        },
+        {
+          "title": "Attention Is All You Need",
+          "url": "https://arxiv.org/abs/1706.03762",
+          "note": "Week 1. The reproduction habit starts here and never stops."
+        },
+        {
+          "title": "ReAct",
+          "url": "https://arxiv.org/abs/2210.03629",
+          "note": "Week 3. The minimal agent loop everything else extends."
+        },
+        {
+          "title": "AI Agents That Matter",
+          "url": "https://arxiv.org/abs/2407.01502",
+          "note": "Week 4. What rigorous means at small sample sizes \u2014 the paper behind the whole eval pillar."
+        },
+        {
+          "title": "Your AI Product Needs Evals",
+          "url": "https://hamel.dev/blog/posts/evals/",
+          "note": "Week 8 and again at 41. Read twice; it lands differently the second time."
+        },
+        {
+          "title": "RAG (Lewis et al.)",
+          "url": "https://arxiv.org/abs/2005.11401",
+          "note": "Week 7. The Path B foundation."
+        },
+        {
+          "title": "BEIR",
+          "url": "https://arxiv.org/abs/2104.08663",
+          "note": "Week 14. How retrieval gets benchmarked honestly."
+        },
+        {
+          "title": "Building Effective Agents",
+          "url": "https://www.anthropic.com/engineering/building-effective-agents",
+          "note": "Week 17. Practice to adopt, not a result to reproduce."
+        },
+        {
+          "title": "How to Read a Paper (Keshav)",
+          "url": "https://web.stanford.edu/class/ee384m/Handouts/HowtoReadPaper.pdf",
+          "note": "Week 17, and honestly week 1. Three passes, not one."
+        },
+        {
+          "title": "You and Your Research (Hamming)",
+          "url": "https://www.cs.columbia.edu/~nieh/teaching/gradguide/hamming.html",
+          "note": "Week 25, before the proposal. On choosing a problem worth the 24 weeks."
+        },
+        {
+          "title": "Research Debt",
+          "url": "https://distill.pub/2017/research-debt/",
+          "note": "Week 47. Clear explanation is part of the research job, not an afterthought."
+        }
+      ]
+    },
+    {
       "key": "chain-evm",
       "group": "EVM \u00b7 study & interview",
       "items": [
@@ -517,6 +583,26 @@
     ],
     "enabled": true,
     "daily": [
+      {
+        "_comment": [
+          "Tasks come from backend/config/fellowship.json via the plan hook, not",
+          "from here \u2014 48 dated weeks do not cycle. The standing tasks below run",
+          "alongside whatever this week resolves to.",
+          "",
+          "due_time is the evening block deliberately: the mornings are already",
+          "spoken for by web3, and 20 hours a week needs a protected slot rather",
+          "than whatever is left over."
+        ],
+        "theme": "flow-fellowship",
+        "label": "Flow fellowship",
+        "due_time": "18:00",
+        "plan": "fellowship",
+        "remind": true,
+        "tasks": [
+          "Log one paragraph of thought on what you read today \u2014 what surprised you, what you did not believe \u2014 python3 -m fellowship note",
+          "Weekly update: what shipped, what broke, what is next \u2014 this is the habit the programme grades, not an extra \u2014 https://learn.flowresearch.tech/"
+        ]
+      },
       {
         "theme": "web3-bounty",
         "label": "Web3 bounty",

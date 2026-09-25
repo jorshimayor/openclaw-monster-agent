@@ -55,6 +55,7 @@ class Theme:
     remind: bool = True
     variants: List[Variant] = field(default_factory=list)
     variant_name: Optional[str] = None
+    plan: Optional[str] = None
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "Theme":
@@ -66,6 +67,7 @@ class Theme:
             sources=[str(s) for s in (raw.get("sources") or [])],
             remind=bool(raw.get("remind", True)),
             variants=[Variant.from_dict(v) for v in (raw.get("variants") or [])],
+            plan=raw.get("plan"),
         )
 
     def resolve(self, day: date_cls, stride: int = 1) -> "Theme":
@@ -90,7 +92,33 @@ class Theme:
             remind=self.remind,
             variants=[],
             variant_name=picked.name,
+            plan=self.plan,
         )
+
+
+def _expand_plan(theme: Theme, day: date_cls) -> Theme:
+    """Fill a scheduled theme's tasks from its plan.
+
+    Most themes cycle, so what lands today is the date modulo a cycle length.
+    A plan does not cycle — it has a start, an end, and a week 31 that makes no
+    sense before week 30 — so its tasks come from a resolver instead of from
+    this file. The theme still files, reminds and closes like any other.
+    """
+    if theme.plan != "fellowship":
+        return theme
+    try:
+        from .fellowship import tasks_for
+    except Exception as exc:  # pragma: no cover - import guard
+        logger.warning("fellowship_unavailable", error=str(exc))
+        return theme
+    scheduled = tasks_for(day)
+    if not scheduled:
+        # Before week 1 or after week 48 the theme goes quiet rather than
+        # filing its standing tasks against a programme that is not running.
+        return Theme(theme=theme.theme, label=theme.label, due_time=theme.due_time,
+                     tasks=[], sources=theme.sources, remind=theme.remind, plan=theme.plan)
+    theme.tasks = scheduled + list(theme.tasks)
+    return theme
 
 
 def load_rotation() -> Dict[str, Any]:
@@ -126,7 +154,7 @@ def themes_for(day: Optional[date_cls] = None) -> Dict[str, Any]:
     if not config.get("enabled"):
         return {"date": day.isoformat(), "enabled": False, "daily": [], "cycled": None, "upcoming": []}
 
-    daily = [Theme.from_dict(t).resolve(day) for t in config.get("daily", [])]
+    daily = [_expand_plan(Theme.from_dict(t).resolve(day), day) for t in config.get("daily", [])]
     cycle = [Theme.from_dict(t) for t in config.get("cycle", [])]
     stride = max(1, len(cycle))
     cycled = cycle[cycle_index(day, len(cycle))].resolve(day, stride) if cycle else None

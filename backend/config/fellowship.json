@@ -1,0 +1,580 @@
+{
+  "_comment": [
+    "Flow Research \u00b7 Applied AI Engineering Fellowship, 48 weeks at 20 hours a week.",
+    "Distilled from the fellowship guide, the programme overview and the team charter.",
+    "",
+    "start_date is the Monday of week 1 and is the ONE value that has to be right \u2014",
+    "every due date, every reminder and the whole timeline derive from it. Change it",
+    "here and nothing else needs touching.",
+    "",
+    "path is null until the week 17 decision. Weeks 17-21 carry both tracks; the",
+    "resolver returns the chosen one, or both side by side while it is still null.",
+    "",
+    "Reading URLs: arxiv.org/abs/<id> where the id is verified. Where it was not,",
+    "the link is an arXiv search for the title instead of a guessed id that 404s.",
+    "",
+    "assignments is where work handed to you during the programme goes \u2014",
+    "set books, project briefs, graded assignments. Add one and it files and",
+    "nags against its week exactly like planned work. Tell Claude what you were",
+    "given and it lands here."
+  ],
+  "enabled": true,
+  "start_date": "2026-09-28",
+  "path": null,
+  "hours_per_week": 20,
+  "cohort": "Cohort 1 \u00b7 2026",
+  "org": {
+    "name": "Flow Research \u00b7 Applied AI Engineering",
+    "github": "https://github.com/Flow-Research",
+    "website": "https://flowresearch.tech/",
+    "knowledge_base": "https://learn.flowresearch.tech/"
+  },
+  "research_directions": [
+    "Verifiable agent work evaluation harnesses \u2014 automated checks that catch weak agent-submitted work before a human reviewer sees it.",
+    "Retrieval-grounded review assistance \u2014 surfacing the precedent and evidence a reviewer needs to decide quickly and consistently."
+  ],
+  "pillars": [
+    "LLM & Agent Fundamentals",
+    "Evaluation & Verification Systems",
+    "Retrieval & Evidence Systems",
+    "Applied Systems & Deployment",
+    "Research Engineering"
+  ],
+  "assignments": [],
+  "weeks": [
+    {
+      "week": 1,
+      "block": "Phase 1: Foundations",
+      "topic": "Transformer mechanics",
+      "concepts": "Tokenisation, embeddings, self-attention intuition, autoregressive generation",
+      "lab": "Probe a pretrained model's tokeniser edge cases and next-token distributions across prompts",
+      "reading": {
+        "title": "Attention Is All You Need",
+        "cite": "Vaswani et al., 2017",
+        "url": "https://arxiv.org/abs/1706.03762"
+      }
+    },
+    {
+      "week": 2,
+      "block": "Phase 1: Foundations",
+      "topic": "Context, sampling and in-context learning",
+      "concepts": "Temperature, top-p, top-k, context window limits, why few-shot prompting works",
+      "lab": "Systematically vary few-shot examples (count, order, format) on a fixed task and document what actually moves output quality",
+      "reading": {
+        "title": "Language Models are Few-Shot Learners",
+        "cite": "Brown et al., 2020",
+        "url": "https://arxiv.org/abs/2005.14165"
+      }
+    },
+    {
+      "week": 3,
+      "block": "Phase 1: Foundations",
+      "topic": "Reasoning and tool-use foundations",
+      "concepts": "Interleaved reasoning and action, minimal agent loops",
+      "lab": "Hand-implement a minimal single-tool ReAct-style loop on a small task",
+      "reading": {
+        "title": "ReAct: Synergising Reasoning and Acting",
+        "cite": "Yao et al., 2022",
+        "url": "https://arxiv.org/abs/2210.03629"
+      }
+    },
+    {
+      "week": 4,
+      "block": "Phase 1: Foundations",
+      "topic": "Research methodology for applied AI",
+      "concepts": "Hypothesis formation, experimental design, confounds, what rigorous means at small sample sizes",
+      "lab": "Design, on paper, an eval protocol for a specific claim, with explicit success and failure criteria",
+      "reading": {
+        "title": "AI Agents That Matter",
+        "cite": "Kapoor et al., 2025",
+        "url": "https://arxiv.org/abs/2407.01502"
+      },
+      "deliverable": "Documented log of the month's probes and reproductions, plus a short memo on how to evaluate a claim rigorously"
+    },
+    {
+      "week": 5,
+      "block": "Phase 2: Applied Foundation",
+      "topic": "Systematic prompt engineering",
+      "concepts": "Templating, few-shot design, chain-of-thought, output structuring",
+      "lab": "Build a small prompt library for a fixed task, comparing three or more strategies with documented deltas",
+      "reading": {
+        "title": "Chain-of-Thought Prompting",
+        "cite": "Wei et al., 2022",
+        "url": "https://arxiv.org/abs/2201.11903"
+      }
+    },
+    {
+      "week": 6,
+      "block": "Phase 2: Applied Foundation",
+      "topic": "Structured outputs, tool calling, and MCP",
+      "concepts": "Function-calling schemas, output validation, error handling, MCP as a standard for exposing tools and context",
+      "lab": "Build a two-tool calling pipeline with schema validation and malformed-output handling, then re-expose the same tools behind an MCP server and compare the integration effort",
+      "reading": {
+        "title": "Toolformer",
+        "cite": "Schick et al., 2023",
+        "url": "https://arxiv.org/abs/2302.04761"
+      }
+    },
+    {
+      "week": 7,
+      "block": "Phase 2: Applied Foundation",
+      "topic": "Retrieval-augmented generation basics",
+      "concepts": "Chunking, embeddings, retrieval-generation coupling",
+      "lab": "Build a minimal RAG pipeline over a small document set",
+      "reading": {
+        "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks",
+        "cite": "Lewis et al., 2020",
+        "url": "https://arxiv.org/abs/2005.11401"
+      }
+    },
+    {
+      "week": 8,
+      "block": "Phase 2: Applied Foundation",
+      "topic": "Evaluation mindset",
+      "concepts": "Building small eval sets, success metrics, rigorous versus vibes-based evaluation",
+      "lab": "Build a ten- to fifteen-case eval set for the week 5 to 7 systems and score them",
+      "reading": {
+        "title": "Your AI Product Needs Evals",
+        "cite": "Husain, 2024",
+        "url": "https://hamel.dev/blog/posts/evals/"
+      },
+      "deliverable": "Working prompt and tool system, plus a small RAG pipeline, each with a first-pass eval set"
+    },
+    {
+      "week": 9,
+      "block": "Phase 3: Path A Exposure",
+      "topic": "Agent architecture patterns",
+      "concepts": "Planning loops, task decomposition, multi-step reasoning",
+      "lab": "Extend week 3's loop into a multi-step, multi-tool agent on a harder task",
+      "reading": {
+        "title": "Tree of Thoughts",
+        "cite": "Yao et al., 2023",
+        "url": "https://arxiv.org/abs/2305.10601"
+      }
+    },
+    {
+      "week": 10,
+      "block": "Phase 3: Path A Exposure",
+      "topic": "Context and memory management",
+      "concepts": "Context-window strategies, basic memory patterns",
+      "lab": "Add memory and context management so the agent holds up on a longer task",
+      "reading": {
+        "title": "MemGPT: Towards LLMs as Operating Systems",
+        "cite": "Packer et al., 2023",
+        "url": "https://arxiv.org/abs/2310.08560"
+      }
+    },
+    {
+      "week": 11,
+      "block": "Phase 3: Path A Exposure",
+      "topic": "Agent evaluation and failure analysis",
+      "concepts": "Eval harness basics, failure-mode cataloguing",
+      "lab": "Evaluate the week 9 to 10 agent on a ten to fifteen case task set and write a failure-mode report",
+      "reading": {
+        "title": "Holistic Agent Leaderboard",
+        "cite": "Kapoor et al., 2025",
+        "url": "https://arxiv.org/search/?searchtype=all&query=Holistic+Agent+Leaderboard+agent+evaluation"
+      },
+      "deliverable": "A working multi-step agent plus a small eval report \u2014 the informed basis for choosing Path A at week 17"
+    },
+    {
+      "week": 12,
+      "block": "Phase 4: Path B Exposure",
+      "topic": "Embeddings and vector search",
+      "concepts": "Embedding model selection, vector database basics, approximate nearest neighbour search",
+      "lab": "Set up a vector database and build basic semantic search over a small corpus",
+      "reading": {
+        "title": "Dense Passage Retrieval",
+        "cite": "Karpukhin et al., 2020",
+        "url": "https://arxiv.org/abs/2004.04906"
+      }
+    },
+    {
+      "week": 13,
+      "block": "Phase 4: Path B Exposure",
+      "topic": "Hybrid search and reranking",
+      "concepts": "Sparse and dense hybrid retrieval, reranking",
+      "lab": "Add reranking or hybrid search to week 12's system and compare before and after",
+      "reading": {
+        "title": "ColBERT",
+        "cite": "Khattab and Zaharia, 2020",
+        "url": "https://arxiv.org/abs/2004.12832"
+      }
+    },
+    {
+      "week": 14,
+      "block": "Phase 4: Path B Exposure",
+      "topic": "Retrieval evaluation",
+      "concepts": "Precision and recall, relevance judgments, eval set construction",
+      "lab": "Build a fifteen- to twenty-query eval set and benchmark the week 12 to 13 system",
+      "reading": {
+        "title": "BEIR",
+        "cite": "Thakur et al., 2021",
+        "url": "https://arxiv.org/abs/2104.08663"
+      },
+      "deliverable": "A working retrieval system plus a benchmarked eval report \u2014 the informed basis for choosing Path B at week 17"
+    },
+    {
+      "week": 15,
+      "block": "Capstone 1",
+      "topic": "Pick the gap and build the extension",
+      "concepts": "Turning your own failure-mode report into a research question",
+      "lab": "Pick a gap surfaced in your own week 9-14 eval report, pose a small research question extending it, and build the extension"
+    },
+    {
+      "week": 16,
+      "block": "Capstone 1",
+      "topic": "Evaluate and write up the full loop",
+      "concepts": "Question, build, evaluate, write-up, present",
+      "lab": "Evaluate the extension and write up the full loop, then present it",
+      "deliverable": "One complete, small, honest research loop \u2014 the rehearsal for the 24-week self-directed phase"
+    },
+    {
+      "week": 17,
+      "block": "Stage 1: Path Deep-Dive",
+      "topic": "Tool-use design / Advanced RAG architecture",
+      "concepts": "Path A: multi-tool orchestration via MCP. Path B: query rewriting and multi-hop retrieval.",
+      "lab": "",
+      "paths": {
+        "A": {
+          "topic": "Tool-use design and multi-tool orchestration via MCP",
+          "reading": {
+            "title": "Gorilla: LLM Connected with Massive APIs",
+            "cite": "Patil et al., 2023",
+            "url": "https://arxiv.org/abs/2305.15334"
+          },
+          "lab": "Extend the Phase 3 agent to three or more tools, orchestrated through MCP where practical, with schema validation and structured error handling"
+        },
+        "B": {
+          "topic": "Advanced RAG architecture",
+          "reading": {
+            "title": "Self-RAG",
+            "cite": "Asai et al., 2023",
+            "url": "https://arxiv.org/abs/2310.11511"
+          },
+          "lab": "Extend the Phase 4 pipeline to handle multi-hop queries"
+        }
+      }
+    },
+    {
+      "week": 18,
+      "block": "Stage 1: Path Deep-Dive",
+      "topic": "Evaluation harness design / Provenance and evidence retrieval",
+      "concepts": "Path A: eval datasets and regression testing. Path B: linking artefacts, evidence and decisions.",
+      "lab": "",
+      "paths": {
+        "A": {
+          "topic": "Evaluation harness design",
+          "reading": {
+            "title": "Holistic Agent Leaderboard",
+            "cite": "Kapoor et al., 2025",
+            "url": "https://arxiv.org/search/?searchtype=all&query=Holistic+Agent+Leaderboard+agent+evaluation"
+          },
+          "lab": "Build a proper eval harness, not ad hoc scoring, with a growing regression suite"
+        },
+        "B": {
+          "topic": "Provenance and evidence retrieval",
+          "reading": {
+            "title": "From Local to Global: A Graph RAG Approach",
+            "cite": "Edge et al., 2024",
+            "url": "https://arxiv.org/abs/2404.16130"
+          },
+          "lab": "Add a lightweight provenance layer, for example graph-linking sources to claims"
+        }
+      }
+    },
+    {
+      "week": 19,
+      "block": "Stage 1: Path Deep-Dive",
+      "topic": "Failure mode analysis / Retrieval infrastructure at scale",
+      "concepts": "Path A: failure cataloguing and guardrails. Path B: indexing, latency, data hygiene.",
+      "lab": "",
+      "paths": {
+        "A": {
+          "topic": "Failure mode analysis and behaviour steering",
+          "reading": {
+            "title": "Agentic Misalignment: How LLMs Could Be Insider Threats",
+            "cite": "Lynch et al., Anthropic 2025",
+            "url": "https://www.anthropic.com/research/agentic-misalignment"
+          },
+          "lab": "Run the agent against adversarial and edge cases, catalogue failures, add guardrails, and re-measure"
+        },
+        "B": {
+          "topic": "Retrieval infrastructure at scale",
+          "reading": {
+            "title": "Efficient and Robust ANN Search Using HNSW Graphs",
+            "cite": "Malkov and Yashunin, 2020",
+            "url": "https://arxiv.org/abs/1603.09320"
+          },
+          "lab": "Profile and optimise indexing and latency, and add a basic data-quality check"
+        }
+      }
+    },
+    {
+      "week": 20,
+      "block": "Stage 1: Path Deep-Dive",
+      "topic": "Escalation design / Access-controlled retrieval",
+      "concepts": "Path A: when to escalate versus proceed. Path B: authorisation-aware retrieval.",
+      "lab": "",
+      "paths": {
+        "A": {
+          "topic": "Human-agent hand-off and escalation design",
+          "reading": {
+            "title": "From Surveillance to Signalling",
+            "cite": "Gomez, 2025",
+            "url": "https://arxiv.org/search/?searchtype=all&query=escalation+channels+environmental+controls+agentic+AI"
+          },
+          "lab": "Design and implement an escalation policy on top of the harness, for example confidence-threshold routing to human review"
+        },
+        "B": {
+          "topic": "Access-controlled retrieval",
+          "reading": {
+            "title": "Permission-Aware RAG",
+            "cite": "Jeong and Lee, IEEE Access 2025",
+            "url": "https://arxiv.org/search/?searchtype=all&query=Permission-Aware+RAG+access+filtering"
+          },
+          "lab": "Add basic access-control logic, so retrieval respects a simple permission model"
+        }
+      }
+    },
+    {
+      "week": 21,
+      "block": "Stage 1: Path Deep-Dive",
+      "topic": "Stage 1 experiment and write-up",
+      "concepts": "No new paper this week \u2014 the week is for measuring and writing.",
+      "lab": "",
+      "deliverable": "A hardened, evaluated artefact with a documented eval harness or benchmark suite, plus a report and a list of what to extend",
+      "paths": {
+        "A": {
+          "topic": "Reputation signal experiment and write-up",
+          "reading": null,
+          "lab": "Run a small reputation-scoring experiment on the agent's own task history and write up findings plus a list of what to extend"
+        },
+        "B": {
+          "topic": "Retrieval evaluation and write-up",
+          "reading": null,
+          "lab": "Build a benchmark suite of twenty or more queries comparing before and after all Stage 1 additions, and write up findings"
+        }
+      }
+    },
+    {
+      "week": 22,
+      "block": "Stage 2: Toolkit and Research Proposal",
+      "topic": "Production engineering essentials",
+      "concepts": "Testing, CI/CD, observability",
+      "lab": "Taught properly, then applied as a hardening pass on the Stage 1 artefact",
+      "reading": {
+        "title": "Building Effective Agents",
+        "cite": "Anthropic",
+        "url": "https://www.anthropic.com/engineering/building-effective-agents"
+      }
+    },
+    {
+      "week": 23,
+      "block": "Stage 2: Toolkit and Research Proposal",
+      "topic": "Security, deployment and cost literacy",
+      "concepts": "Auth, PII handling, containerisation, cost/latency modelling, prompt injection through tool output and retrieved content, and the surface third-party MCP servers add",
+      "lab": "Applied as a hardening pass on the Stage 1 artefact"
+    },
+    {
+      "week": 24,
+      "block": "Stage 2: Toolkit and Research Proposal",
+      "topic": "Stakeholder engineering and reusable tooling",
+      "concepts": "Translating requirements into specs; playbooks and tooling others can reuse",
+      "lab": "Build the piece that makes your work usable by the rest of the team, not just by you"
+    },
+    {
+      "week": 25,
+      "block": "Stage 2: Toolkit and Research Proposal",
+      "topic": "Write the research proposal",
+      "concepts": "Problem statement, hypothesis, experimental design, required infrastructure, success and failure criteria, time budget",
+      "lab": "Write it as a real design document. State plainly which direction you are choosing and why, including how it relates to the team's current research directions",
+      "reading": {
+        "title": "You and Your Research",
+        "cite": "Richard Hamming",
+        "url": "https://www.cs.columbia.edu/~nieh/teaching/gradguide/hamming.html"
+      }
+    },
+    {
+      "week": 26,
+      "block": "Stage 2: Toolkit and Research Proposal",
+      "topic": "Design review and defence",
+      "concepts": "Why this approach and not another; the fallback if infrastructure does not scale; how success is distinguished from not having tried hard enough",
+      "lab": "Present to the panel, then revise the proposal on their feedback before Stage 3 begins",
+      "deliverable": "A defended research proposal"
+    },
+    {
+      "week": 27,
+      "block": "Stage 3: Core Build",
+      "topic": "Infrastructure build-out",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Stand up what the proposal needs \u2014 eval harness and regression suite, or retrieval and indexing pipeline. Harness first, hypothesis-testing second"
+    },
+    {
+      "week": 28,
+      "block": "Stage 3: Core Build",
+      "topic": "Infrastructure build-out",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Continue the harness or pipeline. Nothing about the research question yet"
+    },
+    {
+      "week": 29,
+      "block": "Stage 3: Core Build",
+      "topic": "Infrastructure build-out",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Continue. A weekly written update: what shipped, what broke, what is next"
+    },
+    {
+      "week": 30,
+      "block": "Stage 3: Core Build",
+      "topic": "Infrastructure build-out",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Close out infrastructure. Biweekly mentor check-in against the proposal roadmap"
+    },
+    {
+      "week": 31,
+      "block": "Stage 3: Core Build",
+      "topic": "First experimental results",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Run the core experiments. A first version that is wrong, slow or inconclusive is normal here"
+    },
+    {
+      "week": 32,
+      "block": "Stage 3: Core Build",
+      "topic": "First experimental results",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Continue the core experiments and record what the results actually say"
+    },
+    {
+      "week": 33,
+      "block": "Stage 3: Core Build",
+      "topic": "First experimental results",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Continue. Weekly written update"
+    },
+    {
+      "week": 34,
+      "block": "Stage 3: Core Build",
+      "topic": "First experimental results",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Close out the first experimental pass"
+    },
+    {
+      "week": 35,
+      "block": "Stage 3: Core Build",
+      "topic": "Iteration",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Refine the hypothesis based on results and rerun"
+    },
+    {
+      "week": 36,
+      "block": "Stage 3: Core Build",
+      "topic": "Iteration",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Begin drafting the write-up structure even before results are final \u2014 writing early surfaces gaps while there is still time"
+    },
+    {
+      "week": 37,
+      "block": "Stage 3: Core Build",
+      "topic": "Iteration",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Continue iterating against the draft's gaps"
+    },
+    {
+      "week": 38,
+      "block": "Stage 3: Core Build",
+      "topic": "Iteration",
+      "concepts": "Weekly written update: what shipped, what broke, what is next. Mentor check-ins biweekly.",
+      "lab": "Close out Stage 3 with results and a draft structure in hand"
+    },
+    {
+      "week": 39,
+      "block": "Stage 4: Mid-Course Review",
+      "topic": "Prepare the honest checkpoint",
+      "concepts": "Continue, narrow, or pivot \u2014 all three are acceptable outcomes",
+      "lab": "Prepare the current state for the same panel from Stage 2"
+    },
+    {
+      "week": 40,
+      "block": "Stage 4: Mid-Course Review",
+      "topic": "Present and decide",
+      "concepts": "Knowing when to stop pursuing a dead end is the skill this stage trains",
+      "lab": "Present, then decide: continue as planned, narrow to what is working, or pivot carrying the infrastructure forward",
+      "deliverable": "An honest checkpoint"
+    },
+    {
+      "week": 41,
+      "block": "Stage 5: Hardening",
+      "topic": "Hardening: reliability pass",
+      "concepts": "Making it reliable, not just making it work",
+      "lab": "Path A: harden against adversarial and edge-case inputs. Path B: load-test under realistic bursty query volume",
+      "reading": {
+        "title": "Your AI Product Needs Evals",
+        "cite": "Hamel Husain",
+        "url": "https://hamel.dev/blog/posts/evals/"
+      }
+    },
+    {
+      "week": 42,
+      "block": "Stage 5: Hardening",
+      "topic": "Hardening: regression and benchmarks",
+      "concepts": "Expand what is measured, not just what is fixed",
+      "lab": "Path A: expand the regression suite. Path B: produce a benchmarked before-and-after report",
+      "reading": {
+        "title": "A Field Guide to Rapidly Improving AI Products",
+        "cite": "Hamel Husain",
+        "url": "https://hamel.dev/blog/posts/field-guide/"
+      }
+    },
+    {
+      "week": 43,
+      "block": "Stage 5: Hardening",
+      "topic": "Observability",
+      "concepts": "Dashboards, alerting",
+      "lab": "Add full observability to the system"
+    },
+    {
+      "week": 44,
+      "block": "Stage 5: Hardening",
+      "topic": "Runbook",
+      "concepts": "What to do when it breaks",
+      "lab": "Write a documented runbook",
+      "deliverable": "A system that survives real load and edge cases"
+    },
+    {
+      "week": 45,
+      "block": "Stage 6: Review-Load Simulation",
+      "topic": "On call for your own system",
+      "concepts": "Diagnose, mitigate, and communicate status in real time",
+      "lab": "An unannounced pressure case is injected \u2014 an ambiguous or adversarial submission, or a burst of edge-case queries"
+    },
+    {
+      "week": 46,
+      "block": "Stage 6: Review-Load Simulation",
+      "topic": "Postmortem",
+      "concepts": "What happened, why it was hard to detect, what changes as a result",
+      "lab": "Write the postmortem. A well-written one is a transferable portfolio artefact in its own right",
+      "deliverable": "An incident response and a written postmortem"
+    },
+    {
+      "week": 47,
+      "block": "Stage 7: Writeup and Defence",
+      "topic": "Technical write-up",
+      "concepts": "Clear problem statement, method, results, honest limitations",
+      "lab": "Produce the polished write-up. It joins the team's research record and is your primary portfolio artefact",
+      "reading": {
+        "title": "Research Debt",
+        "cite": "Chris Olah and Shan Carter",
+        "url": "https://distill.pub/2017/research-debt/"
+      }
+    },
+    {
+      "week": 48,
+      "block": "Stage 7: Writeup and Defence",
+      "topic": "Final defence",
+      "concepts": "The complete arc: proposal, build, pivot, hardening, incident, results",
+      "lab": "Present to the panel, then map project and skills against real roles on or near the team",
+      "deliverable": "A technical writeup joining the team's research record, and a defended final presentation"
+    }
+  ]
+}
