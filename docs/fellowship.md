@@ -72,6 +72,13 @@ it was at week 4:
 An existing notebook is never overwritten without `--force`. That is where the
 week's thinking lives.
 
+Read ahead with `--week N` at any time, including before week 1:
+
+```bash
+python3 -m fellowship lab --week 1
+python3 -m fellowship lab --week 17 --path A   # weeks 17-21 split by track
+```
+
 ## Publishing
 
 The programme grades a weekly reading-and-reproduction habit and ends at week

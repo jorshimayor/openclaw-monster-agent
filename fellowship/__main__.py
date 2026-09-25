@@ -63,16 +63,46 @@ def cmd_status(_args) -> int:
 
 
 def cmd_lab(args) -> int:
-    pos = plan.position()
-    if pos is None or not pos.started or pos.finished:
-        print("no active week — check `python3 -m fellowship status`")
+    """This week's notebook, or any week's with --week.
+
+    Reading ahead is not cheating, so an explicit week is always allowed even
+    before the programme starts. What is not allowed is guessing which week you
+    meant.
+    """
+    config = plan.load_config()
+    if args.week:
+        if not 1 <= args.week <= plan.TOTAL_WEEKS:
+            print(f"week must be 1-{plan.TOTAL_WEEKS}")
+            return 1
+        raw = next((w for w in config.get("weeks", []) if w["week"] == args.week), None)
+        chosen, alternatives = plan._plan_for(raw, args.path or config.get("path"))
+    else:
+        pos = plan.position()
+        if pos is None:
+            print("fellowship is switched off in backend/config/fellowship.json")
+            return 1
+        if not pos.started:
+            days = (pos.anchor - pos.today).days
+            print(f"week 1 starts {pos.anchor} — {days} day(s) away, so there is no current week yet.")
+            print()
+            print("  python3 -m fellowship lab --week 1     read ahead")
+            print(f"  ...or correct start_date in backend/config/fellowship.json if {pos.start} is wrong")
+            return 1
+        if pos.finished:
+            print(f"the 48 weeks ended {pos.week_end}. Use --week N to reopen one.")
+            return 1
+        chosen, alternatives = pos.plan, pos.alternatives
+
+    if chosen is None:
+        print("this week splits by track and no path is set. Pick one:")
+        for alt in alternatives:
+            print(f"  --path {alt.path}   {alt.topic}")
+        print("\n...or set \"path\" in backend/config/fellowship.json to make it permanent.")
         return 1
-    if pos.plan is None:
-        print("choose your path first (week 17 decision) — see `status`")
-        return 1
-    path = write_notebook(pos.plan, ROOT / "fellowship" / "labs", force=args.force)
+
+    path = write_notebook(chosen, ROOT / "fellowship" / "labs", force=args.force)
     print(f"wrote {path.relative_to(ROOT)}")
-    print("  jupyter lab " + str(path.relative_to(ROOT)))
+    print(f"  jupyter lab {path.relative_to(ROOT)}")
     return 0
 
 
@@ -103,6 +133,8 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("status", help="where you are on the 48 weeks").set_defaults(fn=cmd_status)
 
     lab = sub.add_parser("lab", help="generate this week's Jupyter notebook")
+    lab.add_argument("--week", type=int, help="a specific week instead of the current one")
+    lab.add_argument("--path", choices=["A", "B"], help="track, for weeks 17-21")
     lab.add_argument("--force", action="store_true", help="overwrite an existing notebook")
     lab.set_defaults(fn=cmd_lab)
 

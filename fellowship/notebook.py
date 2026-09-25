@@ -28,6 +28,17 @@ def code(text: str = "") -> dict[str, Any]:
     }
 
 
+def _with_ids(cells: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """nbformat 4.5+ requires a cell id, and warns that it will become fatal.
+
+    Ids are positional rather than random so regenerating a week with --force
+    produces a clean diff instead of churning every cell.
+    """
+    for index, cell in enumerate(cells):
+        cell["id"] = f"cell-{index:02d}"
+    return cells
+
+
 def build_cells(plan, today: date) -> list[dict[str, Any]]:
     reading = plan.reading
     path_line = f" · Path {plan.path}" if plan.path else ""
@@ -112,7 +123,7 @@ def write_notebook(plan, out_dir: Path, *, force: bool = False, today: date | No
         # Never clobber work. The notebook is where the week's thinking lives.
         return path
     notebook = {
-        "cells": build_cells(plan, today),
+        "cells": _with_ids(build_cells(plan, today)),
         "metadata": {
             "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},
             "language_info": {"name": "python"},
