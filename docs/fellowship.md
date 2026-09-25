@@ -39,7 +39,7 @@ remembering on Monday:
 - the week's lab
 - a one-paragraph thought log
 
-**Filed once and due Sunday 20:00**, because chasing a weekly thing daily is
+**Filed once and due Friday 20:00**, because chasing a weekly thing daily is
 noise:
 
 - one chapter of the running book
@@ -51,6 +51,19 @@ noise:
 The distinction is in the filing key. A task with one is filed once for the
 week; a task without one re-files every day. A chapter filed daily would be
 seven commitments for one chapter.
+
+### Friday, with the run to Sunday as the extension
+
+Weekly work targets **Friday 20:00**. It is not marked late on Friday and
+forgiven on Sunday — the nagging simply runs from Friday evening through
+Sunday, and that stretch *is* the extension. One due date plus the escalation
+ladder already says "late but not dead"; a second date would not add anything.
+
+`deadlines.catch_up_weeks` lists weeks you started partway through. Everything
+in one of those, daily work included, moves to the Sunday hard stop instead —
+there is no point chasing Monday's reading at 18:00 on a week that is already
+half gone. **Week 1 is currently listed**, because the cohort started on
+2026-09-21 and this was set up on the Friday.
 
 ## The artifact gate
 
@@ -68,6 +81,11 @@ from the week, so nothing has to be ticked off for the count to stay right,
 and a book runs out rather than looping.
 
 Currently running: **AI Engineering**, Chip Huyen (O'Reilly), from week 1.
+Separately, `web3-bounty` carries a weekly shelf of its own — see
+[`accountability.md`](accountability.md) — working one item a week through the
+19-item yBorg prep list.
+
+
 The chapter titles in the config were written from memory — correct any that
 are wrong, they only have to be recognisable enough to know where you are.
 

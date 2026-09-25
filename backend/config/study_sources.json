@@ -776,7 +776,40 @@
               "Record what it found, what it missed, and what it discarded wrongly. That table IS the Phase 6 eval harness \u2014 artifact is the numbers"
             ]
           }
-        ]
+        ],
+        "weekly": {
+          "_comment": [
+            "One item a week off the yBorg prep shelf, filed once and due Friday",
+            "with the extension running through Sunday. Nineteen items, so it is a",
+            "nineteen-week shelf. Mirrors curated/yborg-* on /study."
+          ],
+          "prefix": "yBorg prep \u2014 one item this week",
+          "due": [
+            "friday",
+            "20:00"
+          ],
+          "rotate": [
+            "yAudit \u2014 Common Web3 Security Issues \u2014 https://github.com/yAudit/CommonWeb3SecurityIssues",
+            "yAudit \u2014 DeFi Fork Bugs \u2014 https://github.com/yAudit/defi-fork-bugs",
+            "yAudit \u2014 audit reports \u2014 https://reports.yaudit.dev/",
+            "yAudit \u2014 fellowship audits \u2014 https://github.com/yAudit/fellowship-audits",
+            "yAudit \u2014 Solidity Proxy Playground \u2014 https://github.com/yAudit/Solidity-Proxy-Playground",
+            "Cyfrin Updraft \u2014 Smart Contract Security \u2014 https://updraft.cyfrin.io/courses/security",
+            "Things I Wish I Knew Before Starting yAcademy (@devtooligan) \u2014 https://www.youtube.com/watch?v=QeNDS2Vk4zI",
+            "Secureum \u2014 Smart Contract Security 101 \u2014 https://secureum.substack.com/p/smart-contract-security-101-secureum",
+            "OWASP Smart Contract Security \u2014 https://scs.owasp.org/",
+            "Harnesses in AI, A Deep Dive \u2014 https://www.youtube.com/watch?v=C_GG5g38vLU",
+            "The Harness Playbook \u2014 https://stencil.so/blog/harness-playbook",
+            "AI and agents (@iiiichigo_chan) \u2014 https://x.com/iiiichigo_chan/status/2095911936579805682",
+            "Hugging Face \u2014 Intro to LLMs \u2014 https://huggingface.co/learn/llm-course/en/chapter1/1",
+            "Hugging Face \u2014 Agents Course \u2014 https://huggingface.co/learn/agents-course/en/unit0/introduction",
+            "Learn how agents work \u2014 https://twotimespi.dev/",
+            "Technical Review (@Kritt_AI) \u2014 https://kritt.ai/technical-review/",
+            "AI Auditing Methodology, Pt I (@xy9301) \u2014 https://x.com/xy9301/status/2033186266649640980",
+            "AI Auditing Methodology, Pt II (@xy9301) \u2014 https://x.com/xy9301/status/2036017855381340269",
+            "AI Auditing Methodology, Pt III (@xy9301) \u2014 https://x.com/xy9301/status/2071845290018284002"
+          ]
+        }
       },
       {
         "theme": "web3-study",

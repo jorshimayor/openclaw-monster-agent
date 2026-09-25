@@ -61,6 +61,10 @@ class Theme:
     # instead, and needs that work filed once rather than once a day.
     task_due: Dict[int, tuple] = field(default_factory=dict)
     task_keys: Dict[int, str] = field(default_factory=dict)
+    weekly: Optional[Dict[str, Any]] = None
+    # The id a variant rewrites, so a weekly task keyed on the theme stays the
+    # same task on Monday's variant and Thursday's.
+    base: str = ""
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "Theme":
@@ -73,6 +77,8 @@ class Theme:
             remind=bool(raw.get("remind", True)),
             variants=[Variant.from_dict(v) for v in (raw.get("variants") or [])],
             plan=raw.get("plan"),
+            weekly=raw.get("weekly"),
+            base=str(raw.get("theme") or "theme"),
         )
 
     def resolve(self, day: date_cls, stride: int = 1) -> "Theme":
@@ -98,7 +104,53 @@ class Theme:
             variants=[],
             variant_name=picked.name,
             plan=self.plan,
+            weekly=self.weekly,
+            base=self.base or self.theme,
         )
+
+
+def week_index(day: date_cls) -> int:
+    """A monotonic week counter.
+
+    Ordinals rather than isocalendar()'s week number, which resets every
+    January and would repeat or skip an item at each year boundary — the same
+    reason cycle_index counts ordinals instead of day-of-year.
+
+    The -1 matters. Ordinal 1 is a Monday, so a plain //7 rolls over on Sunday,
+    which would swap the week's item out halfway through the Friday-to-Sunday
+    extension. Weeks here run Monday to Sunday, like the fellowship's.
+    """
+    return (day.toordinal() - 1) // 7
+
+
+def _expand_weekly(theme: Theme, day: date_cls) -> Theme:
+    """One item a week from a shelf, filed once and due with the week.
+
+    Separate from the daily tasks because a reading list worked through one
+    item at a time is not a thing to be chased every morning — it is a thing to
+    have done by the end of the week.
+    """
+    config = theme.weekly
+    if not config:
+        return theme
+    shelf = list(config.get("rotate") or [])
+    if not shelf:
+        return theme
+
+    picked = shelf[week_index(day) % len(shelf)]
+    label = config.get("prefix") or "This week"
+    due = tuple(config.get("due") or ("friday", "20:00"))
+
+    index = len(theme.tasks)
+    theme.tasks = list(theme.tasks) + [f"{label}: {picked}"]
+    theme.task_due = {**theme.task_due, index: due}
+    # Keyed on the base theme and the week, so the five variants of a daily
+    # theme all file the same weekly item rather than one each.
+    theme.task_keys = {
+        **theme.task_keys,
+        index: f"{theme.base or theme.theme}-w{week_index(day)}",
+    }
+    return theme
 
 
 def _expand_plan(theme: Theme, day: date_cls) -> Theme:
@@ -163,10 +215,16 @@ def themes_for(day: Optional[date_cls] = None) -> Dict[str, Any]:
     if not config.get("enabled"):
         return {"date": day.isoformat(), "enabled": False, "daily": [], "cycled": None, "upcoming": []}
 
-    daily = [_expand_plan(Theme.from_dict(t).resolve(day), day) for t in config.get("daily", [])]
+    daily = [
+        _expand_weekly(_expand_plan(Theme.from_dict(t).resolve(day), day), day)
+        for t in config.get("daily", [])
+    ]
     cycle = [Theme.from_dict(t) for t in config.get("cycle", [])]
     stride = max(1, len(cycle))
-    cycled = cycle[cycle_index(day, len(cycle))].resolve(day, stride) if cycle else None
+    cycled = (
+        _expand_weekly(cycle[cycle_index(day, len(cycle))].resolve(day, stride), day)
+        if cycle else None
+    )
 
     upcoming = []
     for ahead in range(1, min(4, len(cycle) + 1)):

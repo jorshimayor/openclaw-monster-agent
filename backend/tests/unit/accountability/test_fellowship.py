@@ -114,9 +114,28 @@ def sched(week: int, config):
 
 
 def test_the_anchor_reading_and_lab_are_chased_every_day(config):
-    daily = [t for t in sched(1, config) if not t.key]
+    config["deadlines"] = {**config["deadlines"], "catch_up_weeks": []}
+    daily = [t for t in sched(2, config) if not t.key]
     assert any("ANCHOR READING" in t.text for t in daily)
     assert any("lab:" in t.text for t in daily)
+
+
+def test_weekly_work_targets_friday_with_the_run_to_sunday_as_the_extension(config):
+    config["deadlines"] = {**config["deadlines"], "catch_up_weeks": []}
+    weekly = [t for t in sched(2, config) if t.key]
+    assert weekly
+    for task in weekly:
+        assert (task.day, task.time) == ("friday", "20:00"), task.text
+    gate = next(t for t in weekly if t.key.endswith("-artifact"))
+    assert "extension to Sunday" in gate.text
+
+
+def test_a_catch_up_week_moves_everything_to_the_hard_stop(config):
+    """A week you started on Friday should not chase you for Monday's reading."""
+    config["deadlines"] = {**config["deadlines"], "catch_up_weeks": [1]}
+    tasks = sched(1, config)
+    assert tasks and all((t.day, t.time) == ("sunday", "20:00") for t in tasks)
+    assert all(t.key for t in tasks), "nothing should re-file daily in a catch-up week"
 
 
 def test_weekly_work_is_due_sunday_evening(config):

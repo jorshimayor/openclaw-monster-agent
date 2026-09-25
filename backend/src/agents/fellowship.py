@@ -176,8 +176,29 @@ def position(day: Optional[date_cls] = None, config: Optional[Dict[str, Any]] = 
     return pos
 
 
-# The week closes on Sunday evening. Everything weekly lands here.
-WEEK_CLOSES = ("sunday", "20:00")
+DEFAULT_DEADLINES = {
+    "weekly": ["friday", "20:00"],
+    "extension": ["sunday", "20:00"],
+    "catch_up_weeks": [],
+}
+
+
+def deadlines_for(week: int, config: Dict[str, Any]) -> tuple[tuple[str, str], tuple[str, str], bool]:
+    """(target, hard stop, is this a catch-up week).
+
+    Weekly work targets Friday. It is not marked late on Friday and forgiven on
+    Sunday — the nagging simply runs from Friday evening through Sunday, and
+    that stretch is the extension. A single due date plus an escalation ladder
+    already expresses "you are late but not dead"; a second date would not.
+
+    A catch-up week is one you started partway through, so everything in it,
+    daily work included, moves to the hard stop.
+    """
+    cfg = {**DEFAULT_DEADLINES, **(config.get("deadlines") or {})}
+    target = tuple(cfg["weekly"])
+    extension = tuple(cfg["extension"])
+    catching_up = week in set(cfg.get("catch_up_weeks") or [])
+    return (extension if catching_up else target), extension, catching_up
 
 
 def scheduled_for(day: Optional[date_cls] = None, config: Optional[Dict[str, Any]] = None) -> List[ScheduledTask]:
@@ -194,6 +215,14 @@ def scheduled_for(day: Optional[date_cls] = None, config: Optional[Dict[str, Any
         return []
 
     wk = f"w{pos.week:02d}"
+    weekly_due, hard_stop, catching_up = deadlines_for(pos.week, config)
+    # In a catch-up week the daily work moves to the hard stop too; there is no
+    # point chasing today's reading at 18:00 on a week that is already half gone.
+    daily_due = weekly_due if catching_up else ("", "")
+    by = (
+        f"by Sunday {hard_stop[1]}" if catching_up
+        else f"by Friday {weekly_due[1]}, extension to Sunday"
+    )
 
     if pos.plan is None and pos.alternatives:
         # Week 17-21 with no path chosen. The decision IS the task.
@@ -213,38 +242,42 @@ def scheduled_for(day: Optional[date_cls] = None, config: Optional[Dict[str, Any
         r = plan.reading
         out.append(ScheduledTask(
             f"{plan.label} — ANCHOR READING, read and reproduce: "
-            f"{r['title']} ({r['cite']}) — {r['url']}"
+            f"{r['title']} ({r['cite']}) — {r['url']}",
+            *daily_due, key=f"{wk}-reading" if catching_up else "",
         ))
     if plan.lab:
-        out.append(ScheduledTask(f"{plan.label} — lab: {plan.lab}"))
+        out.append(ScheduledTask(
+            f"{plan.label} — lab: {plan.lab}",
+            *daily_due, key=f"{wk}-lab" if catching_up else "",
+        ))
 
     for chapter in books_for(pos.week, config):
-        out.append(ScheduledTask(chapter, *WEEK_CLOSES, key=f"{wk}-book"))
+        out.append(ScheduledTask(chapter, *weekly_due, key=f"{wk}-book"))
 
     if plan.deliverable:
         out.append(ScheduledTask(
             f"{plan.label} — DELIVERABLE: {plan.deliverable}",
-            *WEEK_CLOSES, key=f"{wk}-deliverable",
+            *weekly_due, key=f"{wk}-deliverable",
         ))
 
     for index, extra in enumerate(extras_for(pos.week, config)):
-        out.append(ScheduledTask(extra, *WEEK_CLOSES, key=f"{wk}-extra-{index}"))
+        out.append(ScheduledTask(extra, *weekly_due, key=f"{wk}-extra-{index}"))
 
     out.append(ScheduledTask(
-        f"W{pos.week:02d} weekly update by Sunday — what shipped, what broke, what is "
+        f"W{pos.week:02d} weekly update {by} — what shipped, what broke, what is "
         "next. This is the habit the programme grades, not an extra — "
         "https://learn.flowresearch.tech/",
-        *WEEK_CLOSES, key=f"{wk}-update",
+        *weekly_due, key=f"{wk}-update",
     ))
 
     # The gate. Nothing about this week is finished until something exists that
     # someone else could open, which is also the only thing that closes it —
     # the commitment will not accept an acknowledgement in place of a link.
     out.append(ScheduledTask(
-        f"W{pos.week:02d} CLOSE THE WEEK by Sunday 20:00 — post the artifact: the "
+        f"W{pos.week:02d} CLOSE THE WEEK {by} — post the artifact: the "
         f"notebook (fellowship/labs/{plan.slug}.ipynb), a published article, or a "
         "link. Saying it is done does not close this.",
-        *WEEK_CLOSES, key=f"{wk}-artifact",
+        *weekly_due, key=f"{wk}-artifact",
     ))
     return out
 

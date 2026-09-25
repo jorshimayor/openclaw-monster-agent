@@ -326,3 +326,39 @@ def test_every_chain_task_carries_a_resource_link() -> None:
             assert any(
                 "http" in task for task in variant["tasks"]
             ), f"{theme['theme']}/{variant['name']} has no link to work from"
+
+
+def test_the_weekly_shelf_turns_over_on_monday_not_sunday() -> None:
+    """A Sunday rollover would swap the item out mid-extension.
+
+    Weekly work is due Friday with the run to Sunday as the extension, so an
+    item that changes on Sunday morning replaces the one you are still late on.
+    """
+    from src.agents.rotation import week_index
+
+    monday = date(2026, 9, 28)
+    assert week_index(monday - timedelta(days=1)) == week_index(monday) - 1
+    for offset in range(7):
+        assert week_index(monday + timedelta(days=offset)) == week_index(monday)
+
+
+def test_one_shelf_item_a_week_survives_the_variant_shuffle() -> None:
+    """The five web3-bounty variants must file one weekly item between them."""
+    monday = date(2026, 9, 28)
+    seen = set()
+    for offset in range(7):
+        day = monday + timedelta(days=offset)
+        theme = next(t for t in themes_for(day)["daily"] if t.theme.startswith("web3-bounty"))
+        index = max(theme.task_keys)
+        seen.add((theme.task_keys[index], theme.tasks[index]))
+    assert len(seen) == 1, f"the week filed {len(seen)} different items"
+
+
+def test_the_shelf_advances_between_weeks() -> None:
+    monday = date(2026, 9, 28)
+    items = []
+    for week in range(4):
+        day = monday + timedelta(weeks=week)
+        theme = next(t for t in themes_for(day)["daily"] if t.theme.startswith("web3-bounty"))
+        items.append(theme.tasks[max(theme.task_keys)])
+    assert len(set(items)) == 4

@@ -21,7 +21,12 @@
     "books run one chapter a week alongside the plan. The chapter number comes",
     "from the week, so nothing has to be ticked off for the count to stay right,",
     "and a book runs out rather than looping. Chapter titles below were written",
-    "from memory \u2014 correct any that are wrong, they only have to be recognisable."
+    "from memory \u2014 correct any that are wrong, they only have to be recognisable.",
+    "",
+    "deadlines: weekly work targets Friday and the nagging runs from Friday",
+    "evening through Sunday \u2014 that stretch IS the extension, not a separate",
+    "date. catch_up_weeks are weeks you started late: everything in them,",
+    "daily work included, moves to the extension instead."
   ],
   "enabled": true,
   "start_date": "2026-09-21",
@@ -67,6 +72,19 @@
       ]
     }
   ],
+  "deadlines": {
+    "weekly": [
+      "friday",
+      "20:00"
+    ],
+    "extension": [
+      "sunday",
+      "20:00"
+    ],
+    "catch_up_weeks": [
+      1
+    ]
+  },
   "weeks": [
     {
       "week": 1,
