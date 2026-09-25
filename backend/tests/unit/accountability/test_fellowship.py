@@ -101,3 +101,63 @@ def test_summary_reports_week_one_start_before_the_programme_begins(config, monk
     s = summary(START - timedelta(days=3))
     assert s["programme_start"] == START.isoformat()
     assert s["started"] is False
+
+
+# --- scheduling: what is chased daily, and what is due Sunday ---------------
+
+from src.agents.fellowship import books_for, scheduled_for  # noqa: E402
+
+
+def sched(week: int, config):
+    from datetime import timedelta
+    return scheduled_for(START + timedelta(weeks=week - 1), config)
+
+
+def test_the_anchor_reading_and_lab_are_chased_every_day(config):
+    daily = [t for t in sched(1, config) if not t.key]
+    assert any("ANCHOR READING" in t.text for t in daily)
+    assert any("lab:" in t.text for t in daily)
+
+
+def test_weekly_work_is_due_sunday_evening(config):
+    weekly = {t.key: t for t in sched(1, config) if t.key}
+    assert weekly, "nothing weekly was scheduled"
+    for task in weekly.values():
+        assert (task.day, task.time) == ("sunday", "20:00"), task.text
+
+
+def test_weekly_work_is_filed_once_not_once_a_day(config):
+    """A chapter filed every day would be seven commitments for one chapter."""
+    from datetime import timedelta
+    keys = [
+        {t.key for t in scheduled_for(START + timedelta(days=d), config) if t.key}
+        for d in range(7)
+    ]
+    assert all(k == keys[0] for k in keys)
+    assert "w01-book" in keys[0]
+    # ...and the next week's keys are different, so it does file again.
+    assert "w02-book" in {t.key for t in sched(2, config) if t.key}
+
+
+def test_the_week_cannot_close_without_an_artifact(config):
+    gate = next(t for t in sched(1, config) if t.key.endswith("-artifact"))
+    assert "post the artifact" in gate.text
+    assert ".ipynb" in gate.text
+    assert (gate.day, gate.time) == ("sunday", "20:00")
+
+
+def test_one_book_chapter_a_week_counted_from_the_week(config):
+    assert "ch.1" in books_for(1, config)[0]
+    assert "ch.5" in books_for(5, config)[0]
+
+
+def test_a_book_runs_out_rather_than_looping(config):
+    total = len(config["books"][0]["chapters"])
+    assert books_for(total, config)
+    assert books_for(total + 1, config) == []
+
+
+def test_a_book_does_not_start_before_its_week(config):
+    config["books"][0]["start_week"] = 3
+    assert books_for(2, config) == []
+    assert "ch.1" in books_for(3, config)[0]

@@ -599,8 +599,7 @@
         "plan": "fellowship",
         "remind": true,
         "tasks": [
-          "Log one paragraph of thought on what you read today \u2014 what surprised you, what you did not believe \u2014 python3 -m fellowship note",
-          "Weekly update: what shipped, what broke, what is next \u2014 this is the habit the programme grades, not an extra \u2014 https://learn.flowresearch.tech/"
+          "Log one paragraph of thought on what you read today \u2014 what surprised you, what you did not believe \u2014 python3 -m fellowship note"
         ]
       },
       {

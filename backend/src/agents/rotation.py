@@ -56,6 +56,11 @@ class Theme:
     variants: List[Variant] = field(default_factory=list)
     variant_name: Optional[str] = None
     plan: Optional[str] = None
+    # Per-task overrides, by task index. A theme's due_time covers the common
+    # case; a scheduled plan needs some of its work due at the end of the week
+    # instead, and needs that work filed once rather than once a day.
+    task_due: Dict[int, tuple] = field(default_factory=dict)
+    task_keys: Dict[int, str] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "Theme":
@@ -107,17 +112,21 @@ def _expand_plan(theme: Theme, day: date_cls) -> Theme:
     if theme.plan != "fellowship":
         return theme
     try:
-        from .fellowship import tasks_for
+        from .fellowship import scheduled_for
     except Exception as exc:  # pragma: no cover - import guard
         logger.warning("fellowship_unavailable", error=str(exc))
         return theme
-    scheduled = tasks_for(day)
+    scheduled = scheduled_for(day)
     if not scheduled:
         # Before week 1 or after week 48 the theme goes quiet rather than
         # filing its standing tasks against a programme that is not running.
         return Theme(theme=theme.theme, label=theme.label, due_time=theme.due_time,
                      tasks=[], sources=theme.sources, remind=theme.remind, plan=theme.plan)
-    theme.tasks = scheduled + list(theme.tasks)
+    theme.tasks = [t.text for t in scheduled] + list(theme.tasks)
+    theme.task_due = {
+        i: (t.day, t.time) for i, t in enumerate(scheduled) if t.day or t.time
+    }
+    theme.task_keys = {i: t.key for i, t in enumerate(scheduled) if t.key}
     return theme
 
 

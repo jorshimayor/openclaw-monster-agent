@@ -16,7 +16,12 @@
     "assignments is where work handed to you during the programme goes \u2014",
     "set books, project briefs, graded assignments. Add one and it files and",
     "nags against its week exactly like planned work. Tell Claude what you were",
-    "given and it lands here."
+    "given and it lands here.",
+    "",
+    "books run one chapter a week alongside the plan. The chapter number comes",
+    "from the week, so nothing has to be ticked off for the count to stay right,",
+    "and a book runs out rather than looping. Chapter titles below were written",
+    "from memory \u2014 correct any that are wrong, they only have to be recognisable."
   ],
   "enabled": true,
   "start_date": "2026-09-28",
@@ -41,6 +46,27 @@
     "Research Engineering"
   ],
   "assignments": [],
+  "books": [
+    {
+      "title": "AI Engineering",
+      "author": "Chip Huyen",
+      "publisher": "O'Reilly",
+      "url": "https://www.oreilly.com/search/?q=AI+Engineering+Chip+Huyen",
+      "start_week": 1,
+      "chapters": [
+        "Introduction to Building AI Applications with Foundation Models",
+        "Understanding Foundation Models",
+        "Evaluation Methodology",
+        "Evaluate AI Systems",
+        "Prompt Engineering",
+        "RAG and Agents",
+        "Finetuning",
+        "Dataset Engineering",
+        "Inference Optimization",
+        "AI Engineering Architecture and User Feedback"
+      ]
+    }
+  ],
   "weeks": [
     {
       "week": 1,

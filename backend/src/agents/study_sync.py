@@ -513,13 +513,18 @@ class StudySync:
         for theme in list(picked["daily"]) + ([picked["cycled"]] if picked["cycled"] else []):
             filed: List[Dict[str, Any]] = []
             for idx, task in enumerate(theme.tasks):
-                marker = f"{theme.theme}@{day}#{idx}"
+                # A task with its own key is filed once for as long as that key
+                # lasts — a weekly chapter filed daily would be seven
+                # commitments for one chapter. Everything else re-files daily.
+                stamp = getattr(theme, "task_keys", {}).get(idx) or day
+                marker = f"{theme.theme}@{stamp}#{idx}"
                 if marker in existing:
                     continue
+                due_day, due_time = getattr(theme, "task_due", {}).get(idx, ("", ""))
                 try:
                     row = await repo.create(
                         title=task,
-                        due_at=resolve_due("", "", theme.due_time),
+                        due_at=resolve_due(due_day, "", due_time or theme.due_time),
                         detail=f"{theme.label} [theme:{marker}]",
                         source=theme.theme,
                         remind=getattr(theme, "remind", True),

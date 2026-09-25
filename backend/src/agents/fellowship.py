@@ -55,6 +55,22 @@ class WeekPlan:
 
 
 @dataclass
+class ScheduledTask:
+    """One line of work, with when it is due and how often it is filed.
+
+    `day`/`time` map onto resolve_due, so "sunday"/"20:00" means this week's
+    Sunday rather than a fixed date. `key` is the dedup identity: a task with
+    one is filed once for the whole week, a task without one is filed fresh
+    every day. The daily ones carry the pressure; the weekly ones are the gate.
+    """
+
+    text: str
+    day: str = ""
+    time: str = ""
+    key: str = ""
+
+
+@dataclass
 class Position:
     """Where today sits on the 48 weeks."""
 
@@ -160,40 +176,107 @@ def position(day: Optional[date_cls] = None, config: Optional[Dict[str, Any]] = 
     return pos
 
 
-def tasks_for(day: Optional[date_cls] = None) -> List[str]:
-    """This week's fellowship work, as commitment lines.
+# The week closes on Sunday evening. Everything weekly lands here.
+WEEK_CLOSES = ("sunday", "20:00")
 
-    Returned every day of the week on purpose. Twenty hours a week does not
-    happen by remembering on Monday — the paper, the lab and the write-up stay
-    on the board until the week is over.
+
+def scheduled_for(day: Optional[date_cls] = None, config: Optional[Dict[str, Any]] = None) -> List[ScheduledTask]:
+    """This week's fellowship work, with due dates and filing frequency.
+
+    The anchor reading and the lab are filed every day, because twenty hours a
+    week does not happen by remembering on Monday. The book chapter, the
+    deliverable and the artifact are filed once and due Sunday — chasing a
+    weekly chapter daily is noise, and the artifact is the gate, not the grind.
     """
-    pos = position(day)
-    if pos is None or not pos.started:
+    config = config or load_config()
+    pos = position(day, config)
+    if pos is None or not pos.started or pos.finished:
         return []
-    if pos.finished:
-        return []
+
+    wk = f"w{pos.week:02d}"
 
     if pos.plan is None and pos.alternatives:
         # Week 17-21 with no path chosen. The decision IS the task.
         both = " | ".join(f"Path {p.path}: {p.topic}" for p in pos.alternatives)
-        return [
-            f"W{pos.week:02d} — choose your track before anything else this week. "
-            f"Set \"path\" in backend/config/fellowship.json to \"A\" or \"B\". {both}"
-        ]
+        return [ScheduledTask(
+            text=(f"W{pos.week:02d} — choose your track before anything else this week. "
+                  f"Set \"path\" in backend/config/fellowship.json to \"A\" or \"B\". {both}"),
+            key=f"{wk}-path-choice",
+        )]
 
     plan = pos.plan
     if plan is None:
         return []
 
-    out: List[str] = []
+    out: List[ScheduledTask] = []
     if plan.reading:
         r = plan.reading
-        out.append(f"{plan.label} — read and reproduce: {r['title']} ({r['cite']}) — {r['url']}")
+        out.append(ScheduledTask(
+            f"{plan.label} — ANCHOR READING, read and reproduce: "
+            f"{r['title']} ({r['cite']}) — {r['url']}"
+        ))
     if plan.lab:
-        out.append(f"{plan.label} — lab: {plan.lab}")
+        out.append(ScheduledTask(f"{plan.label} — lab: {plan.lab}"))
+
+    for chapter in books_for(pos.week, config):
+        out.append(ScheduledTask(chapter, *WEEK_CLOSES, key=f"{wk}-book"))
+
     if plan.deliverable:
-        out.append(f"{plan.label} — DELIVERABLE due end of week: {plan.deliverable}")
-    out.extend(extras_for(pos.week))
+        out.append(ScheduledTask(
+            f"{plan.label} — DELIVERABLE: {plan.deliverable}",
+            *WEEK_CLOSES, key=f"{wk}-deliverable",
+        ))
+
+    for index, extra in enumerate(extras_for(pos.week, config)):
+        out.append(ScheduledTask(extra, *WEEK_CLOSES, key=f"{wk}-extra-{index}"))
+
+    out.append(ScheduledTask(
+        f"W{pos.week:02d} weekly update by Sunday — what shipped, what broke, what is "
+        "next. This is the habit the programme grades, not an extra — "
+        "https://learn.flowresearch.tech/",
+        *WEEK_CLOSES, key=f"{wk}-update",
+    ))
+
+    # The gate. Nothing about this week is finished until something exists that
+    # someone else could open, which is also the only thing that closes it —
+    # the commitment will not accept an acknowledgement in place of a link.
+    out.append(ScheduledTask(
+        f"W{pos.week:02d} CLOSE THE WEEK by Sunday 20:00 — post the artifact: the "
+        f"notebook (fellowship/labs/{plan.slug}.ipynb), a published article, or a "
+        "link. Saying it is done does not close this.",
+        *WEEK_CLOSES, key=f"{wk}-artifact",
+    ))
+    return out
+
+
+def tasks_for(day: Optional[date_cls] = None) -> List[str]:
+    return [t.text for t in scheduled_for(day)]
+
+
+def books_for(week: int, config: Optional[Dict[str, Any]] = None) -> List[str]:
+    """One chapter a week, from whatever books are running alongside the plan.
+
+    Chapter number is derived from the week rather than stored, so nothing has
+    to be ticked off for the count to stay right. A book runs out rather than
+    looping.
+    """
+    config = config or load_config()
+    out = []
+    for book in config.get("books") or []:
+        start = int(book.get("start_week", 1))
+        if week < start:
+            continue
+        index = week - start
+        chapters = book.get("chapters") or []
+        total = int(book.get("chapter_count") or len(chapters))
+        if not total or index >= total:
+            continue
+        title = chapters[index] if index < len(chapters) else ""
+        label = f"ch.{index + 1}" + (f" — {title}" if title else "")
+        url = f" — {book['url']}" if book.get("url") else ""
+        out.append(
+            f"W{week:02d} BOOK: {book['title']} ({book.get('author', '')}) {label}{url}"
+        )
     return out
 
 

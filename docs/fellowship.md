@@ -32,13 +32,44 @@ The `flow-fellowship` theme is first in the daily list and due at **18:00** —
 the evening block, because the mornings are already spoken for by web3 and
 twenty hours a week needs a protected slot rather than whatever is left over.
 
-Each day it files:
+**Chased every day**, because twenty hours a week does not happen by
+remembering on Monday:
 
-- the week's paper, to read **and reproduce**
+- the anchor reading, to read **and reproduce**
 - the week's lab
-- the deliverable, when the week ends a phase
+- a one-paragraph thought log
+
+**Filed once and due Sunday 20:00**, because chasing a weekly thing daily is
+noise:
+
+- one chapter of the running book
+- the phase deliverable, when the week ends a phase
 - anything in `assignments` for that week
-- a daily thought log, and the weekly what-shipped/what-broke update
+- the weekly what-shipped/what-broke update
+- **CLOSE THE WEEK** — the artifact gate
+
+The distinction is in the filing key. A task with one is filed once for the
+week; a task without one re-files every day. A chapter filed daily would be
+seven commitments for one chapter.
+
+## The artifact gate
+
+Nothing about a week is finished until something exists that someone else
+could open: the notebook, a published article, or a link. The gate is due
+Sunday 20:00 and is an ordinary commitment, which means
+[`artifact.py`](../backend/src/core/artifact.py) already governs it — an
+acknowledgement does not close it, only a link, a file, or 40+ characters of
+real text.
+
+## Books alongside the plan
+
+`books` in the config runs one chapter a week. The chapter number is derived
+from the week, so nothing has to be ticked off for the count to stay right,
+and a book runs out rather than looping.
+
+Currently running: **AI Engineering**, Chip Huyen (O'Reilly), from week 1.
+The chapter titles in the config were written from memory — correct any that
+are wrong, they only have to be recognisable enough to know where you are.
 
 ## The command line
 
