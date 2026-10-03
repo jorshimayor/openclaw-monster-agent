@@ -285,6 +285,9 @@ class NagEngine:
             return {
                 "enabled": True,
                 "quiet_hours": True,
+                # Nothing fires until the window ends, so that is the only time
+                # worth waking for.
+                "next_wake_at": resume.isoformat() if resume else None,
                 "sent": 0,
                 "deferred": waiting,
                 "resumes_at": resume.isoformat() if resume else None,
@@ -309,11 +312,25 @@ class NagEngine:
             except Exception as exc:
                 self._log.warning("nag_send_failed", commitment=str(c.id)[:8], error=str(exc))
         self._last_tick_sent = len(results)
+
+        # When the container next needs to exist. The caller schedules a wake
+        # for exactly this instead of polling, so None genuinely means "do not
+        # wake me again until something is filed".
+        try:
+            upcoming = await repo.next_nag_at()
+        except Exception as exc:
+            self._log.warning("next_nag_lookup_failed", error=str(exc))
+            upcoming = None
+        if upcoming is not None and in_quiet_hours(upcoming):
+            # Due in the small hours, so nothing would be sent on arrival.
+            upcoming = quiet_until(upcoming)
+
         return {
             "enabled": True,
             "checked": len(due),
             "sent": len(results),
             "held_back": holding,
+            "next_wake_at": upcoming.isoformat() if upcoming else None,
             "results": results,
             "at": self._last_tick.isoformat(),
         }

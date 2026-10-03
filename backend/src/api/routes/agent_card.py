@@ -66,9 +66,31 @@ CARD: Dict[str, Any] = {
         {"tool": "list_tasks", "http": "GET /api/tasks", "does": "Research tasks."},
         {"tool": "create_task", "http": "POST /api/tasks",
          "does": "Hand the agent team a research question. Costs model credits."},
+        {"tool": "suggest_study", "http": "POST /api/study/queue",
+         "does": (
+             "Recommend what to learn next. Queues for the human to promote — "
+             "it does NOT create a reminder, so suggest freely. The rationale "
+             "is required and is the whole value."
+         )},
+        {"tool": "list_study_queue", "http": "GET /api/study/queue",
+         "does": "What has already been suggested. Check before adding."},
         {"tool": "notify", "http": "POST /api/notify/send",
          "does": "Message the human on Telegram and Slack."},
     ],
+    "what_the_human_is_doing": {
+        "_why": "So a suggestion lands on the work, not on a guess about it.",
+        "building": "Pesarc — cross-border payments on EVM and SVM; and an "
+                    "invariant-first smart-contract auditing agent.",
+        "auditing": "Web3 bug bounties daily — Solodit findings, invariant "
+                    "libraries, Foundry PoCs.",
+        "studying": "A 48-week applied-AI research fellowship: agent "
+                    "evaluation harnesses and retrieval systems.",
+        "wants_to_be": "A software engineer who passes hard interviews, ships "
+                       "audited contracts, and publishes work worth reading.",
+        "ask_first": "GET /api/day and GET /api/study/queue before suggesting, "
+                     "so you build on what is already queued rather than "
+                     "repeating it.",
+    },
     "rules": [
         "An acknowledgement never closes a commitment. Only a link, a file, or "
         "40+ characters of real substance — 'done' is rejected with a 422.",
@@ -78,6 +100,9 @@ CARD: Dict[str, Any] = {
         "person, not for status chatter.",
         "create_task runs a multi-agent pipeline on the operator's credits. "
         "Send a real question, not a ping.",
+        "A study suggestion is not a commitment. It queues until the human "
+        "promotes it, which is why you may suggest freely and why a weak "
+        "rationale is simply ignored. 'Learn Rust' is noise.",
         "There is no delete or purge in the MCP surface, by design. If you think "
         "you need to erase part of the accountability record, you are wrong.",
     ],

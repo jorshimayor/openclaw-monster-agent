@@ -31,7 +31,78 @@ export class BackendContainer extends Container<Env> {
     // container process inherits runtime secrets on every (re)start.
     this.envVars = buildEnvVars(env);
   }
+
+  // ── Nagging on an alarm rather than a poll ────────────────────────────────
+  //
+  // A reminder is time-based, and nothing pushes an event saying "it is now
+  // thirty minutes later" — which is why this was a cron firing every ten
+  // minutes. The cost was not the cron, it was that each fire woke the
+  // container, so it never reached its idle threshold and billed around the
+  // clock to discover there was nothing to send.
+  //
+  // So the container tells us when it next needs to exist, and we sleep until
+  // exactly then. schedule() is used rather than an `alarm()` override because
+  // Container owns that handler for its own lifecycle; overriding it would
+  // break sleepAfter.
+
+  /** Fired by schedule(). Runs one nag round, then books the next wake. */
+  async nagTick(): Promise<void> {
+    let nextWakeAt: string | null = null;
+    try {
+      const response = await this.containerFetch(
+        new Request("http://container/api/commitments/tick", { method: "POST" }),
+      );
+      if (response.ok) {
+        nextWakeAt = ((await response.json()) as { next_wake_at?: string | null })
+          .next_wake_at ?? null;
+      } else {
+        console.error(`nagTick -> ${response.status}`);
+      }
+    } catch (err) {
+      console.error("nagTick failed", err);
+    }
+
+    if (nextWakeAt) {
+      await this.scheduleNagAt(new Date(nextWakeAt));
+    } else {
+      // Nothing pending. Do not book a wake at all — this is the case the old
+      // cron could not express, and it is most of the day.
+      await this.ctx.storage.delete(NEXT_NAG_KEY);
+    }
+  }
+
+  /** Book the next wake, clamped so a bad timestamp cannot wedge it. */
+  async scheduleNagAt(when: Date): Promise<void> {
+    const now = Date.now();
+    const at = Math.min(
+      Math.max(when.getTime(), now + MIN_NAG_DELAY_MS),
+      now + MAX_NAG_DELAY_MS,
+    );
+    await this.ctx.storage.put(NEXT_NAG_KEY, at);
+    await this.schedule(new Date(at), "nagTick");
+  }
+
+  /**
+   * Safety net, called from cron. Pure Durable Object work — it reads storage
+   * and may book a wake, but never touches the container, so the hourly check
+   * costs nothing when there is nothing to do.
+   */
+  async ensureNagSchedule(): Promise<{ scheduled: boolean; at: string | null }> {
+    const booked = (await this.ctx.storage.get<number>(NEXT_NAG_KEY)) ?? null;
+    if (booked !== null && booked > Date.now()) {
+      return { scheduled: false, at: new Date(booked).toISOString() };
+    }
+    // Either nothing is booked, or a wake was missed. Run one now; it will
+    // book the next itself.
+    await this.scheduleNagAt(new Date(Date.now() + MIN_NAG_DELAY_MS));
+    return { scheduled: true, at: null };
+  }
 }
+
+const NEXT_NAG_KEY = "nextNagAt";
+/** Never busy-loop, and never sleep so long a missed wake goes unnoticed. */
+const MIN_NAG_DELAY_MS = 10_000;
+const MAX_NAG_DELAY_MS = 6 * 60 * 60 * 1000;
 
 type Env = {
   BACKEND_CONTAINER: DurableObjectNamespace<BackendContainer>;
@@ -240,6 +311,22 @@ export default {
     // idle minutes and an in-process loop dies with it, so the reminder clock
     // has to live out here. `drain` is the no-webhook fallback for inbound
     // replies; with a webhook registered it just returns 0 updates.
+    // Safety net only. The nag round itself runs from a Durable Object
+    // schedule booked by the previous round, so this does not tick — it checks
+    // that a wake is still booked and books one if the chain was ever broken.
+    // Pure DO work: it never touches the container, so a check costs nothing
+    // when there is nothing to do.
+    if (event.cron === "*/30 * * * *") {
+      if (inQuietHours(new Date(), env)) return;
+      try {
+        const state = await stub.ensureNagSchedule();
+        if (state.scheduled) console.log("nag schedule re-armed");
+      } catch (err) {
+        console.error("ensureNagSchedule failed", err);
+      }
+      return;
+    }
+
     if (event.cron === "*/10 * * * *") {
       const hit = async (path: string): Promise<void> => {
         try {
@@ -255,6 +342,8 @@ export default {
       if (inQuietHours(new Date(), env)) return;
 
       await hit("/api/commitments/tick");
+      // Keep the schedule chain alive while both triggers are configured.
+      await stub.ensureNagSchedule().catch(() => {});
       // /api/telegram/drain is deliberately NOT called. It polled getUpdates
       // every ten minutes; the webhook through monster-telegram-ingress now
       // delivers in real time, so the poll was duplicating it at the cost of a

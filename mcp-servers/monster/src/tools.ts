@@ -110,6 +110,52 @@ export const TOOLS: Tool[] = [
     handler: (client, args) => client.request("POST", "/api/tasks", args),
   },
   {
+    name: "suggest_study",
+    description:
+      "Recommend something the human should learn next. This is the tool to " +
+      "reach for when you notice a gap — a concept their code keeps working " +
+      "around, a bug class they missed, an interview topic they have not " +
+      "covered.\n\n" +
+      "It does NOT create a reminder. Suggestions queue until the human " +
+      "promotes them, so you cannot fill their day with work they never " +
+      "agreed to. That means you can suggest freely; it also means a " +
+      "suggestion with a weak rationale will simply be ignored.\n\n" +
+      "The rationale is required and is the whole value. 'Learn Rust' is " +
+      "noise. 'Your CCTP adapter retries on a non-idempotent path — read the " +
+      "idempotency-key section before the next corridor' is a recommendation.",
+    schema: z.object({
+      topic: z.string().min(6).max(300).describe("what to learn, specifically"),
+      rationale: z
+        .string()
+        .min(20)
+        .describe("why this, why now — reference what you actually observed"),
+      url: z.string().url().optional().describe("where to learn it"),
+      track: z
+        .enum(["build", "audit", "interview", "write", "fundamentals"])
+        .default("fundamentals")
+        .describe("which part of their work this serves"),
+      priority: z.number().int().min(1).max(5).default(3).describe("1 highest"),
+      est_minutes: z.number().int().min(5).max(600).optional(),
+      suggested_by: z.string().max(80).describe("your name, so a bad source can be ignored"),
+    }),
+    handler: (client, args) => client.request("POST", "/api/study/queue", args),
+  },
+  {
+    name: "list_study_queue",
+    description:
+      "What has already been suggested. Check before suggesting, so the queue " +
+      "does not fill with the same idea from four agents.",
+    schema: z.object({
+      status: z.enum(["queued", "promoted", "dismissed", "all"]).default("queued"),
+      limit: z.number().int().min(1).max(300).optional(),
+    }),
+    handler: (client, { status, limit }) => {
+      const params = new URLSearchParams({ status });
+      if (limit) params.set("limit", String(limit));
+      return client.request("GET", `/api/study/queue?${params}`);
+    },
+  },
+  {
     name: "notify",
     description:
       "Send the human a message through their Telegram and Slack channels. This " +

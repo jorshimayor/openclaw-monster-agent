@@ -81,7 +81,11 @@
   // "0 8 1 * *" (09:00 WAT, 1st of the month) files the investing routine.
   "triggers": {
     "crons": [
-      "*/10 * * * *",
+      // Was */10. The nag round now runs from a Durable Object schedule booked
+      // by the previous round, so this is only a safety net that re-arms the
+      // chain if a wake was ever missed — and it does so without waking the
+      // container. See BackendContainer.ensureNagSchedule.
+      "*/30 * * * *",
       "5 * * * *",
       "15 6 * * *",
       "0 8 1 * *",

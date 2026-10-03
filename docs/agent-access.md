@@ -165,6 +165,35 @@ costs a container wake.
 characters of substance, or a 422. Another agent cannot close your week by
 asserting that it is closed.
 
+## Telling the bot what to study next
+
+`POST /api/study/queue`, or `suggest_study` over MCP. This is the tool another
+agent reaches for when it notices a gap — a concept the code keeps working
+around, a bug class that was missed, an interview topic never covered.
+
+**It does not create a reminder.** Suggestions queue until the human promotes
+one, which is the whole design: an agent can suggest freely precisely because
+it cannot fill a day with work nobody agreed to. Filing a recommendation as a
+commitment is how you get forty reminders you never accepted, and this system
+has already learned that lesson once.
+
+`rationale` is required, minimum twenty characters, and is the entire value.
+"Learn Rust" is noise. "Your CCTP adapter retries on a non-idempotent path —
+read the idempotency-key section before the next corridor" is a
+recommendation. A suggestion that cannot say why-this-now will be ignored, and
+`suggested_by` means a source that keeps producing noise can be ignored
+wholesale.
+
+Tracks: `build`, `audit`, `interview`, `write`, `fundamentals`.
+
+Promote with `POST /api/study/queue/{ref}/promote` — that endpoint is
+deliberately absent from the MCP surface. Only the human turns a suggestion
+into something that chases them.
+
+The agent card also carries a `what_the_human_is_doing` block, so a suggestion
+lands on the actual work rather than a guess about it, and tells callers to
+read `/api/day` and the existing queue first.
+
 ## Schema drift, and why an agent could not file anything
 
 A sibling agent trying to post commitments got:

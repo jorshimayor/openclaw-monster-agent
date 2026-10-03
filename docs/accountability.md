@@ -579,8 +579,16 @@ Net: 144 timer fires a day to 90, and the container can reach idle overnight
 for the first time — roughly 38% less awake time, with Neon free to suspend
 alongside it.
 
-**Still a poll.** The remaining 90 fires exist because nagging is time-based
-and nothing pushes "it is now thirty minutes later". The right fix is a Durable
-Object alarm set to the next due time, so the container wakes exactly when a
-reminder is due and not otherwise. That would take the 90 down to roughly the
-number of reminders actually sent.
+**And then the poll went away.** Each nag round now ends by asking the backend
+when it next needs to exist — `next_nag_at()`, the mirror of `due_for_nag` —
+and books a Durable Object schedule for exactly that moment. Nothing pending
+means no wake is booked at all, which is the case the cron could never express
+and is most of the day.
+
+`schedule()` is used rather than overriding `alarm()`, because `Container`
+owns that handler for its own lifecycle and overriding it would break
+`sleepAfter`.
+
+The remaining `*/30` cron is a safety net that re-arms the chain if a wake is
+ever missed. It calls a Durable Object method, not the container, so a check
+on a quiet day starts nothing and costs nothing.

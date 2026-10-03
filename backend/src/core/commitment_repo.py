@@ -197,6 +197,43 @@ async def resolve_ref(ref: str) -> Optional[CommitmentDB]:
     return None
 
 
+async def next_nag_at(now: Optional[datetime] = None) -> Optional[datetime]:
+    """When the earliest open commitment next becomes eligible for a reminder.
+
+    The mirror image of due_for_nag: instead of "who is due now", it answers
+    "when does anyone become due", so the container can sleep until exactly
+    that moment instead of being woken every ten minutes to be told nobody is.
+
+    None means nothing is pending — do not schedule a wake at all.
+    """
+    now = now or _now()
+    soonest: Optional[datetime] = None
+    for r in await list_all(status=CommitmentStatus.OPEN.value, limit=500):
+        if not getattr(r, "remind", True):
+            continue
+        due = _aware(r.due_at)
+        if due is None:
+            continue
+
+        # The moment this row becomes eligible is the latest of its due time,
+        # the end of any snooze, and one nag interval after the last reminder.
+        candidate = due
+        snooze = _aware(r.snooze_until)
+        if snooze is not None and snooze > candidate:
+            candidate = snooze
+        last = _aware(r.last_nagged_at)
+        if last is not None:
+            ready = last + timedelta(seconds=r.nag_interval_sec)
+            if ready > candidate:
+                candidate = ready
+
+        if candidate < now:
+            candidate = now  # already overdue: wake immediately
+        if soonest is None or candidate < soonest:
+            soonest = candidate
+    return soonest
+
+
 async def due_for_nag(now: Optional[datetime] = None) -> List[CommitmentDB]:
     """Open commitments whose due time has passed and whose nag interval has
     elapsed since the last reminder (snooze respected)."""
