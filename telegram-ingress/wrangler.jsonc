@@ -1,0 +1,40 @@
+// ═══════════════════════════════════════════════════════════════════════════
+// Telegram ingress Worker
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// Exists only because Access-for-Workers cannot be scoped to a path, and
+// Telegram cannot authenticate to Access. See docs/agent-access.md.
+//
+//   cd telegram-ingress
+//   npm install
+//   npx wrangler secret put TELEGRAM_WEBHOOK_SECRET   # same value as the backend
+//   npx wrangler deploy
+//
+// Then point Telegram at it (the old webhook on the protected Worker will be
+// 403'd by Access the moment the Access application exists):
+//
+//   curl -sS "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+//     -d url=https://monster-telegram-ingress.<account>.workers.dev/api/telegram/webhook \
+//     -d secret_token=$TELEGRAM_WEBHOOK_SECRET
+//
+// DO NOT put this Worker behind Access. That is the entire point of it.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "monster-telegram-ingress",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+  "observability": { "enabled": true },
+
+  // Cross-script binding: the class lives in monster-agent-backend, which must
+  // be deployed first. This Worker borrows the namespace so both reach the
+  // SAME container instance.
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "BACKEND_CONTAINER",
+        "class_name": "BackendContainer",
+        "script_name": "monster-agent-backend"
+      }
+    ]
+  }
+}

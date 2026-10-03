@@ -300,8 +300,11 @@ async def test_the_routine_does_not_repeat_within_the_same_period() -> None:
 async def test_the_routine_comes_back_next_month() -> None:
     sync = FakeSync(ROUTINE_VALUES)
     source = _routine_source()
-    await sync.pick_routine(source, now=datetime(2026, 9, 9, tzinfo=timezone.utc))
-    await sync.sync_source(source)
+    # Both calls are pinned to September. Leaving the sync on the wall clock
+    # meant this test only passed while the real date was still September.
+    september = datetime(2026, 9, 9, tzinfo=timezone.utc)
+    await sync.pick_routine(source, now=september)
+    await sync.sync_source(source, now=september)
 
     next_month, _ = await sync.pick_routine(
         source, now=datetime(2026, 10, 2, tzinfo=timezone.utc)

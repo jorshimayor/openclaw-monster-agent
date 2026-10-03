@@ -435,13 +435,22 @@ class StudySync:
             )
         return items, None
 
-    async def sync_source(self, source: StudySource) -> Dict[str, Any]:
-        """Pick today's items from one source and file them. Never raises."""
+    async def sync_source(
+        self, source: StudySource, now: Optional[datetime] = None
+    ) -> Dict[str, Any]:
+        """Pick today's items from one source and file them. Never raises.
+
+        `now` is threaded through rather than left to the wall clock so a test
+        can place a sync in a specific period. Without it, a test that filed in
+        September and asserted the routine returned in October silently started
+        filing in whatever month it happened to be run — and passed until the
+        real calendar moved past it.
+        """
         try:
             if source.kind == "weekly":
                 items, err = await self.pick_weekly(source)
             elif source.kind == "routine":
-                items, err = await self.pick_routine(source)
+                items, err = await self.pick_routine(source, now=now)
             else:
                 items, err = await self.pick_backlog(source)
         except Exception as exc:
