@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Telegram API calls, with the bot token read from backend/.env.
+#
+# The token lives in backend/.env and is a Wrangler secret in production; it is
+# not exported in your shell. So `curl .../bot$TELEGRAM_BOT_TOKEN/getWebhookInfo`
+# expands to `.../bot/getWebhookInfo` and Telegram answers 404 Not Found, which
+# reads like a broken endpoint rather than an empty variable.
+#
+#   scripts/tg getWebhookInfo
+#   scripts/tg getMe
+#   scripts/tg deleteWebhook
+#   scripts/tg sendMessage -d chat_id=... -d text=hello
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ENV_FILE="$ROOT/backend/.env"
+
+[ -f "$ENV_FILE" ] || { echo "no $ENV_FILE" >&2; exit 1; }
+TOKEN="$(grep -m1 '^TELEGRAM_BOT_TOKEN=' "$ENV_FILE" | cut -d= -f2- | tr -d "\"' ")"
+[ -n "$TOKEN" ] || { echo "TELEGRAM_BOT_TOKEN is empty in $ENV_FILE" >&2; exit 1; }
+
+if [ $# -eq 0 ]; then
+  echo "usage: scripts/tg <method> [curl args...]" >&2
+  exit 64
+fi
+METHOD="$1"; shift
+
+# The token goes in the URL, so it lands in argv — unavoidable with curl, and
+# no worse than typing it. It is never echoed.
+curl -sS "https://api.telegram.org/bot${TOKEN}/${METHOD}" "$@"
+echo
