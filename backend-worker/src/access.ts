@@ -36,7 +36,17 @@ export type AccessResult =
  * every inbound message. It is not unauthenticated — it is authenticated by a
  * different mechanism, checked in FastAPI.
  */
-const BYPASS = [/^\/api\/telegram\/webhook\/?$/, /^\/api\/health\/?$/];
+const BYPASS = [
+  /^\/api\/telegram\/webhook\/?$/,
+  /^\/api\/health\/?$/,
+  // An agent that cannot authenticate is exactly the one that needs to read
+  // how. Gating the instructions behind the gate they describe is a dead end.
+  /^\/api\/agent-card\/?$/,
+  /^\/\.well-known\/agent-card\.json$/,
+];
+
+/** Where a refused caller is told to look. */
+export const AGENT_CARD_PATH = "/api/agent-card";
 
 export function isBypassed(pathname: string): boolean {
   return BYPASS.some((re) => re.test(pathname));

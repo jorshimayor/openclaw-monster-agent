@@ -175,6 +175,11 @@ describe("the bypass list", () => {
     expect(isBypassed("/api/health")).toBe(true);
   });
 
+  it("covers the agent card, so a refused agent can read how to get in", () => {
+    expect(isBypassed("/api/agent-card")).toBe(true);
+    expect(isBypassed("/.well-known/agent-card.json")).toBe(true);
+  });
+
   it("covers nothing else", () => {
     for (const path of [
       "/api/commitments",

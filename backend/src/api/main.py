@@ -37,6 +37,7 @@ from .routes.schedule import router as schedule_router
 from .routes.study import router as study_router
 from .routes.day import router as day_router
 from .routes.writing import router as writing_router
+from .routes.agent_card import router as agent_card_router
 
 
 class LLMTestRequest(BaseModel):
@@ -446,6 +447,9 @@ def create_app() -> FastAPI:
     app.include_router(study_router)
     app.include_router(day_router)
     app.include_router(writing_router)
+    # Unauthenticated by design: an agent that cannot get in is exactly the
+    # one that needs to read how. Also on the Worker's Access bypass list.
+    app.include_router(agent_card_router)
     return app
 
 

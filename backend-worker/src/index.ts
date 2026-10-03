@@ -1,5 +1,5 @@
 import { Container, getContainer } from "@cloudflare/containers";
-import { verifyAccess } from "./access";
+import { AGENT_CARD_PATH, verifyAccess } from "./access";
 
 /**
  * Cloudflare Containers Durable Object — wraps the FastAPI Python backend.
@@ -152,13 +152,20 @@ export default {
 
     if (!access.ok) {
       const origin = request.headers.get("origin") ?? "*";
-      return new Response(JSON.stringify({ detail: access.reason }), {
+      // A 401 that does not say what to do next is a dead end for a bot, which
+      // cannot read documentation it was never pointed at.
+      const body = {
+        detail: access.reason,
+        how_to_get_access: new URL(AGENT_CARD_PATH, request.url).toString(),
+      };
+      return new Response(JSON.stringify(body), {
         status: access.status,
         headers: {
           ...CORS_HEADERS,
           "Content-Type": "application/json",
           "Access-Control-Allow-Origin": origin,
           "X-Access-Enforcement": "enforce",
+          Link: `<${new URL(AGENT_CARD_PATH, request.url)}>; rel="service-desc"`,
           Vary: "Origin",
         },
       });

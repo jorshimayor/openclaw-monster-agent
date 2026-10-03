@@ -133,7 +133,89 @@ async def create_all_tables() -> None:
         from ..models.knowledge import KnowledgeCrystalDB  # noqa: F401
         from ..models.task import TaskDB  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_add_missing_columns)
     logger.info("database_tables_created")
+
+
+def _column_ddl(column, dialect) -> Optional[str]:
+    """`ADD COLUMN` for one column, or None when it cannot be done safely.
+
+    A NOT NULL column cannot be added to a table that already has rows unless
+    a server default comes with it. SQLAlchemy's `default=` is applied in
+    Python on insert, so it does nothing for rows that already exist — which is
+    exactly the case here, since this only runs for columns that were added to
+    a model after the table was created.
+
+    So a scalar Python default is promoted to a server default. Anything else
+    (a callable, or no default at all) is added nullable instead, because
+    guessing a backfill value is worse than a nullable column.
+    """
+    type_sql = column.type.compile(dialect)
+    if column.nullable or column.server_default is not None:
+        null_sql = "" if column.nullable else " NOT NULL"
+        return f"{column.name} {type_sql}{null_sql}"
+
+    default = getattr(column.default, "arg", None)
+    if column.default is None or callable(default):
+        logger.warning(
+            "schema_column_added_nullable",
+            column=column.name,
+            reason="NOT NULL without a scalar default cannot be backfilled safely",
+        )
+        return f"{column.name} {type_sql}"
+
+    if isinstance(default, bool):
+        literal = "true" if default else "false"
+    elif isinstance(default, (int, float)):
+        literal = str(default)
+    elif isinstance(default, str):
+        escaped = default.replace("'", "''")
+        literal = f"'{escaped}'"
+    else:
+        logger.warning("schema_column_added_nullable", column=column.name,
+                       reason=f"unrenderable default {type(default).__name__}")
+        return f"{column.name} {type_sql}"
+
+    return f"{column.name} {type_sql} NOT NULL DEFAULT {literal}"
+
+
+def _add_missing_columns(conn) -> None:
+    """Add columns a model declares that the live table does not have.
+
+    create_all() creates missing TABLES and nothing else — it will not touch a
+    table that already exists. So any column added to a model after its first
+    deploy silently never reaches the database, and the failure surfaces much
+    later as an INSERT blowing up on a column that does not exist. That is how
+    `remind` reached production missing: a sibling agent got
+    `column "remind" of relation "commitments" does not exist` and could not
+    file anything at all.
+
+    Deliberately additive only. Dropping or retyping a column is destructive
+    and is reported rather than performed.
+    """
+    from sqlalchemy import inspect as sa_inspect, text as sa_text
+
+    inspector = sa_inspect(conn)
+    existing_tables = set(inspector.get_table_names())
+
+    for table in Base.metadata.sorted_tables:
+        if table.name not in existing_tables:
+            continue  # create_all just made it, so it matches by construction
+        live = {c["name"] for c in inspector.get_columns(table.name)}
+        for column in table.columns:
+            if column.name in live:
+                continue
+            ddl = _column_ddl(column, conn.dialect)
+            if ddl is None:
+                continue
+            conn.execute(sa_text(f'ALTER TABLE "{table.name}" ADD COLUMN {ddl}'))
+            logger.warning("schema_column_added", table=table.name, column=column.name, ddl=ddl)
+
+        unknown = live - {c.name for c in table.columns}
+        if unknown:
+            # Never dropped: a column this code does not know about may be one
+            # an older version still writes to.
+            logger.info("schema_columns_not_in_model", table=table.name, columns=sorted(unknown))
 
 
 @asynccontextmanager

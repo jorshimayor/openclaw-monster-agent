@@ -112,6 +112,22 @@ part you would feel.
   needs a service token before you enforce, or they go silent — and they will
   go silent without erroring anywhere you are looking.
 
+## Discovery: the agent card
+
+`GET /api/agent-card` (also `/.well-known/agent-card.json`), unauthenticated
+and on the Access bypass list. An agent that cannot get in is exactly the one
+that needs to read how, so gating the instructions behind the gate they
+describe would be a dead end.
+
+It names the auth method, the MCP server, every capability with its HTTP
+equivalent, what each error code means, and the rules — that an
+acknowledgement never closes a commitment, that `notify` reaches a phone, that
+`create_task` spends model credits.
+
+Every Access refusal points at it, in the body and in a `Link:
+<...>; rel="service-desc"` header, because a 401 with no next step is useless
+to something that cannot read documentation it was never shown.
+
 ## The door: an MCP server
 
 [`mcp-servers/monster`](../mcp-servers/monster) exposes the bot as MCP tools,
@@ -149,6 +165,32 @@ costs a container wake.
 characters of substance, or a 422. Another agent cannot close your week by
 asserting that it is closed.
 
+## Schema drift, and why an agent could not file anything
+
+A sibling agent trying to post commitments got:
+
+```
+column "remind" of relation "commitments" does not exist
+```
+
+`Base.metadata.create_all()` creates missing **tables** and nothing else — it
+will not touch a table that already exists. So every column added to a model
+after its first deploy silently never reached the database, and the failure
+surfaced much later as an INSERT blowing up. There were no migrations to catch
+it: `alembic` is in the requirements but there was no `alembic/` directory.
+
+`_add_missing_columns()` in [`backend/src/core/db.py`](../backend/src/core/db.py)
+now runs after `create_all` and adds declared columns the live table lacks. It
+is additive only — a column it does not recognise is logged, never dropped,
+because it may be one an older version still writes to.
+
+The subtlety is `NOT NULL`. SQLAlchemy's `default=` is applied in Python on
+insert, so it does nothing for rows that already exist — and those are the only
+rows this ever runs against. A scalar default is therefore promoted to a server
+default; a callable default or no default at all means the column is added
+nullable instead, because guessing a backfill value is worse than a nullable
+column.
+
 ## What is still open
 
 - **The Worker's own check is off** until `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`
@@ -161,3 +203,6 @@ asserting that it is closed.
 - **The MCP server is stdio only.** Another agent has to be able to run the
   process. A remote transport would let bots connect over the network and is
   the obvious next step if you need one.
+- **Still no migrations.** Additive reconciliation covers new columns, which is
+  the failure that actually happened. A type change or a rename still needs
+  Alembic, and neither is handled.
