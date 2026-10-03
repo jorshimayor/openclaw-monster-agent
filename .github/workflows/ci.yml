@@ -82,8 +82,31 @@ jobs:
           path: frontend/.vercel/output/static
           retention-days: 3
 
+  worker-tests:
+    # The Worker now carries the auth gate, and it used to deploy without a
+    # typecheck or a single test. A regression in access.ts would have shipped
+    # silently and looked exactly like a working deploy.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: backend-worker/package-lock.json
+      - name: Install
+        working-directory: backend-worker
+        run: npm ci --legacy-peer-deps
+      - name: Typecheck
+        working-directory: backend-worker
+        run: npm run typecheck
+      - name: Test
+        working-directory: backend-worker
+        run: npm test
+
   deploy-backend:
-    needs: [backend-tests, frontend-build]
+    needs: [backend-tests, frontend-build, worker-tests]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -108,7 +131,7 @@ jobs:
         run: ./node_modules/.bin/wrangler deploy
 
   deploy-frontend:
-    needs: [backend-tests, frontend-build]
+    needs: [backend-tests, frontend-build, worker-tests]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15

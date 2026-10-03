@@ -1,4 +1,5 @@
 import { Container, getContainer } from "@cloudflare/containers";
+import { verifyAccess } from "./access";
 
 /**
  * Cloudflare Containers Durable Object — wraps the FastAPI Python backend.
@@ -33,6 +34,11 @@ export class BackendContainer extends Container<Env> {
 
 type Env = {
   BACKEND_CONTAINER: DurableObjectNamespace<BackendContainer>;
+  // Cloudflare Access. Both unset = enforcement off and the API is public,
+  // which is what it was before this existed. Set both to turn it on; see
+  // docs/agent-access.md for where the AUD tag comes from.
+  ACCESS_TEAM_DOMAIN?: string;  // e.g. yourteam.cloudflareaccess.com
+  ACCESS_AUD?: string;          // the Access application's AUD tag
   // All secrets below come from `npx wrangler secret put` for the backend worker
   DATABASE_URL: string;
   NVIDIA_NIM_API_KEY: string;
@@ -108,7 +114,9 @@ function buildEnvVars(env: Env): Record<string, string> {
 const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,PATCH,OPTIONS",
   "Access-Control-Allow-Headers":
-    "Authorization,Content-Type,Accept,Accept-Language,Range,X-Requested-With",
+    "Authorization,Content-Type,Accept,Accept-Language,Range,X-Requested-With," +
+    // Service-token headers, so a browser-based client can present one too.
+    "CF-Access-Client-Id,CF-Access-Client-Secret,Cf-Access-Jwt-Assertion",
 };
 
 export default {
@@ -128,12 +136,43 @@ export default {
       });
     }
 
+    // Gate before the container ever sees the request, so an unauthorised
+    // caller cannot reach a single endpoint, cost a container wake, or spend
+    // a token on an agent invocation.
+    const access = await verifyAccess(request, {
+      teamDomain: env.ACCESS_TEAM_DOMAIN,
+      aud: env.ACCESS_AUD,
+    }).catch((err) => ({
+      // A certs fetch that fails must not become an open door.
+      ok: false as const,
+      mode: "enforce" as const,
+      status: 503,
+      reason: `Access check unavailable: ${err?.message ?? err}`,
+    }));
+
+    if (!access.ok) {
+      const origin = request.headers.get("origin") ?? "*";
+      return new Response(JSON.stringify({ detail: access.reason }), {
+        status: access.status,
+        headers: {
+          ...CORS_HEADERS,
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": origin,
+          "X-Access-Enforcement": "enforce",
+          Vary: "Origin",
+        },
+      });
+    }
+
     // Single named instance — see class docblock for why.
     const stub = getContainer(env.BACKEND_CONTAINER, "backend-primary");
     const resp = await stub.fetch(request);
 
     const origin = request.headers.get("origin") ?? "*";
     const headers = new Headers(resp.headers);
+    // On every response, so "is it protected?" is answered by looking rather
+    // than by remembering whether the variables were ever set.
+    headers.set("X-Access-Enforcement", access.mode);
     if (!headers.has("Access-Control-Allow-Origin")) {
       headers.set("Access-Control-Allow-Origin", origin);
       headers.set(

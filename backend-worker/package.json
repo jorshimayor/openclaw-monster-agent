@@ -9,11 +9,14 @@
     "whoami": "npx wrangler whoami",
     "login": "npx wrangler login",
     "secrets:list": "npx wrangler secret list",
-    "tail": "npx wrangler tail"
+    "tail": "npx wrangler tail",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260101.0",
     "typescript": "^5.6.0",
+    "vitest": "^2.1.9",
     "wrangler": "^4.125.0"
   },
   "dependencies": {
