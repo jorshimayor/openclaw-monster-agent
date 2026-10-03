@@ -62,13 +62,47 @@ These are dashboard steps; nothing here can do them for you.
 
 6. Confirm the header now says `enforce`, and that a bare `curl` gets a 401.
 
-### What must keep working
+### The Telegram problem, and why there is a second Worker
 
-- **The Telegram webhook.** Telegram cannot complete an Access login, so
-  `/api/telegram/webhook` is on the Worker's bypass list. It is not
-  unauthenticated — it checks its own secret-token header in FastAPI. Add a
-  **Bypass** policy for that path in Access too, or inbound messages stop.
-- **`/api/health`.** Bypassed so liveness checks keep working.
+Access-for-Workers protects the **whole Worker**. The Workers destination type
+has no path field, and policies are scoped to an application rather than to a
+destination, so a Bypass policy inside the same application would bypass
+everything. There is no way to carve out one path.
+
+Telegram cannot sign in to Access and cannot send a service token, so the
+moment the Access application exists, a webhook pointed at the protected Worker
+is 403'd at the edge. Not when `ACCESS_AUD` is set — **when the application is
+created**. Access enforces at the edge regardless of what the Worker believes.
+
+Hence [`telegram-ingress`](../telegram-ingress): a separate Worker, deliberately
+**not** behind Access, that serves exactly one method on exactly one path,
+verifies Telegram's secret-token header in constant time before touching
+anything, and forwards to the same container instance. Everything else gets a
+404 that reveals nothing — including a GET on the webhook path, which would
+otherwise confirm it exists.
+
+Deploy it and re-point Telegram **before** creating the Access application:
+
+```bash
+cd telegram-ingress
+npm install
+npx wrangler secret put TELEGRAM_WEBHOOK_SECRET   # the same value the backend has
+npx wrangler deploy
+
+curl -sS "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
+  -d url=https://monster-telegram-ingress.<account>.workers.dev/api/telegram/webhook \
+  -d secret_token=$TELEGRAM_WEBHOOK_SECRET
+```
+
+Send yourself a message to confirm before going further. The rejected
+alternative was dropping the webhook and relying on the ten-minute cron drain,
+which works and costs nothing — but a bot that chases you is a bot you reply
+to, and ten minutes between posting an artifact and the nagging stopping is the
+part you would feel.
+
+### What else must keep working
+- **`/api/health`.** The Worker bypasses it, but Access does not, so an
+  external uptime check needs a service token or will see 401s.
 - **Cron.** The Worker's scheduled handler calls the container through the
   Durable Object stub, not the public hostname, so it never meets Access.
 - **The frontend.** It calls this API from the browser. Put the Pages site
@@ -117,8 +151,9 @@ asserting that it is closed.
 
 ## What is still open
 
-- **Enforcement is off** until you do the dashboard steps above. Until then
-  this document describes a gate that is not yet shut.
+- **The Worker's own check is off** until `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD`
+  are set. Access itself starts enforcing as soon as the application exists,
+  which is the order that matters: create the application last.
 - **No per-token scopes.** Any service token on the policy can call anything,
   including `notify`. Separate Access applications per path prefix would fix
   it; one token is fine while there is one bot.

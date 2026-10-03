@@ -105,8 +105,30 @@ jobs:
         working-directory: backend-worker
         run: npm test
 
+  ingress-tests:
+    # The ingress is the one component deliberately outside Access, so what it
+    # refuses is load-bearing.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: telegram-ingress/package-lock.json
+      - name: Install
+        working-directory: telegram-ingress
+        run: npm ci --legacy-peer-deps
+      - name: Typecheck
+        working-directory: telegram-ingress
+        run: npm run typecheck
+      - name: Test
+        working-directory: telegram-ingress
+        run: npm test
+
   deploy-backend:
-    needs: [backend-tests, frontend-build, worker-tests]
+    needs: [backend-tests, frontend-build, worker-tests, ingress-tests]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -130,8 +152,32 @@ jobs:
         # so never invoke this through npx.
         run: ./node_modules/.bin/wrangler deploy
 
+  deploy-ingress:
+    # Needs deploy-backend: the DO class this binds to lives in that Worker, so
+    # deploying this first would bind to a script that does not exist yet.
+    needs: [deploy-backend]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: telegram-ingress/package-lock.json
+      - name: Install
+        working-directory: telegram-ingress
+        run: npm ci --legacy-peer-deps
+      - name: Deploy ingress
+        working-directory: telegram-ingress
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: ./node_modules/.bin/wrangler deploy
+
   deploy-frontend:
-    needs: [backend-tests, frontend-build, worker-tests]
+    needs: [backend-tests, frontend-build, worker-tests, ingress-tests]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 15
