@@ -293,13 +293,29 @@ def test_move_is_practised_as_often_as_evm_and_solana() -> None:
     chain came round every forty days. Practice is daily now."""
     from src.agents.rotation import themes_for
 
-    counts: dict = {}
-    for i in range(30):
-        picked = themes_for(date.fromordinal(date(2026, 9, 11).toordinal() + i))
-        practice = next(
-            t for t in picked["daily"] if t.theme.startswith("chain-interviews")
+    # Over 30 CONTIGUOUS running days. A pause suspends the rotation by design,
+    # and counting across one leaves the five-variant cycle mid-stride, so the
+    # window has to be a real unbroken stretch rather than 30 days collected
+    # from either side of a gap.
+    start = date(2026, 9, 11)
+    run: list = []
+    for i in range(200):
+        picked = themes_for(date.fromordinal(start.toordinal() + i))
+        practice = (
+            None if picked.get("paused")
+            else next((t for t in picked["daily"] if t.theme.startswith("chain-interviews")), None)
         )
-        counts[practice.variant_name] = counts.get(practice.variant_name, 0) + 1
+        if practice is None:
+            run = []
+            continue
+        run.append(practice.variant_name)
+        if len(run) == 30:
+            break
+    assert len(run) == 30, "no 30-day unbroken stretch found in 200 days"
+
+    counts: dict = {}
+    for name in run:
+        counts[name] = counts.get(name, 0) + 1
 
     assert counts["Move"] == counts["EVM"] == counts["Solana"], counts
     assert counts["Move"] >= 6, f"Move should come round every fifth day: {counts}"
@@ -357,8 +373,66 @@ def test_one_shelf_item_a_week_survives_the_variant_shuffle() -> None:
 def test_the_shelf_advances_between_weeks() -> None:
     monday = date(2026, 9, 28)
     items = []
-    for week in range(4):
+    week = 0
+    # Skip any week the rotation is paused for — the shelf does not advance
+    # through a fortnight you were not there for, which is the point of a pause.
+    while len(items) < 4 and week < 26:
         day = monday + timedelta(weeks=week)
-        theme = next(t for t in themes_for(day)["daily"] if t.theme.startswith("web3-bounty"))
+        week += 1
+        picked = themes_for(day)
+        if picked.get("paused"):
+            continue
+        theme = next(
+            (t for t in picked["daily"] if t.theme.startswith("web3-bounty")), None
+        )
+        if theme is None:
+            continue
         items.append(theme.tasks[max(theme.task_keys)])
-    assert len(set(items)) == 4
+    assert len(set(items)) == 4, items
+
+
+def test_a_pause_lifts_itself() -> None:
+    """A pause you have to remember to end is one that becomes permanent."""
+    from src.agents.rotation import paused_on
+
+    config = {"pause": {"from": "2026-10-05", "until": "2026-10-19", "reason": "event"}}
+    assert paused_on(date(2026, 10, 4), config) is None     # the day before
+    assert paused_on(date(2026, 10, 5), config) == "event"  # first day
+    assert paused_on(date(2026, 10, 18), config) == "event"  # last day
+    assert paused_on(date(2026, 10, 19), config) is None    # resumes on its own
+
+
+def test_a_malformed_pause_does_not_silently_stop_everything() -> None:
+    from src.agents.rotation import paused_on
+
+    assert paused_on(date(2026, 10, 6), {"pause": {"from": "nonsense", "until": "x"}}) is None
+    assert paused_on(date(2026, 10, 6), {}) is None
+
+
+def test_the_pause_stops_the_cycle_and_the_pausable_dailies() -> None:
+    paused = themes_for(date(2026, 10, 7))
+    assert paused["paused"]
+    assert paused["cycled"] is None
+    assert all(t.theme.startswith("flow-fellowship") for t in paused["daily"]), (
+        "only themes marked pausable:false should survive a pause"
+    )
+
+
+def test_the_fellowship_keeps_running_through_a_pause() -> None:
+    """It has a panel and a 48-week clock that does not stop for travel."""
+    paused = themes_for(date(2026, 10, 7))
+    fellowship = next(t for t in paused["daily"] if t.theme.startswith("flow-fellowship"))
+    assert fellowship.tasks
+
+
+def test_nothing_refiles_daily_during_a_catch_up_week() -> None:
+    """Including the standing tasks, which have no key of their own."""
+    filed = {}
+    for offset in range(14):
+        day = date(2026, 10, 5) + timedelta(days=offset)
+        for theme in themes_for(day)["daily"]:
+            for index, task in enumerate(theme.tasks):
+                key = theme.task_keys.get(index)
+                assert key, f"{task[:40]!r} would re-file every day of a pause"
+                filed[key] = task
+    assert len(filed) < 20, f"a fortnight away should not build a backlog ({len(filed)})"

@@ -282,6 +282,21 @@ def scheduled_for(day: Optional[date_cls] = None, config: Optional[Dict[str, Any
     return out
 
 
+def catch_up_slug(day: Optional[date_cls] = None, config: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    """`wNN` when `day` falls in a catch-up week, else None.
+
+    A catch-up week is one you are not present for day by day, so nothing in it
+    should re-file daily — including the standing tasks that live on the theme
+    rather than in the plan.
+    """
+    config = config or load_config()
+    pos = position(day, config)
+    if pos is None or not pos.started or pos.finished:
+        return None
+    _, _, catching_up = deadlines_for(pos.week, config)
+    return f"w{pos.week:02d}" if catching_up else None
+
+
 def tasks_for(day: Optional[date_cls] = None, config: Optional[Dict[str, Any]] = None) -> List[str]:
     return [t.text for t in scheduled_for(day, config)]
 

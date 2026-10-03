@@ -123,6 +123,32 @@ def week_index(day: date_cls) -> int:
     return (day.toordinal() - 1) // 7
 
 
+# Where catch-up work lands: the end of the week, not the morning of a day
+# you were not there for.
+WEEK_END = ("sunday", "20:00")
+
+
+def paused_on(day: date_cls, config: Dict[str, Any]) -> Optional[str]:
+    """The reason this day is paused, or None.
+
+    A pause carries its own end date. One you have to remember to lift is one
+    that quietly becomes permanent, and the opposite failure — coming back to a
+    fortnight of overdue reminders — is what makes people mute the bot for good.
+    """
+    pause = config.get("pause") or {}
+    if not pause:
+        return None
+    try:
+        start = date_cls.fromisoformat(str(pause["from"]))
+        until = date_cls.fromisoformat(str(pause["until"]))
+    except Exception:
+        logger.warning("rotation_pause_unparseable", pause=pause)
+        return None
+    if start <= day < until:
+        return str(pause.get("reason") or "paused")
+    return None
+
+
 def _expand_weekly(theme: Theme, day: date_cls) -> Theme:
     """One item a week from a shelf, filed once and due with the week.
 
@@ -174,11 +200,24 @@ def _expand_plan(theme: Theme, day: date_cls) -> Theme:
         # filing its standing tasks against a programme that is not running.
         return Theme(theme=theme.theme, label=theme.label, due_time=theme.due_time,
                      tasks=[], sources=theme.sources, remind=theme.remind, plan=theme.plan)
-    theme.tasks = [t.text for t in scheduled] + list(theme.tasks)
+    standing = list(theme.tasks)
+    theme.tasks = [t.text for t in scheduled] + standing
     theme.task_due = {
         i: (t.day, t.time) for i, t in enumerate(scheduled) if t.day or t.time
     }
     theme.task_keys = {i: t.key for i, t in enumerate(scheduled) if t.key}
+
+    # In a catch-up week the standing tasks get a weekly key too. Otherwise the
+    # daily thought-log keeps filing every morning of a week you are at a
+    # conference, which is exactly the noise a catch-up week exists to avoid.
+    from .fellowship import catch_up_slug
+
+    slug = catch_up_slug(day)
+    if slug:
+        offset = len(scheduled)
+        for i in range(len(standing)):
+            theme.task_keys[offset + i] = f"{slug}-standing-{i}"
+            theme.task_due[offset + i] = WEEK_END
     return theme
 
 
@@ -215,15 +254,23 @@ def themes_for(day: Optional[date_cls] = None) -> Dict[str, Any]:
     if not config.get("enabled"):
         return {"date": day.isoformat(), "enabled": False, "daily": [], "cycled": None, "upcoming": []}
 
+    pause_reason = paused_on(day, config)
+    daily_specs = config.get("daily", [])
+    if pause_reason:
+        # A theme can opt out of the pause. The fellowship does: it has a panel
+        # and a 48-week clock that does not stop because you are travelling, so
+        # it keeps filing — as one weekly block, not daily noise.
+        daily_specs = [t for t in daily_specs if t.get("pausable") is False]
+
     daily = [
         _expand_weekly(_expand_plan(Theme.from_dict(t).resolve(day), day), day)
-        for t in config.get("daily", [])
+        for t in daily_specs
     ]
     cycle = [Theme.from_dict(t) for t in config.get("cycle", [])]
     stride = max(1, len(cycle))
     cycled = (
         _expand_weekly(cycle[cycle_index(day, len(cycle))].resolve(day, stride), day)
-        if cycle else None
+        if cycle and not pause_reason else None
     )
 
     upcoming = []
@@ -239,6 +286,7 @@ def themes_for(day: Optional[date_cls] = None) -> Dict[str, Any]:
     return {
         "date": day.isoformat(),
         "enabled": True,
+        "paused": pause_reason,
         "daily": daily,
         "cycled": cycled,
         "upcoming": upcoming,

@@ -713,7 +713,8 @@
         "remind": true,
         "tasks": [
           "Log one paragraph of thought on what you read today \u2014 what surprised you, what you did not believe \u2014 python3 -m fellowship note"
-        ]
+        ],
+        "pausable": false
       },
       {
         "theme": "web3-bounty",
@@ -980,7 +981,19 @@
         ],
         "remind": true
       }
-    ]
+    ],
+    "pause": {
+      "_comment": [
+        "Solana Village all of the week commencing 2026-10-05, then a week back",
+        "before the load resumes. Carries its own end date so it lifts itself \u2014",
+        "a pause you have to remember to end becomes permanent.",
+        "",
+        "Set `until` to 2026-10-12 to come back a week sooner."
+      ],
+      "from": "2026-10-05",
+      "until": "2026-10-19",
+      "reason": "Solana Village, then one week back before the load resumes"
+    }
   },
   "github_starred": {
     "enabled": true,
