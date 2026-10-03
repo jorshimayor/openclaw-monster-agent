@@ -1,5 +1,6 @@
 import { Container, getContainer } from "@cloudflare/containers";
 import { AGENT_CARD_PATH, verifyAccess } from "./access";
+import { inQuietHours, type QuietHoursEnv } from "./schedule";
 
 /**
  * Cloudflare Containers Durable Object — wraps the FastAPI Python backend.
@@ -250,8 +251,14 @@ export default {
           console.error(`cron ${path} failed`, err);
         }
       };
+      // Asleep: skip entirely rather than wake the container to be told so.
+      if (inQuietHours(new Date(), env)) return;
+
       await hit("/api/commitments/tick");
-      await hit("/api/telegram/drain");
+      // /api/telegram/drain is deliberately NOT called. It polled getUpdates
+      // every ten minutes; the webhook through monster-telegram-ingress now
+      // delivers in real time, so the poll was duplicating it at the cost of a
+      // container wake each round. The endpoint stays as a manual fallback.
       return;
     }
 

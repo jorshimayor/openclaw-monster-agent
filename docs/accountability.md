@@ -553,3 +553,34 @@ state is lost on restart, which is why `/api/commitments/health` reports
 | `POST` | `/api/commitments/tick` | one reminder round (cron) |
 | `POST` | `/api/commitments/extract` | `{task_id}` — re-extract from a report |
 | `GET` | `/api/commitments/health` | loop state, storage backing, counts |
+
+## What runs on a timer, and what it costs
+
+Containers bill for the time they are awake and Neon suspends when idle, so a
+poll is not free — it is the main recurring cost in the system.
+
+`sleepAfter` is 15 minutes, and the nag cron fires every 10. The container
+therefore never reached idle and was billed 24/7. Two changes:
+
+- **The nag round is skipped during quiet hours, in the Worker.** `tick()`
+  already refuses to send between 22:00 and 07:00, but it did so *after*
+  waking the container and querying Neon to count what was waiting — 54 wakes
+  a night to send nothing. `inQuietHours()` in
+  [`backend-worker/src/schedule.ts`](../backend-worker/src/schedule.ts) decides
+  at the edge instead, from a UTC offset and two numbers. It fails toward
+  sending: a misconfigured value means no skip, because a missed reminder costs
+  more than a wasted wake.
+- **The Telegram poll is gone.** `/api/telegram/drain` ran every 10 minutes
+  calling getUpdates. The webhook through `monster-telegram-ingress` now
+  delivers in real time, so the poll was duplicating it at the price of a
+  container wake per round. The endpoint stays for manual recovery.
+
+Net: 144 timer fires a day to 90, and the container can reach idle overnight
+for the first time — roughly 38% less awake time, with Neon free to suspend
+alongside it.
+
+**Still a poll.** The remaining 90 fires exist because nagging is time-based
+and nothing pushes "it is now thirty minutes later". The right fix is a Durable
+Object alarm set to the next due time, so the container wakes exactly when a
+reminder is due and not otherwise. That would take the 90 down to roughly the
+number of reminders actually sent.
