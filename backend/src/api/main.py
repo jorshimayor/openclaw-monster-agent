@@ -64,6 +64,10 @@ async def lifespan(app: FastAPI):
         from ..mcp.manager import RoutingMcpTransport, set_global_router
 
         set_global_router(RoutingMcpTransport(mcp_manager))
+        # Probe once at startup so /api/mcp/doctor reports something measured
+        # rather than a default. Fire-and-forget: a slow or hanging probe must
+        # never hold up the API coming online.
+        asyncio.create_task(mcp_manager.probe_all())
     except Exception as e:
         logger.warning("mcp_manager_init_failed", error=str(e))
         mcp_manager = None

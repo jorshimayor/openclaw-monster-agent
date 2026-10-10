@@ -22,6 +22,11 @@ from .servers.telegram import TelegramMcpServer
 
 logger = get_logger("mcp.manager")
 
+# After this, a previous pass stops counting as evidence about now. The
+# container sleeps and restarts, so a probe older than this usually means
+# nobody has looked since it came back, not that something is wrong.
+PROBE_STALE_AFTER_SEC = 15 * 60
+
 SUPPORTED_SERVERS: List[str] = [
     "github",
     "notion",
@@ -395,7 +400,11 @@ class McpServerManager:
                         sample_result = {"probe_error": str(exc)}
                 else:
                     sample_result = await transport.call("ping", {})
-                ok = True
+                # A probe that caught an exception is not a pass. This used to
+                # set ok unconditionally, so a server whose sample call failed
+                # still reported healthy — which is how a revoked Google token
+                # sat behind a green light for weeks.
+                ok = not (isinstance(sample_result, dict) and "probe_error" in sample_result)
         latency_ms = int((time.perf_counter() - start) * 1000)
         result = {
             "server": server_name,
@@ -411,16 +420,34 @@ class McpServerManager:
         return result
 
     def get_server_statuses(self) -> List[McpServerStatus]:
+        """Health as measured, with "never measured" said out loud.
+
+        This used to default to "down" and only ever move to "healthy", so a
+        server nobody had probed was indistinguishable from one that was
+        genuinely broken — and both looked the same as one that was fine. A
+        status that cannot be wrong is not a status.
+        """
         results: List[McpServerStatus] = []
         all_tools = self.registry.list_all_tools()
+        now = datetime.now(timezone.utc)
         for server_name in SUPPORTED_SERVERS:
             tools = all_tools.get(server_name, [])
             probe = self._probe_results.get(server_name)
             last_probe = probe["timestamp"] if probe else None
-            status = "down"
-            if probe and probe.get("ok"):
-                status = "healthy"
-            elif server_name in self._processes:
+
+            if probe is None:
+                status = "unprobed"
+            else:
+                age = (now - datetime.fromisoformat(probe["timestamp"])).total_seconds()
+                if age > PROBE_STALE_AFTER_SEC:
+                    # A pass from three hours ago is not evidence about now.
+                    status = "stale"
+                elif probe.get("ok"):
+                    status = "healthy"
+                else:
+                    status = "down"
+
+            if status in ("unprobed", "stale") and server_name in self._processes:
                 proc = self._processes[server_name]
                 if proc.returncode is None:
                     status = "degraded"
@@ -433,6 +460,20 @@ class McpServerManager:
                 )
             )
         return results
+
+    async def probe_all(self) -> Dict[str, bool]:
+        """Probe every configured server. Called at startup so the doctor has
+        something real to report before anyone asks it."""
+        out: Dict[str, bool] = {}
+        for server_name in SUPPORTED_SERVERS:
+            try:
+                await self.probe_server(server_name)
+            except Exception as exc:
+                logger.warning("probe_failed", server=server_name, error=str(exc))
+            out[server_name] = bool((self._probe_results.get(server_name) or {}).get("ok"))
+        healthy = [k for k, v in out.items() if v]
+        logger.info("mcp_probe_all", healthy=healthy, total=len(out))
+        return out
 
     async def restart_server(self, server_name: str) -> None:
         if server_name not in SUPPORTED_SERVERS:
