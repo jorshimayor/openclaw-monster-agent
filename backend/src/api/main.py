@@ -66,9 +66,11 @@ async def lifespan(app: FastAPI):
 
         set_global_router(RoutingMcpTransport(mcp_manager))
         # Probe once at startup so /api/mcp/doctor reports something measured
-        # rather than a default. Fire-and-forget: a slow or hanging probe must
-        # never hold up the API coming online.
-        asyncio.create_task(mcp_manager.probe_all())
+        # rather than a default. Bounded inside probe_all, and fire-and-forget
+        # so it never holds up the API coming online — an unbounded version of
+        # this hung CI until the job timed out.
+        _probe_task = asyncio.create_task(mcp_manager.probe_all())
+        _app_state["mcp_probe_task"] = _probe_task
     except Exception as e:
         logger.warning("mcp_manager_init_failed", error=str(e))
         mcp_manager = None
@@ -163,6 +165,20 @@ async def lifespan(app: FastAPI):
         db_ok=db_ok,
     )
     yield
+
+    # Cancel the startup probe before anything else. It is fire-and-forget, so
+    # nothing was awaiting it — and a task still in flight at shutdown keeps
+    # the event loop alive after the tests themselves have finished. That is
+    # how CI went from a fifteen-second suite to a fifteen-minute timeout, with
+    # an orphan python process killed at the end of the job.
+    probe_task = _app_state.pop("mcp_probe_task", None)
+    if probe_task is not None and not probe_task.done():
+        probe_task.cancel()
+        try:
+            await probe_task
+        except (asyncio.CancelledError, Exception):
+            pass
+
     if mcp_manager is not None:
         try:
             await mcp_manager.stop_all()

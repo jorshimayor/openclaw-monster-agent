@@ -32,6 +32,13 @@ PROBE_STALE_AFTER_SEC = 15 * 60
 # old three could not express "nobody has looked".
 SERVER_STATUSES = frozenset({"unprobed", "stale", "degraded", "down", "healthy"})
 
+# Hard ceilings on the startup probe. transport.call has no timeout of its own
+# and talks to subprocesses that may never answer, so an unbounded probe_all
+# hangs whatever is waiting on it — in CI that was the whole test suite,
+# cancelled at its fifteen-minute job limit.
+PROBE_ONE_TIMEOUT_SEC = 5
+PROBE_ALL_BUDGET_SEC = 20
+
 SUPPORTED_SERVERS: List[str] = [
     "github",
     "notion",
@@ -467,17 +474,37 @@ class McpServerManager:
         return results
 
     async def probe_all(self) -> Dict[str, bool]:
-        """Probe every configured server. Called at startup so the doctor has
-        something real to report before anyone asks it."""
+        """Probe every started server, under a hard time budget.
+
+        Every wait here is bounded. A server that never answers must cost a
+        few seconds and a "down", not the process it is running in.
+        """
         out: Dict[str, bool] = {}
+        deadline = time.monotonic() + PROBE_ALL_BUDGET_SEC
         for server_name in SUPPORTED_SERVERS:
+            # Not started is not a probe result; leave it unprobed rather than
+            # recording a failure the server never had a chance to avoid.
+            if server_name not in self._transports:
+                continue
+            if time.monotonic() >= deadline:
+                logger.warning("mcp_probe_all_budget_spent", skipped=server_name)
+                break
             try:
-                await self.probe_server(server_name)
+                await asyncio.wait_for(
+                    self.probe_server(server_name), timeout=PROBE_ONE_TIMEOUT_SEC
+                )
+            except asyncio.TimeoutError:
+                self._probe_results[server_name] = {
+                    "server": server_name,
+                    "sample_result": {"probe_error": f"no answer in {PROBE_ONE_TIMEOUT_SEC}s"},
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "ok": False,
+                }
             except Exception as exc:
                 logger.warning("probe_failed", server=server_name, error=str(exc))
             out[server_name] = bool((self._probe_results.get(server_name) or {}).get("ok"))
         healthy = [k for k, v in out.items() if v]
-        logger.info("mcp_probe_all", healthy=healthy, total=len(out))
+        logger.info("mcp_probe_all", healthy=healthy, probed=len(out))
         return out
 
     async def restart_server(self, server_name: str) -> None:
