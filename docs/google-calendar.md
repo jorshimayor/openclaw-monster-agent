@@ -32,7 +32,44 @@ If `localhost:8765` is rejected, the OAuth client is a **Web application**
 type: add `http://localhost:8765` to its Authorised redirect URIs in the Google
 Cloud console. A **Desktop app** client accepts any localhost port already.
 
-## Why it will die again in a week unless you do this
+## You are told when it breaks
+
+`POST /api/integrations/google/check` runs daily from the 06:15 cron, just
+before the study sync — which is one of the things that dies silently with the
+credential. It exchanges the refresh token, and on the transition from working
+to broken sends one Telegram message naming what is down and the command that
+fixes it.
+
+On the transition only. A daily "Google is still dead" is how an alert becomes
+something you swipe away. It also tells you when the credential comes back, so
+a fix is confirmed rather than assumed.
+
+A network failure is reported as `unreachable` and never alerts — otherwise a
+flaky minute sends you re-authorising a token that is perfectly fine.
+
+`GET /api/integrations/google` is the same check with no notification. Safe to
+curl, safe to poll.
+
+A token that works but is **missing a scope** is flagged rather than passed:
+those tools fail only when first used, which is a long way from the cause.
+
+## What actually kills the token
+
+The consent screen is already **In production**, so the seven-day Testing
+expiry does not apply — I was wrong about that twice. What remains:
+
+- **A Google account password change.** This revokes refresh tokens carrying
+  Gmail scopes, and this one requests `gmail.send` and `gmail.readonly`. The
+  most likely cause, and entirely silent.
+- **Manual revocation** at myaccount.google.com/permissions.
+- **Six months unused.**
+- **Token churn** — every `prompt=consent` run mints a new refresh token, and
+  past roughly a hundred per client per account Google invalidates the oldest.
+
+Google does not say which, and there is no audit trail. Which is why the
+watchdog above matters more than the diagnosis.
+
+## The old theory, kept because it is true elsewhere
 
 A Google OAuth consent screen in **Testing** issues refresh tokens that expire
 after **seven days**, used or not. That is almost certainly what has been

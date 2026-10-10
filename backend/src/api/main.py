@@ -38,6 +38,7 @@ from .routes.study import router as study_router
 from .routes.day import router as day_router
 from .routes.writing import router as writing_router
 from .routes.agent_card import router as agent_card_router
+from .routes.integrations import router as integrations_router
 from .routes.study_queue import router as study_queue_router
 
 
@@ -456,6 +457,7 @@ def create_app() -> FastAPI:
     # one that needs to read how. Also on the Worker's Access bypass list.
     app.include_router(agent_card_router)
     app.include_router(study_queue_router)
+    app.include_router(integrations_router)
     return app
 
 

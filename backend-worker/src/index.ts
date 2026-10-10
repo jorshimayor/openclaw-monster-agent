@@ -354,6 +354,19 @@ export default {
     // Daily study pick, 06:15 UTC = 07:15 WAT — just after quiet hours end, so
     // the day opens with a finite ask rather than a backlog.
     if (event.cron === "15 6 * * *") {
+      // Google first: one credential backs calendar, Sheets, Docs and Gmail,
+      // and the study sync below is one of the things that dies silently with
+      // it. Checking here means a dead token is a message on the morning it
+      // dies rather than a quiet week nobody questions.
+      try {
+        const r = await stub.fetch(
+          new Request("http://container/api/integrations/google/check", { method: "POST" }),
+        );
+        if (!r.ok) console.error(`google health check -> ${r.status}`);
+      } catch (err) {
+        console.error("google health check failed", err);
+      }
+
       try {
         const r = await stub.fetch(
           new Request("http://container/api/study/sync", {
