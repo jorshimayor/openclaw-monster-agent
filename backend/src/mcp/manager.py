@@ -27,6 +27,11 @@ logger = get_logger("mcp.manager")
 # nobody has looked since it came back, not that something is wrong.
 PROBE_STALE_AFTER_SEC = 15 * 60
 
+# Every value get_server_statuses can return. Exported so a test cannot pin a
+# stale vocabulary — "unprobed" and "stale" were added precisely because the
+# old three could not express "nobody has looked".
+SERVER_STATUSES = frozenset({"unprobed", "stale", "degraded", "down", "healthy"})
+
 SUPPORTED_SERVERS: List[str] = [
     "github",
     "notion",

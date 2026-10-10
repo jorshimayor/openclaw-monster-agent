@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from src.core.config import Settings
-from src.mcp.manager import McpServerManager, SUPPORTED_SERVERS
+from src.mcp.manager import SERVER_STATUSES, SUPPORTED_SERVERS, McpServerManager
 from src.mcp.registry import McpToolRegistry
 
 
@@ -91,7 +91,7 @@ async def test_get_server_statuses_returns_5_servers(
     for expected in SUPPORTED_SERVERS:
         assert expected in names
     for s in statuses:
-        assert s.status in {"down", "degraded", "healthy"}
+        assert s.status in SERVER_STATUSES
         assert isinstance(s.tools_available, int)
         assert s.tools_available >= 0
 
