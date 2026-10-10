@@ -18,6 +18,10 @@ from .extractor import KnowledgeExtractor
 
 logger = get_logger(__name__)
 
+# A queue that keeps failing is a queue that will not recover. Give up
+# rather than spin — see _notion_worker.
+_MAX_CONSECUTIVE_QUEUE_FAILURES = 5
+
 
 class CrystallizedKnowledgeStore:
     def __init__(
@@ -67,16 +71,45 @@ class CrystallizedKnowledgeStore:
         return [row.to_domain() for row in rows]
 
     async def _notion_worker(self) -> None:
+        """Drain the queue into Notion until cancelled.
+
+        The `continue` on a failed get() used to be unconditional, which made
+        this a tight loop whenever the failure was permanent rather than
+        transient. At interpreter teardown the loop is already closed, so
+        get() raises RuntimeError every time, and each pass logged a full
+        traceback — expensive in 3.12, where formatting computes caret anchors.
+        It spun for fifteen minutes and killed CI four times before a stack
+        dump showed it.
+
+        A retry loop needs an exit for the failure that will not stop.
+        """
         logger.info("notion_worker_started", queue_size=self._notion_queue.qsize())
+        consecutive_failures = 0
         while True:
             try:
                 crystal = await self._notion_queue.get()
             except asyncio.CancelledError:
                 logger.info("notion_worker_cancelled")
                 return
+            except RuntimeError as exc:
+                # "Event loop is closed". Nothing will arrive on this queue
+                # again, so retrying is a spin, not a recovery.
+                logger.info("notion_worker_stopping", reason=str(exc))
+                return
             except Exception as exc:
-                logger.exception("notion_worker_queue_error", error=str(exc))
+                consecutive_failures += 1
+                if consecutive_failures >= _MAX_CONSECUTIVE_QUEUE_FAILURES:
+                    logger.error(
+                        "notion_worker_giving_up",
+                        error=str(exc),
+                        after_failures=consecutive_failures,
+                    )
+                    return
+                # warning, not exception: the traceback is the expensive part
+                # and it is identical every pass.
+                logger.warning("notion_worker_queue_error", error=str(exc))
                 continue
+            consecutive_failures = 0
             try:
                 async for attempt in AsyncRetrying(
                     stop=stop_after_attempt(3),
