@@ -55,7 +55,16 @@ jobs:
           # No DATABASE_URL on purpose: the repos fall back to their in-memory
           # store, which is what the accountability suite expects, and it means
           # CI can never touch production data.
-        run: python -m pytest tests/ -q
+        # Diagnosis, not decoration. backend-tests has timed out at fifteen
+        # minutes four times: the suite passes, then the process will not exit,
+        # and the job is killed with an orphaned python child. Four guesses at
+        # the cause were all wrong, and none of it reproduces on macOS.
+        #
+        # SIGABRT with faulthandler enabled dumps every thread's stack, so the
+        # next failure says what is actually holding the interpreter open
+        # instead of inviting a fifth guess. 300s is far beyond the fourteen
+        # seconds a healthy run takes.
+        run: timeout -s ABRT 300 python -X faulthandler -m pytest tests/ -q
 
   frontend-build:
     runs-on: ubuntu-latest
