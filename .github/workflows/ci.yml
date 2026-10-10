@@ -47,6 +47,11 @@ jobs:
           # These values are never sent anywhere.
           NVIDIA_NIM_API_KEY: ci-placeholder-respx-intercepts-the-request
           GROQ_API_KEY: ci-placeholder-respx-intercepts-the-request
+          # The startup probe spawns MCP subprocesses and talks to them. The
+          # suite needs none of that, and on this runner the process stopped
+          # exiting after the tests passed — 15s became a 15m timeout, with an
+          # orphaned python child killed at the end of the job.
+          MCP_PROBE_ON_STARTUP: "false"
           # No DATABASE_URL on purpose: the repos fall back to their in-memory
           # store, which is what the accountability suite expects, and it means
           # CI can never touch production data.

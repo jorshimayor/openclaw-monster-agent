@@ -190,6 +190,17 @@ class Settings(BaseSettings):
         default=7, ge=0, le=23,
         validation_alias=AliasChoices("quiet_hours_end", "QUIET_HOURS_END"),
     )
+    # The startup probe spawns MCP subprocesses and talks to them. That is
+    # wanted in production, where /api/mcp/doctor should report something
+    # measured; it is not wanted in a test run, which needs none of it and
+    # where on Linux the process stopped exiting afterwards — CI went from a
+    # fifteen-second suite to a fifteen-minute timeout, with an orphaned python
+    # child killed at the end of the job. Not reproducible on macOS, so this is
+    # containment rather than a diagnosis.
+    mcp_probe_on_startup: bool = Field(
+        default=True,
+        validation_alias=AliasChoices("mcp_probe_on_startup", "MCP_PROBE_ON_STARTUP"),
+    )
     nag_tick_seconds: int = Field(
         default=300, validation_alias=AliasChoices("nag_tick_seconds", "NAG_TICK_SECONDS")
     )

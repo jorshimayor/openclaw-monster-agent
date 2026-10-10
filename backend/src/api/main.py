@@ -69,8 +69,9 @@ async def lifespan(app: FastAPI):
         # rather than a default. Bounded inside probe_all, and fire-and-forget
         # so it never holds up the API coming online — an unbounded version of
         # this hung CI until the job timed out.
-        _probe_task = asyncio.create_task(mcp_manager.probe_all())
-        _app_state["mcp_probe_task"] = _probe_task
+        if settings.mcp_probe_on_startup:
+            _probe_task = asyncio.create_task(mcp_manager.probe_all())
+            _app_state["mcp_probe_task"] = _probe_task
     except Exception as e:
         logger.warning("mcp_manager_init_failed", error=str(e))
         mcp_manager = None
