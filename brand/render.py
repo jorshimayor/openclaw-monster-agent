@@ -75,7 +75,21 @@ def mark(weight: str = "full") -> str:
     return svg
 
 
-def render(name: str, size: tuple[int, int] | None, values: dict, out_dir: Path | None = None) -> Path:
+_ONLY: set[str] = set()
+
+
+def wanted(name: str) -> bool:
+    """Whether --only asked for this asset. Empty means all of them."""
+    return not _ONLY or name in _ONLY
+
+
+def render(
+    name: str, size: tuple[int, int] | None, values: dict, out_dir: Path | None = None
+) -> Optional[Path]:
+    if not wanted(name):
+        # Skipped before any work: --only exists so a per-article render does
+        # not also write the logos and both banners into the article's folder.
+        return None
     svg = (TEMPLATES / f"{name}.svg").read_text()
     if size:
         svg = svg.replace("{{SURFACE}}", surface(*size))
@@ -134,6 +148,9 @@ def main() -> None:
     ap.add_argument("--news-motif", help="defaults to --motif")
     args = ap.parse_args()
 
+    global _ONLY
+    _ONLY = {w.strip() for w in args.only.split(",") if w.strip()}
+
     keys = [k.strip() for k in args.keys.split("|")]
     while len(keys) < 3:
         keys.append("Technical_Writer")
@@ -189,14 +206,12 @@ def main() -> None:
         "LINE1": news[0], "LINE2": news[1], "SUBTITLE": esc(args.news_sub),
     }, args.out_dir))
 
-    if args.only:
-        wanted = {w.strip() for w in args.only.split(",") if w.strip()}
-        written = [p for p in written if p.stem in wanted]
-
     # Installing the site favicon is a side effect of rendering the brand
     # defaults, not of rendering art for one article.
     if args.out_dir is None:
         written += install(written)
+
+    written = [p for p in written if p is not None]
 
     for p in written:
         print(f"  {p.relative_to(ROOT.parent)}")
