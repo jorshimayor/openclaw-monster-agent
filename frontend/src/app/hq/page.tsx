@@ -129,6 +129,28 @@ type Tab = "today" | "football" | "timetable" | "study" | "resources";
 
 const RESOURCES: { group: string; items: [string, string, string][] }[] = [
   {
+    // Prices verified 2026-10-13. Every link is the official pricing page, so
+    // a rise is one click away rather than a rumour. CKS cannot be attempted
+    // before CKA has been passed — that is the only hard ordering constraint.
+    group: "certifications \u00b7 web2 ladder \u00b7 $2,789 exam-only",
+    items: [
+      ["1. AWS Solutions Architect \u2013 Associate \u2014 $150",
+       "https://aws.amazon.com/certification/certified-solutions-architect-associate/",
+       "take first: cheapest, 3yr validity, and unlocks OffSec's holder discount"],
+      ["2. CKA \u2014 $445 ($645 with LFS258)",
+       "https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/",
+       "2yr validity, one retake, two Killer.sh attempts \u2014 gates CKS"],
+      ["3. CKS \u2014 $445 ($645 with LFS260)",
+       "https://training.linuxfoundation.org/certification/certified-kubernetes-security-specialist/",
+       "requires a passed CKA first; the course upgrade is worth it here"],
+      ["4. OSCP \u2014 $1,749 bundle",
+       "https://www.offsec.com/pricing/",
+       "90 days + ONE attempt. Learn One $2,749/yr buys two \u2014 cheaper than failing"],
+      ["The plan, and why this order", "https://github.com/jorshimayor/openclaw-monster-agent/blob/main/docs/certifications.md",
+       "none of these help with auditing \u2014 that market reads public findings"]
+    ]
+  },
+  {
     group: "web3 security depth",
     items: [
       ["RareSkills Solidity", "https://rareskills.io/learn-solidity", "the rigorous track, in order"],

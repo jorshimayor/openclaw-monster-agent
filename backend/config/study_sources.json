@@ -293,6 +293,42 @@
       ]
     },
     {
+      "_comment": [
+        "Prices verified 2026-10-13. Every url is the official pricing page so a",
+        "rise is one click away rather than a rumour. Re-check before paying.",
+        "CKS cannot be attempted before CKA has been passed."
+      ],
+      "key": "certifications",
+      "group": "Certifications \u00b7 web2 ladder \u00b7 $2,789 exam-only",
+      "items": [
+        {
+          "title": "1. AWS Solutions Architect \u2013 Associate \u2014 $150",
+          "url": "https://aws.amazon.com/certification/certified-solutions-architect-associate/",
+          "note": "130 min, 65 questions, valid 3 years. Take it first: cheapest by a factor of three, and OffSec discount Learn One up to 20% for existing holders."
+        },
+        {
+          "title": "2. CKA \u2014 $445, or $645 with the LFS258 course",
+          "url": "https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/",
+          "note": "Valid 2 years. One retake and two Killer.sh attempts included, 12 months to schedule. Skip the course upgrade if you already operate clusters. Gates CKS."
+        },
+        {
+          "title": "3. CKS \u2014 $445, or $645 with the LFS260 course",
+          "url": "https://training.linuxfoundation.org/certification/certified-kubernetes-security-specialist/",
+          "note": "Requires a passed CKA first \u2014 the only hard ordering constraint. Valid 2 years. The course upgrade is worth it here in a way it is not for CKA."
+        },
+        {
+          "title": "4. OSCP \u2014 $1,749 bundle, or $2,749/yr Learn One",
+          "url": "https://www.offsec.com/pricing/",
+          "note": "Lifetime. The bundle is 90 days of lab access and ONE exam attempt; Learn One gives two attempts and a year, which beats failing and rebuying."
+        },
+        {
+          "title": "The ladder, and why this order",
+          "url": "https://github.com/jorshimayor/openclaw-monster-agent/blob/main/docs/certifications.md",
+          "note": "$2,789 exam-only, $3,189 with both Linux Foundation courses. None of these help with auditing \u2014 that market reads public findings, not certificates."
+        }
+      ]
+    },
+    {
       "key": "yborg-security",
       "group": "yBorg prep \u00b7 security",
       "items": [
