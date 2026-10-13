@@ -112,3 +112,12 @@ auditor/reports/
 fellowship/labs/*.ipynb
 fellowship/notes/*.md
 !fellowship/notes/README.md
+
+# Generated per-piece content scaffolding and artwork. The drafts are yours;
+# they belong wherever you publish from, not in the repo history.
+content/out/
+
+# Job applications, CVs and funding answers. This repository is PUBLIC — an
+# application naming your own gaps is written for one reader, not for anyone
+# who finds the repo. Keep them local.
+drafts/

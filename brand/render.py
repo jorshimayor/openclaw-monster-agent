@@ -75,7 +75,7 @@ def mark(weight: str = "full") -> str:
     return svg
 
 
-def render(name: str, size: tuple[int, int] | None, values: dict) -> Path:
+def render(name: str, size: tuple[int, int] | None, values: dict, out_dir: Path | None = None) -> Path:
     svg = (TEMPLATES / f"{name}.svg").read_text()
     if size:
         svg = svg.replace("{{SURFACE}}", surface(*size))
@@ -87,8 +87,9 @@ def render(name: str, size: tuple[int, int] | None, values: dict) -> Path:
     if missing:
         raise SystemExit(f"{name}: unfilled placeholders {sorted(missing)}")
 
-    OUT.mkdir(exist_ok=True)
-    path = OUT / f"{name}.svg"
+    target = out_dir or OUT
+    target.mkdir(parents=True, exist_ok=True)
+    path = target / f"{name}.svg"
     path.write_text(svg)
     return path
 
@@ -121,6 +122,11 @@ def main() -> None:
     ap.add_argument("--news-title", default="What broke when Opta|pulled out of FBref")
     ap.add_argument("--news-sub", default="and what I am building about it")
     ap.add_argument("--tagline", default="BLOCKCHAIN · SECURITY · WRITING")
+    ap.add_argument("--out-dir", type=Path, default=None,
+                    help="write somewhere other than brand/out — used by the content "
+                         "pipeline so a per-piece render does not overwrite the defaults")
+    ap.add_argument("--only", default="",
+                    help="comma-separated asset names; omit for all")
     ap.add_argument("--motif", default="blocks",
                     help=f"subject illustration on the banners: {', '.join(motif_names())}")
     ap.add_argument("--thumb-motif", help="defaults to --motif")
@@ -143,13 +149,13 @@ def main() -> None:
     # Where each canvas has room for a motif without crowding what is read
     # first. X keeps its bottom-left corner clear for the avatar.
     written = [
-        render("logo-mark", None, {}),
-        render("logo-lockup", None, {"TAGLINE": esc(args.tagline)}),
-        render("favicon", None, {"MARK": mark("small")}),
+        render("logo-mark", None, {}, args.out_dir),
+        render("logo-lockup", None, {"TAGLINE": esc(args.tagline)}, args.out_dir),
+        render("favicon", None, {"MARK": mark("small")}, args.out_dir),
         render("banner-x", (1500, 500),
-               {**common, **key_vals, "MOTIF": motif(args.motif, 115, 150, 1.12)}),
+               {**common, **key_vals, "MOTIF": motif(args.motif, 115, 150, 1.12)}, args.out_dir),
         render("banner-linkedin", (1584, 396),
-               {**common, **key_vals, "MOTIF": motif(args.motif, 270, 101, 0.97)}),
+               {**common, **key_vals, "MOTIF": motif(args.motif, 270, 101, 0.97)}, args.out_dir),
     ]
 
     thumb = split_lines(args.thumb, 3)
@@ -160,7 +166,7 @@ def main() -> None:
         "TITLESIZE": size, "Y1": 290, "Y2": 290 + size + 10, "Y3": 290 + (size + 10) * 2,
         "LINE1": thumb[0], "LINE2": thumb[1], "LINE3": thumb[2],
         "SUBTITLE": esc(args.thumb_sub),
-    }))
+    }, args.out_dir))
 
     article = split_lines(args.article, 3)
     size = fit_size(article, 1024, largest=74, smallest=46)
@@ -170,7 +176,7 @@ def main() -> None:
         "LINE1": article[0], "LINE2": article[1], "LINE3": article[2],
         "Y2": 288 + size + 16, "Y3": 288 + (size + 16) * 2,
         "READTIME": esc(args.readtime),
-    }))
+    }, args.out_dir))
 
     news = split_lines(args.news_title, 2)
     size = fit_size(news, 1056, largest=54, smallest=36)
@@ -181,9 +187,16 @@ def main() -> None:
         "MOTIF": motif(args.news_motif or args.motif, 890, 160, 1.0),
         "TITLESIZE": size, "Y2": 214 + size + 10,
         "LINE1": news[0], "LINE2": news[1], "SUBTITLE": esc(args.news_sub),
-    }))
+    }, args.out_dir))
 
-    written += install(written)
+    if args.only:
+        wanted = {w.strip() for w in args.only.split(",") if w.strip()}
+        written = [p for p in written if p.stem in wanted]
+
+    # Installing the site favicon is a side effect of rendering the brand
+    # defaults, not of rendering art for one article.
+    if args.out_dir is None:
+        written += install(written)
 
     for p in written:
         print(f"  {p.relative_to(ROOT.parent)}")
