@@ -242,12 +242,40 @@ def test_the_bulk_study_sources_are_silent_by_configuration() -> None:
     assert by_key["investing-monthly"].remind is True
 
 
-def test_every_rotation_theme_reminds() -> None:
-    """The themed day plan is the core work — that is the part that chases."""
+def test_the_stated_priorities_are_the_ones_that_chase() -> None:
+    """Priority set 2026-10-20: RareSkills and the fellowship.
+
+    This used to assert that every theme reminds. It no longer should — the
+    rest are filed and visible but silent, which is what "the rest follows
+    when I'm free" means. Update the set here when the priority changes; a
+    failure is the reminder to do so deliberately.
+    """
     from src.agents.rotation import load_rotation
 
     r = load_rotation()
-    assert all(t.get("remind", True) for t in r["daily"] + r["cycle"])
+    chasing = {t["theme"] for t in r["daily"] + r["cycle"] if t.get("remind", True)}
+    assert chasing == {"rareskills", "flow-fellowship"}, chasing
+
+
+def test_something_still_chases() -> None:
+    """A rotation where nothing reminds is a rotation that does nothing."""
+    from src.agents.rotation import load_rotation
+
+    r = load_rotation()
+    assert any(t.get("remind", True) for t in r["daily"] + r["cycle"])
+
+
+def test_silent_themes_are_still_filed() -> None:
+    """Silent means it does not interrupt, not that it disappeared — it has to
+    stay on /day for the hours there is room for it."""
+    from src.agents.rotation import load_rotation
+
+    r = load_rotation()
+    for theme in r["daily"] + r["cycle"]:
+        if theme.get("remind", True):
+            continue
+        has_work = theme.get("tasks") or theme.get("variants") or theme.get("plan")
+        assert has_work, f"{theme['theme']} is silent and files nothing"
 
 
 # ── chain variants ───────────────────────────────────────────────────────────

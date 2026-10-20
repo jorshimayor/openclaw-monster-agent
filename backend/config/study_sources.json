@@ -728,7 +728,11 @@
       "see what tomorrow holds. Tasks are filed proposed, like everything else.",
       "'sources' names study_sources keys to run only on that theme's day.",
       "remind=false means tracked and shown on /day but never a reminder.",
-      "web3-study and chain-interviews are both daily and share a variant order, so the chain you study in the morning is the one you are questioned on in the afternoon."
+      "web3-study and chain-interviews are both daily and share a variant order, so the chain you study in the morning is the one you are questioned on in the afternoon.",
+      "",
+      "Priority, set 2026-10-20: RareSkills first, then the Flow fellowship.",
+      "Those two chase. Everything else is filed and visible but silent \u2014 it gets",
+      "done when there is room. Flip remind back on per theme to change that."
     ],
     "enabled": true,
     "daily": [
@@ -774,7 +778,7 @@
           "6-10 Solodit findings \u2014 predict root cause and severity BEFORE reading \u2014 https://solodit.cyfrin.io/",
           "One entry from smart-contract-vulnerabilities, explained from memory \u2014 https://github.com/kadenzipfel/smart-contract-vulnerabilities"
         ],
-        "remind": true,
+        "remind": false,
         "_comment": [
           "The standing tasks below run every day. The variant on top rotates the",
           "bounty-agent work, so the tool gets built by using it rather than in a",
@@ -789,7 +793,11 @@
           "Order matters only for where the cycle starts: the variant index is",
           "ordinal % len, so this list was rotated on 2026-09-17 to open on",
           "Hand-solve. Benchmark needs a hand-solved target to compare against, and",
-          "Gate needs a report.json to read. Reorder freely once both exist."
+          "Gate needs a report.json to read. Reorder freely once both exist.",
+          "",
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
         ],
         "variants": [
           {
@@ -867,7 +875,7 @@
         "label": "Web3 study",
         "due_time": "05:45",
         "tasks": [],
-        "remind": true,
+        "remind": false,
         "variants": [
           {
             "name": "EVM",
@@ -904,13 +912,18 @@
               "Alchemy University: one lesson, exercises done \u2014 https://www.alchemy.com/university"
             ]
           }
+        ],
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
         ]
       },
       {
         "theme": "chain-interviews",
         "label": "Chain interview practice",
         "due_time": "14:30",
-        "remind": true,
+        "remind": false,
         "variants": [
           {
             "name": "EVM",
@@ -952,6 +965,11 @@
               "One reentrancy variant from the workshop \u2014 https://github.com/jcsec-security/all-things-reentrancy"
             ]
           }
+        ],
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
         ]
       }
     ],
@@ -966,7 +984,12 @@
         "tasks": [
           "One system-design narration, 35 minutes, out loud \u2014 https://github.com/liquidslr/system-design-notes"
         ],
-        "remind": true
+        "remind": false,
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
+        ]
       },
       {
         "theme": "football",
@@ -978,7 +1001,12 @@
         "tasks": [
           "Move this week's BUILD forward by one concrete step"
         ],
-        "remind": true
+        "remind": false,
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
+        ]
       },
       {
         "theme": "video",
@@ -987,7 +1015,12 @@
         "tasks": [
           "Record one short: a thing you learned this week, 90 seconds"
         ],
-        "remind": true
+        "remind": false,
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
+        ]
       },
       {
         "theme": "articles",
@@ -996,7 +1029,12 @@
         "tasks": [
           "Draft or ship one article section \u2014 no new outlines"
         ],
-        "remind": true
+        "remind": false,
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
+        ]
       },
       {
         "theme": "code-review",
@@ -1006,7 +1044,12 @@
           "Review one open PR, or reread one of your own modules critically",
           "One audit checklist section applied to your own code \u2014 https://github.com/Cyfrin/audit-checklist"
         ],
-        "remind": true
+        "remind": false,
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
+        ]
       },
       {
         "theme": "interview-prep",
@@ -1019,7 +1062,12 @@
           "Two DSA problems, timed, narrated out loud \u2014 https://github.com/krishnadey30/LeetCode-Questions-CompanyWise",
           "Three STAR stories aloud from the bank"
         ],
-        "remind": true
+        "remind": false,
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
+        ]
       },
       {
         "theme": "job-applications",
@@ -1029,7 +1077,12 @@
           "Send two applications with a tailored first line",
           "Follow up on anything sent more than a week ago"
         ],
-        "remind": true
+        "remind": false,
+        "_comment": [
+          "remind=false means tracked and shown on /day, never a reminder. Stated",
+          "priority is RareSkills and the fellowship; the rest is there when there is",
+          "room, which is the difference between a backlog and a nag."
+        ]
       }
     ],
     "pause": {
