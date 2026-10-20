@@ -133,6 +133,7 @@ async def create_all_tables() -> None:
         from ..models.knowledge import KnowledgeCrystalDB  # noqa: F401
         from ..models.study_suggestion import StudySuggestionDB  # noqa: F401
         from ..models.task import TaskDB  # noqa: F401
+        from ..models.track_state import TrackStateDB  # noqa: F401
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_add_missing_columns)
     logger.info("database_tables_created")

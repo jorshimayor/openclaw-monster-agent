@@ -592,3 +592,37 @@ owns that handler for its own lifecycle and overriding it would break
 The remaining `*/30` cron is a safety net that re-arms the chain if a wake is
 ever missed. It calls a Durable Object method, not the container, so a check
 on a quiet day starts nothing and costs nothing.
+
+## Ordered tracks
+
+The rotation cycles and the fellowship runs on a calendar. A track does
+neither: it advances when you finish something. That makes it right for a book
+you are working through and wrong for anything that should happen on a
+Tuesday.
+
+`tracks` in [`study_sources.json`](../backend/config/study_sources.json) holds
+the order, because the order is an opinion and belongs in git. The cursor does
+not: progress changes from a phone and a container restart must not lose it,
+so it lives in Postgres as `track_state`.
+
+**One item is filed at a time.** A reading list that files sixteen commitments
+is a reading list you archive. The line names where you are, what it is for,
+and what comes next, and it is keyed on the item rather than the date — so it
+stays filed until finished rather than re-appearing every morning as if new.
+
+```bash
+curl .../api/study/track/rareskills            # where am I
+curl -X POST .../api/study/track/rareskills/advance   # finished it
+```
+
+`advance` is deliberately absent from the MCP surface. An agent cannot decide
+you have understood something.
+
+### The RareSkills track
+
+Sixteen items, due **05:30** so it opens the day ahead of the web3 bounty at
+07:30. Starts at **proxy patterns**, which is where you are, with the
+OpenZeppelin function-clashing post immediately after because it is the
+exploit that chapter sets up. ZK book is last and taken whole.
+
+Every URL was verified on 2026-10-20.

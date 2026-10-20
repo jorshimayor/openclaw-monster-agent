@@ -40,6 +40,7 @@ from .routes.writing import router as writing_router
 from .routes.agent_card import router as agent_card_router
 from .routes.integrations import router as integrations_router
 from .routes.study_queue import router as study_queue_router
+from .routes.study_queue import track_router as study_track_router
 
 
 class LLMTestRequest(BaseModel):
@@ -474,6 +475,7 @@ def create_app() -> FastAPI:
     # one that needs to read how. Also on the Worker's Access bypass list.
     app.include_router(agent_card_router)
     app.include_router(study_queue_router)
+    app.include_router(study_track_router)
     app.include_router(integrations_router)
     return app
 

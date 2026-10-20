@@ -179,6 +179,41 @@ def _expand_weekly(theme: Theme, day: date_cls) -> Theme:
     return theme
 
 
+def _expand_track(theme: Theme, track_key: str) -> Theme:
+    """Fill a theme from an ordered track's cursor.
+
+    The cursor lives in Postgres, so this reaches into async from a sync call
+    site. Filing is already driven from an event loop, so the running loop is
+    the normal case and the thread is the fallback for a sync caller.
+    """
+    import asyncio
+
+    from .track import tasks_for
+
+    try:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            lines = asyncio.run(tasks_for(track_key))
+        else:
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                lines = pool.submit(lambda: asyncio.run(tasks_for(track_key))).result(timeout=20)
+    except Exception as exc:
+        logger.warning("track_expand_failed", track=track_key, error=str(exc))
+        return theme
+
+    # One item, keyed on the item itself rather than the date: a book chapter
+    # should be filed once and stay filed until it is finished, not re-filed
+    # every morning as if it were new.
+    theme.tasks = lines + list(theme.tasks)
+    if lines:
+        key = lines[0].split(" — ")[0].replace(" ", "-").lower()[:60]
+        theme.task_keys = {**theme.task_keys, 0: f"{track_key}-{key}"}
+    return theme
+
+
 def _expand_plan(theme: Theme, day: date_cls) -> Theme:
     """Fill a scheduled theme's tasks from its plan.
 
@@ -187,6 +222,8 @@ def _expand_plan(theme: Theme, day: date_cls) -> Theme:
     sense before week 30 — so its tasks come from a resolver instead of from
     this file. The theme still files, reminds and closes like any other.
     """
+    if theme.plan and theme.plan.startswith("track:"):
+        return _expand_track(theme, theme.plan.split(":", 1)[1])
     if theme.plan != "fellowship":
         return theme
     try:

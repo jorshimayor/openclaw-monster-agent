@@ -734,6 +734,20 @@
     "daily": [
       {
         "_comment": [
+          "An ordered track, not a rotation \u2014 see `tracks` at the top level. One",
+          "item is filed at a time and it stays filed until you advance the cursor:",
+          "  curl -X POST .../api/study/track/rareskills/advance",
+          "05:30 so it lands before the web3 bounty at 07:30."
+        ],
+        "theme": "rareskills",
+        "label": "RareSkills",
+        "due_time": "05:30",
+        "plan": "track:rareskills",
+        "remind": true,
+        "tasks": []
+      },
+      {
+        "_comment": [
           "Tasks come from backend/config/fellowship.json via the plan hook, not",
           "from here \u2014 48 dated weeks do not cycle. The standing tasks below run",
           "alongside whatever this week resolves to.",
@@ -1034,5 +1048,122 @@
   "github_starred": {
     "enabled": true,
     "limit": 150
-  }
+  },
+  "tracks": [
+    {
+      "_comment": [
+        "An ordered curriculum, not a rotation. The cursor moves when an item is",
+        "finished, not when the date changes \u2014 that is the whole difference.",
+        "",
+        "The cursor lives in the database, not here, because progress is state and",
+        "a container restart would lose it. This file holds the order; the order",
+        "is the opinion and belongs in git.",
+        "",
+        "Due at 05:30 \u2014 first thing, ahead of the web3 bounty at 07:30. Every URL",
+        "verified 2026-10-20."
+      ],
+      "key": "rareskills",
+      "label": "RareSkills",
+      "due_time": "05:30",
+      "start_at": "proxy-patterns",
+      "items": [
+        {
+          "key": "proxy-patterns",
+          "title": "Proxy patterns",
+          "url": "https://rareskills.io/proxy-patterns",
+          "note": "Where you are. Storage collisions and delegatecall. Finish it before anything else moves."
+        },
+        {
+          "key": "function-clashing",
+          "title": "Beware of the proxy: function clashing (OpenZeppelin)",
+          "url": "https://forum.openzeppelin.com/t/beware-of-the-proxy-learn-how-to-exploit-function-clashing/1070",
+          "note": "Read immediately after proxy patterns \u2014 it is the exploit the chapter sets up."
+        },
+        {
+          "key": "learn-solidity",
+          "title": "Learn Solidity, all modules",
+          "url": "https://rareskills.io/learn-solidity#modules",
+          "note": "The spine. In order, notes as you go."
+        },
+        {
+          "key": "foundry-testing",
+          "title": "Foundry testing, extensively",
+          "url": "https://rareskills.io/post/foundry-testing-solidity",
+          "note": "Testing is the skill the audit work rests on; do it before the protocol books."
+        },
+        {
+          "key": "reentrancy",
+          "title": "Reentrancy",
+          "url": "https://rareskills.io/post/solidity-reentrancy",
+          "note": "Read-only, cross-function, cross-contract. Write each variant as a failing test."
+        },
+        {
+          "key": "erc-777",
+          "title": "ERC-777",
+          "url": "https://rareskills.io/post/erc777",
+          "note": "The callback that broke Uniswap v1. The reason token standards are a security topic."
+        },
+        {
+          "key": "uniswap-v2",
+          "title": "Uniswap V2",
+          "url": "https://rareskills.io/post/uniswap-v2-book",
+          "note": "The constant product invariant, from first principles."
+        },
+        {
+          "key": "uniswap-v3",
+          "title": "Uniswap V3 book",
+          "url": "https://rareskills.io/uniswap-v3-book",
+          "note": "Concentrated liquidity. Each chapter is also an article seed."
+        },
+        {
+          "key": "compound-v3",
+          "title": "Compound V3 book",
+          "url": "https://rareskills.io/compound-v3-book",
+          "note": "Lending mechanics end to end \u2014 pairs with your lending invariant library."
+        },
+        {
+          "key": "curve",
+          "title": "Curve",
+          "url": "https://rareskills.io/post/curve-amm-invariant",
+          "note": "The stableswap invariant. Harder maths than v2, and worth it."
+        },
+        {
+          "key": "security",
+          "title": "Smart contract security",
+          "url": "https://rareskills.io/learn-solidity",
+          "note": "The security track, after the protocols it attacks."
+        },
+        {
+          "key": "certora",
+          "title": "Certora book",
+          "url": "https://rareskills.io/certora-book",
+          "note": "Formal verification. The crown-jewel layer your auditing agent does not have yet."
+        },
+        {
+          "key": "huff-yul",
+          "title": "Huff and Yul",
+          "url": "https://rareskills.io/post/huff-tutorial",
+          "note": "Down to the opcodes. Makes gas arguments concrete rather than folkloric."
+        },
+        {
+          "key": "solana",
+          "title": "Solana, 60 days",
+          "url": "https://rareskills.io/solana-tutorial",
+          "note": "The SVM half. Directly relevant to Strade Base and the Colosseum work."
+        },
+        {
+          "key": "cairo",
+          "title": "Cairo tutorial",
+          "url": "https://rareskills.io/cairo-tutorial",
+          "note": "Starknet and the Cairo VM."
+        },
+        {
+          "key": "zk-book",
+          "title": "ZK book, in full",
+          "url": "https://rareskills.io/zk-book",
+          "note": "Last on purpose, and taken whole rather than skimmed \u2014 your words."
+        }
+      ]
+    }
+  ]
 }

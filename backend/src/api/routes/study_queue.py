@@ -110,3 +110,31 @@ async def dismiss(ref: str) -> Dict[str, Any]:
         fresh.status = "dismissed"
         await session.commit()
     return {"dismissed": True, "id": str(row.id)}
+
+
+# --- ordered tracks -------------------------------------------------------
+
+track_router = APIRouter(prefix="/api/study/track", tags=["study"])
+
+
+@track_router.get("/{key}")
+async def track_status(key: str) -> Dict[str, Any]:
+    """Where you are, what is next, how far through."""
+    from ...agents.track import current
+
+    state = await current(key)
+    if not state.get("found"):
+        raise HTTPException(404, f"no track {key!r}")
+    return state
+
+
+@track_router.post("/{key}/advance")
+async def track_advance(key: str) -> Dict[str, Any]:
+    """Finished the current item. Only you call this — an agent cannot decide
+    you have understood something."""
+    from ...agents.track import advance
+
+    result = await advance(key)
+    if not result.get("found", True):
+        raise HTTPException(404, f"no track {key!r}")
+    return result
