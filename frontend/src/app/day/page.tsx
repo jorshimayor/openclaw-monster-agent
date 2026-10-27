@@ -545,7 +545,7 @@ export default function DayPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="flex items-center gap-4 border-b border-bg-border/60 px-4 py-2 text-[10px] tracking-widest text-matrix-dim">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-bg-border/60 px-4 py-2 text-[10px] tracking-widest text-matrix-dim">
             <span>TIMETABLE</span>
             <span className="flex items-center gap-1.5">
               <i className="h-2 w-2 rounded-sm bg-matrix/70 not-italic" /> FOCUS

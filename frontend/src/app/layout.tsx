@@ -5,7 +5,9 @@ import "@/styles/globals.css";
 import { ThemeProvider, themeBootstrapScript } from "@/lib/theme-provider";
 import { ConnLabel } from "@/components/ConnLabel";
 import SidebarStatus from "@/components/SidebarStatus";
+import NavDrawer from "@/components/NavDrawer";
 import ThemeSwitcher from "@/components/ui/theme-switcher";
+import { NAV_LINKS } from "@/lib/nav";
 
 const jb = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono" });
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -16,19 +18,6 @@ export const metadata: Metadata = {
   // Written by brand/render.py — edit the template, not the public file.
   icons: { icon: "/favicon.svg", shortcut: "/favicon.svg", apple: "/logo-mark.svg" }
 };
-
-const NAV_LINKS = [
-  { href: "/", label: "Dashboard", icon: "⬢" },
-  { href: "/day", label: "The Day", icon: "◷" },
-  { href: "/tasks", label: "Tasks", icon: "▤" },
-  { href: "/commitments", label: "Commitments", icon: "✓" },
-  { href: "/study", label: "Study", icon: "▧" },
-  { href: "/write", label: "Draft Check", icon: "✎" },
-  { href: "/agents", label: "Agents", icon: "◎" },
-  { href: "/knowledge", label: "Knowledge", icon: "◈" },
-  { href: "/hq", label: "Career HQ", icon: "★" },
-  { href: "/integrations", label: "Integrations", icon: "⬡" }
-];
 
 export default function RootLayout({
   children
@@ -46,7 +35,7 @@ export default function RootLayout({
       </head>
       <body className="bg-bg text-matrix font-mono antialiased min-h-screen flex">
         <ThemeProvider>
-          <aside className="w-64 border-r border-bg-border bg-bg-panel flex flex-col shrink-0">
+          <aside className="hidden md:flex w-64 border-r border-bg-border bg-bg-panel flex-col shrink-0">
             <div className="px-5 py-5 border-b border-bg-border">
               <div className="flex items-center gap-2 text-lg font-bold tracking-wider glow-text">
                 <span className="text-2xl">🦞</span>
@@ -77,9 +66,10 @@ export default function RootLayout({
           </aside>
 
           <div className="flex-1 flex flex-col min-w-0">
-            <header className="h-14 border-b border-bg-border bg-bg-panel px-6 flex items-center justify-between shrink-0 gap-4">
-              <div className="flex items-center gap-4 text-xs min-w-0">
-                <span className="flex items-center gap-2">
+            <header className="h-14 border-b border-bg-border bg-bg-panel px-4 md:px-6 flex items-center justify-between shrink-0 gap-3">
+              <div className="flex items-center gap-3 text-xs min-w-0">
+                <NavDrawer />
+                <span className="flex items-center gap-2 min-w-0">
                   <span className="w-2 h-2 rounded-full bg-matrix animate-pulse-matrix"></span>
                   <span className="text-matrix-dim shrink-0">CONN:</span>
                   <ConnLabel />
@@ -91,11 +81,13 @@ export default function RootLayout({
               </div>
             </header>
 
-            <main className="flex-1 p-6 overflow-auto scanlines">{children}</main>
+            <main className="flex-1 p-4 md:p-6 overflow-auto scanlines">{children}</main>
 
-            <footer className="border-t border-bg-border px-6 py-2 text-[10px] text-matrix-dim flex justify-between shrink-0">
-              <span>© MONSTER AGENT · MULTI-AGENT ORCHESTRATION</span>
-              <span>MULTI-AGENT PIPELINE · ACCOUNTABILITY LEDGER</span>
+            <footer className="border-t border-bg-border px-4 md:px-6 py-2 text-[10px] text-matrix-dim flex justify-between gap-4 shrink-0">
+              <span className="truncate">© MONSTER AGENT · MULTI-AGENT ORCHESTRATION</span>
+              <span className="hidden lg:inline shrink-0">
+                MULTI-AGENT PIPELINE · ACCOUNTABILITY LEDGER
+              </span>
             </footer>
           </div>
         </ThemeProvider>
