@@ -10,39 +10,51 @@ import { cn } from "@/lib/utils";
 /**
  * The day, drawn to scale.
  *
- * Every block is positioned and sized by its real start and end, so a
- * fifteen-minute break is a sliver and a ninety-minute deep block is six times
- * taller. The previous version bucketed everything into fixed half-hours,
- * which drew those two the same size and lost the one thing a timetable is
- * for — seeing where the long stretches are.
+ * Every block is positioned and sized by its real start and end, so a quarter
+ * hour is a sliver and a ninety minute deep block is six times taller.
  *
- * Two layers, deliberately distinct. The middle column is your timetable
- * template, read from the sheet: the *shape* of the day. It repeats daily and
- * is not tracked, because turning 19 recurring blocks into 19 commitments
- * would mean 19 things nagging you every morning. Ticking one is recorded for
- * that date only and never written back to the shared sheet.
+ * Two layers, deliberately distinct. The blocks are your timetable template,
+ * read from the sheet: the *shape* of the day. It repeats daily and is not
+ * tracked, because turning twenty-one recurring blocks into twenty-one
+ * commitments would mean twenty-one things nagging you every morning. Ticking
+ * one is recorded for that date only and never written back to the sheet.
  *
- * The right lane holds real commitments: study picks, tasks, reminders,
- * anything you add. Drag one and it reschedules to wherever you dropped it,
- * snapped to the quarter hour.
+ * Commitments — study picks, tasks, reminders, anything you add — sit beside
+ * the blocks they fall in. Drag one and it reschedules to where you dropped
+ * it, snapped to the quarter hour.
+ *
+ * Two layout decisions do most of the work here:
+ *
+ *   - A sixteen hour day at a readable scale is far taller than a screen, so
+ *     on a wide one it is split into two columns side by side, the way a
+ *     printed timetable is. The seam is placed on a block boundary so nothing
+ *     is ever cut in half.
+ *   - The commitments lane only exists in a column that has commitments.
+ *     Reserving half the width for it permanently left most of the screen as
+ *     empty ruled lines on a day with nothing booked.
  *
  * Drag-and-drop is the native HTML5 API rather than a library — one dependency
  * not added, and it degrades to the time field on touch devices.
  */
 
-/** Pixels per minute. The whole timeline is this one number times a duration. */
-const DENSITY = { compact: 0.8, comfortable: 1.5 } as const;
+/** Pixels per minute. The timeline is this one number times a duration. */
+const DENSITY = { compact: 0.85, comfortable: 1.45 } as const;
 type Density = keyof typeof DENSITY;
 
 const SNAP_MINUTES = 15;
-/**
- * A commitment is a point in time, not a span, so every card is the same
- * height and titles are clamped to two lines. Letting cards size to their
- * content would mean the stacker could not know where the next one starts,
- * and a three-line card would be written over by the card below it.
- */
+/** A commitment is a point in time, not a span, so every card is this tall. */
 const ITEM_HEIGHT = 56;
 const ITEM_GAP = 4;
+/** Below this the day is one column; above it, two. */
+const SPLIT_QUERY = "(min-width: 1280px)";
+/**
+ * Below this there is no room for a lane beside the blocks: at 375px it
+ * squeezed the blocks to a sliver and their labels disappeared. On a phone the
+ * commitments go under the timeline as a list instead.
+ */
+const NARROW_QUERY = "(max-width: 639px)";
+/** A day shorter than this is not worth splitting. */
+const MIN_SPLIT_MINUTES = 300;
 const FALLBACK_BOUNDS = { from: 5 * 60, to: 22 * 60 };
 
 const CATEGORIES = [
@@ -66,35 +78,41 @@ const SOURCE_TONE: Record<string, string> = {
  * What kind of hour this is, by what the sheet calls it.
  *
  * Colour carries the one judgement worth making at a glance: how much of the
- * day is actually focused work versus upkeep. Keyword matching rather than a
- * column in the sheet, so adding a row needs no extra bookkeeping.
+ * day is focused work rather than upkeep. Keyword matching rather than a column
+ * in the sheet, so adding a row needs no extra bookkeeping.
  */
 const TONES = [
   {
     match: /deep block|study|reading|anchor|bounty|audit|interview|practice/i,
-    bar: "border-l-[var(--theme-accent)]",
-    fill: "bg-matrix/[0.09] group-hover:bg-matrix/[0.16]",
-    label: "focus"
+    bar: "bg-[var(--theme-accent)]",
+    fill: "bg-matrix/[0.08] group-hover:bg-matrix/[0.14]",
+    key: "focus"
   },
   {
-    match: /walk|stretch|gym|workout|run|sleep/i,
-    bar: "border-l-success",
-    fill: "bg-success/[0.09] group-hover:bg-success/[0.16]",
-    label: "body"
+    match: /walk|stretch|gym|workout|run|jog|exercise|sleep/i,
+    bar: "bg-success",
+    fill: "bg-success/[0.08] group-hover:bg-success/[0.14]",
+    key: "body"
   },
   {
-    match: /content|writing|open source|portfolio|build|ship/i,
-    bar: "border-l-warning",
-    fill: "bg-warning/[0.09] group-hover:bg-warning/[0.16]",
-    label: "make"
+    match: /content|writing|open source|portfolio|build|ship|startup/i,
+    bar: "bg-warning",
+    fill: "bg-warning/[0.08] group-hover:bg-warning/[0.14]",
+    key: "make"
   }
 ] as const;
 
 const UPKEEP = {
-  bar: "border-l-matrix-dim/60",
-  fill: "bg-bg-panel group-hover:bg-matrix/[0.08]",
-  label: "upkeep"
+  bar: "bg-matrix-dim/50",
+  fill: "bg-bg-panel group-hover:bg-matrix/[0.06]",
+  key: "upkeep"
 } as const;
+
+const LEGEND = [
+  { key: "focus", label: "FOCUS", dot: "bg-matrix" },
+  { key: "body", label: "BODY", dot: "bg-success" },
+  { key: "make", label: "MAKE", dot: "bg-warning" }
+];
 
 function toneFor(label: string) {
   return TONES.find((t) => t.match.test(label)) ?? UPKEEP;
@@ -109,6 +127,12 @@ function toHHMM(minutes: number): string {
   const clamped = ((Math.round(minutes) % 1440) + 1440) % 1440;
   const h = Math.floor(clamped / 60);
   return `${String(h).padStart(2, "0")}:${String(clamped % 60).padStart(2, "0")}`;
+}
+
+function shiftDate(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 /**
@@ -136,18 +160,17 @@ function normalize(blocks: DayBlock[]): DayBlock[] {
   });
 }
 
-function shiftDate(iso: string, days: number): string {
-  const d = new Date(`${iso}T12:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 function readDensity(): Density {
   try {
     return localStorage.getItem("day.density") === "compact" ? "compact" : "comfortable";
   } catch {
     return "comfortable";
   }
+}
+
+interface Range {
+  from: number;
+  to: number;
 }
 
 export default function DayPage() {
@@ -162,6 +185,9 @@ export default function DayPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [density, setDensity] = useState<Density>("comfortable");
+  /** Starts at one so the server and the first client render agree. */
+  const [columns, setColumns] = useState(1);
+  const [narrow, setNarrow] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dropAt, setDropAt] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -171,9 +197,29 @@ export default function DayPage() {
   const [artifact, setArtifact] = useState("");
   const [rejection, setRejection] = useState<string | null>(null);
   const nowRef = useRef<HTMLDivElement | null>(null);
-  const laneRef = useRef<HTMLDivElement | null>(null);
+  const laneRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => setDensity(readDensity()), []);
+
+  useEffect(() => {
+    const wide = window.matchMedia(SPLIT_QUERY);
+    const phone = window.matchMedia(NARROW_QUERY);
+    const sync = () => {
+      setColumns(wide.matches ? 2 : 1);
+      setNarrow(phone.matches);
+    };
+    sync();
+    wide.addEventListener("change", sync);
+    phone.addEventListener("change", sync);
+    // Belt and braces: some environments change the viewport without
+    // dispatching the media-query event.
+    window.addEventListener("resize", sync);
+    return () => {
+      wide.removeEventListener("change", sync);
+      phone.removeEventListener("change", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, []);
 
   const load = useCallback(async (d?: string) => {
     try {
@@ -211,9 +257,9 @@ export default function DayPage() {
   };
 
   /**
-   * The window the timeline covers: the hours the day actually occupies,
-   * rounded out to whole hours, widened to hold any commitment that sits
-   * outside the template so nothing is ever positioned off-canvas.
+   * The window the timeline covers: the hours the day occupies, rounded out to
+   * whole hours, widened to hold any commitment outside the template so
+   * nothing is positioned off-canvas.
    */
   const bounds = useMemo(() => {
     let from = blocks.length
@@ -236,35 +282,71 @@ export default function DayPage() {
     return { from, to, span: Math.max(to - from, 60) };
   }, [blocks, day, isToday, nowMinutes]);
 
-  const offsetOf = useCallback(
-    (minutes: number) => (minutes - bounds.from) * pxPerMin,
-    [bounds.from, pxPerMin]
-  );
-
-  const hours = useMemo(() => {
-    const out: number[] = [];
-    for (let m = bounds.from; m <= bounds.to; m += 60) out.push(m);
-    return out;
-  }, [bounds.from, bounds.to]);
-
   /**
-   * Commitments that would land on top of each other are pushed down the lane
-   * rather than squeezed side by side. Six things due at 07:30 as six narrow
-   * columns is six unreadable columns; stacked, they stay full width and the
-   * card carries its real time, which is the part that matters.
+   * One range per column. The seam goes on the start of the first block past
+   * the midpoint, so a column break never lands inside a block.
    */
-  const laidOut = useMemo(() => {
-    let cursor = -Infinity;
-    const placed = [...(day?.items ?? [])]
-      .sort((a, b) => a.local_time.localeCompare(b.local_time))
-      .map((item) => {
-        const at = offsetOf(toMinutes(item.local_time));
-        const top = Math.max(at, cursor);
-        cursor = top + ITEM_HEIGHT + ITEM_GAP;
-        return { item, top, nudged: top > at + 1 };
+  const ranges: Range[] = useMemo(() => {
+    if (columns === 1 || bounds.span < MIN_SPLIT_MINUTES) {
+      return [{ from: bounds.from, to: bounds.to }];
+    }
+    const midpoint = bounds.from + bounds.span / 2;
+    const seam =
+      blocks.map((b) => toMinutes(b.start)).find((s) => s >= midpoint) ??
+      bounds.from + Math.round(bounds.span / 2 / 60) * 60;
+    return [
+      { from: bounds.from, to: seam },
+      { from: seam, to: bounds.to }
+    ];
+  }, [columns, bounds, blocks]);
+
+  /** Everything each column needs, already placed. */
+  const panes = useMemo(() => {
+    return ranges.map((range) => {
+      const within = blocks.filter((b) => {
+        const s = toMinutes(b.start);
+        return s >= range.from && s < range.to;
       });
-    return { placed, bottom: placed.length ? cursor : 0 };
-  }, [day, offsetOf]);
+
+      // Commitments that would land on top of each other are pushed down
+      // rather than squeezed side by side: six narrow columns is six
+      // unreadable ones, and the card carries its real time anyway.
+      let cursor = -Infinity;
+      const placed = (day?.items ?? [])
+        .filter((i) => {
+          const t = toMinutes(i.local_time);
+          return t >= range.from && t < range.to;
+        })
+        .sort((a, b) => a.local_time.localeCompare(b.local_time))
+        .map((item) => {
+          const at = (toMinutes(item.local_time) - range.from) * pxPerMin;
+          const top = Math.max(at, cursor);
+          cursor = top + ITEM_HEIGHT + ITEM_GAP;
+          return { item, top, nudged: top > at + 1 };
+        });
+
+      const hours: number[] = [];
+      for (let m = Math.ceil(range.from / 60) * 60; m <= range.to; m += 60) hours.push(m);
+
+      return {
+        range,
+        blocks: within,
+        placed,
+        hours,
+        bottom: placed.length ? cursor : 0
+      };
+    });
+  }, [ranges, blocks, day, pxPerMin]);
+
+  const paneHeight = useMemo(
+    () =>
+      Math.max(
+        ...panes.map((p) =>
+          Math.max((p.range.to - p.range.from) * pxPerMin, p.bottom)
+        )
+      ),
+    [panes, pxPerMin]
+  );
 
   const current = isToday
     ? blocks.find(
@@ -288,12 +370,13 @@ export default function DayPage() {
 
   useEffect(() => {
     nowRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [day?.date, density]);
+  }, [day?.date, density, columns]);
 
-  const timeAtY = (clientY: number): string => {
-    const rect = laneRef.current?.getBoundingClientRect();
-    if (!rect) return toHHMM(bounds.from);
-    const raw = bounds.from + (clientY - rect.top) / pxPerMin;
+  const timeAtY = (pane: number, clientY: number): string => {
+    const rect = laneRefs.current[pane]?.getBoundingClientRect();
+    const range = ranges[pane];
+    if (!rect || !range) return toHHMM(bounds.from);
+    const raw = range.from + (clientY - rect.top) / pxPerMin;
     const snapped = Math.round(raw / SNAP_MINUTES) * SNAP_MINUTES;
     return toHHMM(Math.min(Math.max(snapped, bounds.from), bounds.to));
   };
@@ -385,6 +468,136 @@ export default function DayPage() {
 
   const proposed = (day?.items ?? []).filter((i) => i.status === "proposed");
 
+  const renderItem = (
+    { item, top, nudged }: { item: DayItem; top: number; nudged: boolean },
+    positioned = true
+  ) => {
+    const isOpen = expanded === item.id;
+    return (
+      <div
+        key={item.id}
+        className={cn(
+          positioned ? "absolute inset-x-0" : "relative",
+          isOpen ? "z-30" : "z-10"
+        )}
+        style={positioned ? { top } : undefined}
+      >
+        <div
+          draggable
+          onDragStart={() => setDragging(item.short_id)}
+          onDragEnd={() => {
+            setDragging(null);
+            setDropAt(null);
+          }}
+          onClick={() => setExpanded(isOpen ? null : item.id)}
+          title={item.title}
+          style={{
+            height: isOpen || !positioned ? undefined : ITEM_HEIGHT - ITEM_GAP
+          }}
+          className={cn(
+            "cursor-grab active:cursor-grabbing overflow-hidden rounded-md border border-bg-border border-l-2 bg-bg px-2.5 py-1.5 text-xs shadow-sm hover:border-matrix/50 transition-colors",
+            SOURCE_TONE[item.source] ?? "border-l-matrix/40",
+            dragging === item.short_id && "opacity-40",
+            item.status === "done" && "opacity-50 line-through",
+            item.overdue_sec > 0 && item.status === "open" && "border-danger/50"
+          )}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <span
+              className={cn("min-w-0 leading-snug", !isOpen && positioned && "line-clamp-2")}
+            >
+              {item.title}
+            </span>
+            <span className="flex items-center gap-1.5 shrink-0">
+              {item.status === "proposed" && <Badge variant="warning">PROPOSED</Badge>}
+              {item.status === "open" && item.nag_count > 0 && (
+                <Badge variant={item.nag_count >= 4 ? "error" : "warning"}>
+                  {item.nag_count}×
+                </Badge>
+              )}
+              {item.status === "done" && <Badge variant="success">DONE</Badge>}
+            </span>
+          </div>
+          <div className="truncate text-[9px] font-mono text-matrix-dim/70 tabular-nums">
+            {item.local_time}
+            {nudged && (
+              <span title="Shown below its slot so it is not hidden behind another card">
+                {" "}
+                ↓
+              </span>
+            )}
+            {item.detail && <span className="font-sans"> · {item.detail}</span>}
+          </div>
+        </div>
+
+        {isOpen && item.status !== "done" && (
+          <div className="mt-1.5 space-y-2 rounded-md border border-matrix/25 bg-bg p-2.5 shadow-accent-glow">
+            {item.status === "proposed" ? (
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="matrix"
+                  disabled={busy}
+                  onClick={() => act(() => api.approveCommitment(item.short_id))}
+                >
+                  ✓ APPROVE
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={busy}
+                  onClick={() => act(() => api.dropCommitment(item.short_id))}
+                >
+                  DROP
+                </Button>
+              </div>
+            ) : (
+              <>
+                <textarea
+                  value={artifact}
+                  onChange={(e) => setArtifact(e.target.value)}
+                  placeholder="Paste the link, or 40+ characters of what you made…"
+                  className="w-full h-16 bg-bg/50 border border-matrix/30 rounded p-2 text-[11px] focus:border-matrix focus:outline-none resize-none placeholder:text-matrix-dim/50"
+                />
+                {rejection && (
+                  <div className="text-[10px] text-danger whitespace-pre-wrap">
+                    {rejection}
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    variant="matrix"
+                    disabled={busy || !artifact.trim()}
+                    onClick={() => close(item)}
+                  >
+                    ✓ CLOSE
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => act(() => api.snoozeCommitment(item.short_id, 30))}
+                  >
+                    😴 30M
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={busy}
+                    onClick={() => act(() => api.dropCommitment(item.short_id))}
+                  >
+                    DROP
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -431,7 +644,7 @@ export default function DayPage() {
 
       {/* Where you are right now, which is the only thing worth reading first. */}
       {isToday && (current || upNext) && (
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border border-matrix/30 bg-matrix/[0.04] rounded px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-matrix/30 bg-matrix/[0.04] rounded px-4 py-3">
           {current ? (
             <div className="min-w-0">
               <div className="text-[10px] text-matrix-dim tracking-widest">NOW</div>
@@ -545,291 +758,233 @@ export default function DayPage() {
 
       <Card>
         <CardContent className="p-0">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-bg-border/60 px-4 py-2 text-[10px] tracking-widest text-matrix-dim">
-            <span>TIMETABLE</span>
-            <span className="flex items-center gap-1.5">
-              <i className="h-2 w-2 rounded-sm bg-matrix/70 not-italic" /> FOCUS
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-bg-border/60 px-4 py-2.5 text-[10px] tracking-widest text-matrix-dim">
+            <span className="text-matrix">TIMETABLE</span>
+            {LEGEND.map((l) => (
+              <span key={l.key} className="flex items-center gap-1.5">
+                <i className={cn("h-2 w-2 rounded-[2px] not-italic", l.dot)} />
+                {l.label}
+              </span>
+            ))}
+            <span className="ml-auto tabular-nums">
+              {toHHMM(bounds.from)}–{toHHMM(bounds.to)} · {blocks.length} BLOCKS
             </span>
-            <span className="flex items-center gap-1.5">
-              <i className="h-2 w-2 rounded-sm bg-success/70 not-italic" /> BODY
-            </span>
-            <span className="flex items-center gap-1.5">
-              <i className="h-2 w-2 rounded-sm bg-warning/70 not-italic" /> MAKE
-            </span>
-            <span className="ml-auto">COMMITMENTS →</span>
           </div>
 
-          <div className="overflow-x-auto px-3 py-4">
+          <div className="px-3 py-4">
             <div
-              className="relative min-w-[34rem]"
-              style={{ height: Math.max(bounds.span * pxPerMin, laidOut.bottom) }}
+              className={cn(
+                "mx-auto grid gap-x-8",
+                panes.length === 2 ? "grid-cols-2 max-w-[1600px]" : "max-w-[900px] grid-cols-1"
+              )}
             >
-              {/* Hour lines, drawn across both columns so the eye can read along. */}
-              {hours.map((m) => (
-                <div
-                  key={m}
-                  className="absolute left-0 right-0 border-t border-bg-border/40"
-                  style={{ top: offsetOf(m) }}
-                />
-              ))}
+              {panes.map((pane, paneIndex) => {
+                const showsNow =
+                  isToday &&
+                  nowMinutes >= pane.range.from &&
+                  nowMinutes <= pane.range.to;
+                const offset = (m: number) => (m - pane.range.from) * pxPerMin;
+                const hasItems = !narrow && pane.placed.length > 0;
 
-              {isToday && nowMinutes >= bounds.from && nowMinutes <= bounds.to && (
-                <div
-                  ref={nowRef}
-                  className="absolute left-0 right-0 z-20 pointer-events-none"
-                  style={{ top: offsetOf(nowMinutes) }}
-                >
-                  <div className="h-px bg-danger shadow-[0_0_6px_var(--theme-danger)]" />
-                  <div className="absolute -top-2 left-0 text-[9px] font-mono text-danger bg-bg px-1">
-                    {day?.now_local}
-                  </div>
-                </div>
-              )}
-
-              {dropAt && (
-                <div
-                  className="absolute left-0 right-0 z-20 pointer-events-none"
-                  style={{ top: offsetOf(toMinutes(dropAt)) }}
-                >
-                  <div className="h-px bg-matrix" />
-                  <div className="absolute -top-2 right-0 text-[9px] font-mono text-matrix bg-bg px-1">
-                    {dropAt}
-                  </div>
-                </div>
-              )}
-
-              <div className="relative grid h-full grid-cols-[3.25rem_minmax(8rem,15rem)_minmax(0,1fr)] gap-x-3">
-                <div className="relative">
-                  {hours.map((m) => (
-                    <div
-                      key={m}
-                      className="absolute right-0 -translate-y-1/2 text-[10px] font-mono text-matrix-dim/70 tabular-nums"
-                      style={{ top: offsetOf(m) }}
-                    >
-                      {toHHMM(m)}
-                    </div>
-                  ))}
-                </div>
-
-                <div className="relative">
-                  {blocks.map((b) => {
-                    const tone = toneFor(b.label);
-                    const height = Math.max(b.minutes * pxPerMin - 2, 10);
-                    // What fits. A quarter-hour block at the tighter scale is
-                    // twelve pixels tall, which is less than one line of text,
-                    // so it becomes a bare band and leans on its tooltip.
-                    const tier = height >= 32 ? "full" : height >= 19 ? "label" : "band";
-                    const isCurrent = current === b;
-                    return (
-                      <button
-                        key={`${b.start}-${b.label}`}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => toggleBlock(b)}
-                        title={
-                          `${b.start}–${b.end} · ${b.minutes}m` +
-                          (b.done ? " · done, click to undo" : " · click to tick off")
-                        }
-                        style={{ top: offsetOf(toMinutes(b.start)), height }}
-                        className={cn(
-                          "group absolute inset-x-0 overflow-hidden rounded-r-sm border-l-2 bg-bg px-2 py-0.5 text-left",
-                          tone.bar,
-                          isCurrent && "ring-1 ring-matrix/60",
-                          b.done && "opacity-40"
-                        )}
-                      >
-                        <span
-                          aria-hidden
-                          className={cn("absolute inset-0 transition-colors", tone.fill)}
-                        />
-                        {tier !== "band" && (
-                          <div
-                            className={cn(
-                              "relative truncate",
-                              tier === "full"
-                                ? "text-[11px] leading-snug"
-                                : "text-[10px] leading-none",
-                              b.done && "line-through"
-                            )}
-                          >
-                            {b.done ? "☑ " : ""}
-                            {b.label}
-                          </div>
-                        )}
-                        {tier === "full" && (
-                          <div className="relative text-[9px] font-mono text-matrix-dim/70 tabular-nums">
-                            {b.start}–{b.end} · {b.minutes}m
-                            {(b.meridiem_corrected || b.shifted) && (
-                              <span
-                                className="text-warning"
-                                title={
-                                  b.meridiem_corrected
-                                    ? `The sheet says ${b.raw_time}; read as morning to keep the rows in order.`
-                                    : "Moved later: the sheet had this overlapping the block before it."
-                                }
-                              >
-                                {" "}
-                                ✎
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div
-                  ref={laneRef}
-                  className={cn(
-                    "relative rounded-sm transition-colors",
-                    dragging && "bg-matrix/[0.04] outline-dashed outline-1 outline-matrix/25"
-                  )}
-                  onDragOver={(e) => {
-                    e.preventDefault();
-                    setDropAt(timeAtY(e.clientY));
-                  }}
-                  onDragLeave={() => setDropAt(null)}
-                  onDrop={(e) => drop(timeAtY(e.clientY))}
-                >
-                  {laidOut.placed.map(({ item, top, nudged }) => {
-                    const isOpen = expanded === item.id;
-                    return (
+                return (
+                  <div
+                    key={paneIndex}
+                    className="relative min-w-0"
+                    style={{ height: paneHeight }}
+                  >
+                    {/* Hour rules, behind everything, stopping at the column edge. */}
+                    {pane.hours.map((m) => (
                       <div
-                        key={item.id}
-                        className={cn("absolute inset-x-0", isOpen ? "z-30" : "z-10")}
-                        style={{ top }}
+                        key={m}
+                        className="absolute left-10 right-0 border-t border-bg-border/35"
+                        style={{ top: offset(m) }}
+                      />
+                    ))}
+
+                    {showsNow && (
+                      <div
+                        ref={nowRef}
+                        className="absolute left-10 right-0 z-20 pointer-events-none"
+                        style={{ top: offset(nowMinutes) }}
                       >
-                        <div
-                          draggable
-                          onDragStart={() => setDragging(item.short_id)}
-                          onDragEnd={() => {
-                            setDragging(null);
-                            setDropAt(null);
-                          }}
-                          onClick={() => setExpanded(isOpen ? null : item.id)}
-                          title={item.title}
-                          style={{ height: isOpen ? undefined : ITEM_HEIGHT - ITEM_GAP }}
-                          className={cn(
-                            "cursor-grab active:cursor-grabbing overflow-hidden rounded border border-matrix/25 border-l-2 bg-bg px-2.5 py-1 text-xs hover:border-matrix/50 transition-colors",
-                            SOURCE_TONE[item.source] ?? "border-l-matrix/40",
-                            dragging === item.short_id && "opacity-40",
-                            item.status === "done" && "opacity-50 line-through",
-                            item.overdue_sec > 0 &&
-                              item.status === "open" &&
-                              "border-danger/50"
-                          )}
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <span
-                              className={cn("min-w-0 leading-snug", !isOpen && "line-clamp-2")}
-                            >
-                              {item.title}
-                            </span>
-                            <span className="flex items-center gap-1.5 shrink-0">
-                              {item.status === "proposed" && (
-                                <Badge variant="warning">PROPOSED</Badge>
-                              )}
-                              {item.status === "open" && item.nag_count > 0 && (
-                                <Badge variant={item.nag_count >= 4 ? "error" : "warning"}>
-                                  {item.nag_count}×
-                                </Badge>
-                              )}
-                              {item.status === "done" && <Badge variant="success">DONE</Badge>}
-                            </span>
-                          </div>
-                          <div className="text-[9px] font-mono text-matrix-dim/70 tabular-nums truncate">
-                            {item.local_time}
-                            {nudged && (
-                              <span title="Shown below its slot so it is not hidden behind another card">
-                                {" "}
-                                ↓
-                              </span>
-                            )}
-                            {item.detail && (
-                              <span className="font-sans"> · {item.detail}</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {isOpen && item.status !== "done" && (
-                          <div className="mt-1.5 space-y-2 rounded border border-matrix/25 bg-bg p-2.5 shadow-accent-glow">
-                            {item.status === "proposed" ? (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="matrix"
-                                  disabled={busy}
-                                  onClick={() => act(() => api.approveCommitment(item.short_id))}
-                                >
-                                  ✓ APPROVE
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  disabled={busy}
-                                  onClick={() => act(() => api.dropCommitment(item.short_id))}
-                                >
-                                  DROP
-                                </Button>
-                              </div>
-                            ) : (
-                              <>
-                                <textarea
-                                  value={artifact}
-                                  onChange={(e) => setArtifact(e.target.value)}
-                                  placeholder="Paste the link, or 40+ characters of what you made…"
-                                  className="w-full h-16 bg-bg/50 border border-matrix/30 rounded p-2 text-[11px] focus:border-matrix focus:outline-none resize-none placeholder:text-matrix-dim/50"
-                                />
-                                {rejection && (
-                                  <div className="text-[10px] text-danger whitespace-pre-wrap">
-                                    {rejection}
-                                  </div>
-                                )}
-                                <div className="flex flex-wrap gap-2">
-                                  <Button
-                                    size="sm"
-                                    variant="matrix"
-                                    disabled={busy || !artifact.trim()}
-                                    onClick={() => close(item)}
-                                  >
-                                    ✓ CLOSE
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    disabled={busy}
-                                    onClick={() =>
-                                      act(() => api.snoozeCommitment(item.short_id, 30))
-                                    }
-                                  >
-                                    😴 30M
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    disabled={busy}
-                                    onClick={() => act(() => api.dropCommitment(item.short_id))}
-                                  >
-                                    DROP
-                                  </Button>
-                                </div>
-                              </>
-                            )}
-                          </div>
-                        )}
+                        <div className="h-px bg-danger shadow-[0_0_6px_var(--theme-danger)]" />
+                        <span className="absolute -top-[7px] -left-10 text-[9px] font-mono text-danger bg-bg pr-1">
+                          {day?.now_local}
+                        </span>
                       </div>
-                    );
-                  })}
+                    )}
 
-                  {(day?.items ?? []).length === 0 && (
-                    <div className="absolute inset-x-0 top-0 text-[11px] text-matrix-dim/60 px-2">
-                      Nothing committed to this day yet.
+                    {dropAt &&
+                      toMinutes(dropAt) >= pane.range.from &&
+                      toMinutes(dropAt) <= pane.range.to && (
+                        <div
+                          className="absolute left-10 right-0 z-20 pointer-events-none"
+                          style={{ top: offset(toMinutes(dropAt)) }}
+                        >
+                          <div className="h-px bg-matrix" />
+                          <span className="absolute -top-[7px] right-0 text-[9px] font-mono text-matrix bg-bg px-1">
+                            {dropAt}
+                          </span>
+                        </div>
+                      )}
+
+                    <div
+                      className={cn(
+                        "relative grid h-full gap-x-3",
+                        hasItems
+                          ? "grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,17rem)]"
+                          : "grid-cols-[2.5rem_minmax(0,1fr)]"
+                      )}
+                    >
+                      <div className="relative">
+                        {pane.hours.map((m) => (
+                          <div
+                            key={m}
+                            className="absolute right-1 -translate-y-1/2 text-[10px] font-mono text-matrix-dim/60 tabular-nums"
+                            style={{ top: offset(m) }}
+                          >
+                            {toHHMM(m)}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/*
+                        The blocks column doubles as the drop target. Dropping
+                        onto the time you are looking at is the obvious
+                        gesture, and it works whether or not this column
+                        currently has a commitments lane.
+                      */}
+                      <div
+                        ref={(el) => {
+                          laneRefs.current[paneIndex] = el;
+                        }}
+                        className={cn(
+                          "relative rounded transition-colors",
+                          dragging && "bg-matrix/[0.04] outline-dashed outline-1 outline-matrix/25"
+                        )}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDropAt(timeAtY(paneIndex, e.clientY));
+                        }}
+                        onDragLeave={() => setDropAt(null)}
+                        onDrop={(e) => drop(timeAtY(paneIndex, e.clientY))}
+                      >
+                        {pane.blocks.map((b) => {
+                          const tone = toneFor(b.label);
+                          const height = Math.max(b.minutes * pxPerMin - 3, 10);
+                          // What fits. A quarter hour at the tighter scale is
+                          // thirteen pixels, less than one line of text, so it
+                          // becomes a bare band and leans on its tooltip.
+                          const tier =
+                            height >= 40 ? "full" : height >= 20 ? "row" : "band";
+                          const isCurrent = current === b;
+                          return (
+                            <button
+                              key={`${b.start}-${b.label}`}
+                              type="button"
+                              disabled={busy}
+                              onClick={() => toggleBlock(b)}
+                              title={
+                                `${b.start}–${b.end} · ${b.minutes}m` +
+                                (b.done ? " · done, click to undo" : " · click to tick off")
+                              }
+                              style={{ top: offset(toMinutes(b.start)), height }}
+                              className={cn(
+                                "group absolute inset-x-0 flex overflow-hidden rounded-md border border-bg-border/70 bg-bg text-left transition-colors",
+                                isCurrent && "border-matrix/60 ring-1 ring-matrix/40",
+                                b.done && "opacity-40"
+                              )}
+                            >
+                              <span
+                                aria-hidden
+                                className={cn("absolute inset-0 transition-colors", tone.fill)}
+                              />
+                              <span
+                                aria-hidden
+                                className={cn("relative w-[3px] shrink-0 rounded-l", tone.bar)}
+                              />
+                              {tier === "band" ? (
+                                <span className="relative flex-1 truncate px-2 text-[9px] leading-[10px] text-matrix-dim">
+                                  {b.label}
+                                </span>
+                              ) : tier === "row" ? (
+                                <span className="relative flex flex-1 items-center justify-between gap-2 px-2.5">
+                                  <span
+                                    className={cn(
+                                      "truncate text-[11px]",
+                                      b.done && "line-through"
+                                    )}
+                                  >
+                                    {b.done ? "☑ " : ""}
+                                    {b.label}
+                                  </span>
+                                  <span className="shrink-0 text-[9px] font-mono text-matrix-dim/70 tabular-nums">
+                                    {b.minutes}m
+                                  </span>
+                                </span>
+                              ) : (
+                                <span className="relative flex-1 px-2.5 py-1.5">
+                                  <span
+                                    className={cn(
+                                      "block truncate text-[12px] leading-snug",
+                                      b.done && "line-through"
+                                    )}
+                                  >
+                                    {b.done ? "☑ " : ""}
+                                    {b.label}
+                                  </span>
+                                  <span className="mt-0.5 block text-[10px] font-mono text-matrix-dim/70 tabular-nums">
+                                    {b.start}–{b.end} · {b.minutes}m
+                                    {(b.meridiem_corrected || b.shifted) && (
+                                      <span
+                                        className="text-warning"
+                                        title={
+                                          b.meridiem_corrected
+                                            ? `The sheet says ${b.raw_time}; read as morning to keep the rows in order.`
+                                            : "Moved later: the sheet had this overlapping the block before it."
+                                        }
+                                      >
+                                        {" "}
+                                        ✎
+                                      </span>
+                                    )}
+                                  </span>
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {hasItems && (
+                        <div className="relative">
+                          {pane.placed.map((placement) => renderItem(placement))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {narrow && (day?.items ?? []).length > 0 && (
+              <div className="mt-5 border-t border-bg-border/60 pt-4">
+                <div className="mb-2 text-[10px] tracking-widest text-matrix-dim">
+                  COMMITMENTS · {(day?.items ?? []).length}
+                </div>
+                <div className="space-y-1.5">
+                  {panes
+                    .flatMap((p) => p.placed)
+                    .map((placement) => renderItem(placement, false))}
                 </div>
               </div>
-            </div>
+            )}
+
+            {(day?.items ?? []).length === 0 && (
+              <p className="mt-4 text-center text-[11px] text-matrix-dim/60">
+                Nothing committed to this day yet — the shape above is your template.
+              </p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -856,10 +1011,10 @@ export default function DayPage() {
 
       <p className="text-[10px] text-matrix-dim tracking-wider">
         Blocks are drawn to scale, so height is real time. Click one to tick it off —
-        recorded for this date only, never written back to the shared sheet. Cards in the
-        right lane are commitments: drag one to move it to the quarter hour you drop it
-        on, click to close it with an artifact. Reminders are capped at two per round and
-        stay quiet 22:00–07:00.
+        recorded for this date only, never written back to the shared sheet. Commitments
+        sit beside the block they fall in: drag one onto the timeline to move it to the
+        quarter hour you drop it on, click to close it with an artifact. Reminders are
+        capped at two per round and stay quiet 22:00–07:00.
       </p>
     </div>
   );
