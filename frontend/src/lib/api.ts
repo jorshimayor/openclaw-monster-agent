@@ -48,10 +48,19 @@ export interface ChatAction {
 
 export interface DayBlock {
   start: string;
+  /** Always present: the backend shapes every row so the timeline can be drawn. */
+  end: string;
+  minutes: number;
   label: string;
   duration: string;
   raw_time: string;
   done: boolean;
+  /** The sheet gave no usable duration, so this ran until the next block. */
+  duration_inferred: boolean;
+  /** Pushed later because it was written overlapping the block before it. */
+  shifted: boolean;
+  /** An AM/PM in the sheet contradicted the row order and was corrected. */
+  meridiem_corrected?: boolean;
 }
 
 export interface DayThemes {

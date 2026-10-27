@@ -143,8 +143,10 @@ async def _blocks_for(day: date_cls) -> tuple[List[Dict[str, Any]], Optional[str
                 "raw_time": raw_time,
             }
         )
-    blocks.sort(key=lambda b: b["start"])
-    return blocks, None
+    # Row order carries the meaning before sorting does — see fix_meridiem.
+    from ...agents.timetable import shape
+
+    return shape(blocks), None
 
 
 @router.get("")

@@ -121,3 +121,6 @@ content/out/
 # application naming your own gaps is written for one reader, not for anyone
 # who finds the repo. Keep them local.
 drafts/
+
+# Local dev-server config for the desktop app, not part of the project
+.claude/launch.json
