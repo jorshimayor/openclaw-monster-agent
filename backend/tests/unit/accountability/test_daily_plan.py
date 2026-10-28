@@ -139,3 +139,60 @@ def test_weekday_names_are_accepted_short_or_long_and_any_case():
     monday = date(2026, 11, 2)
     assert runs_on({"days": ["Mon"]}, monday)
     assert runs_on({"days": ["MONDAY"]}, monday)
+
+
+# --- a hook that came back empty ------------------------------------------
+
+def test_a_hooked_theme_that_loaded_nothing_says_so():
+    """RareSkills is filled from a cursor in Postgres. When that store is
+    unreachable the theme arrives with no tasks, and a bare heading would make
+    an unscheduled block and a broken one look identical."""
+    blocks = attach(
+        date(2026, 10, 28), fresh(),
+        themes={"daily": [{**theme("RareSkills", "90 min Deep Block 1"),
+                           "plan": "track:rareskills", "tasks": []}], "cycled": None},
+        fellowship={},
+    )
+    entry = next(b for b in blocks if "Deep Block 1" in b["label"])["plan"][0]
+    assert entry["unavailable"] is True
+    assert "could not" in entry["items"][0]["text"].lower()
+
+
+def test_a_theme_with_no_hook_and_no_tasks_is_just_empty():
+    """Only a hook can fail. A theme that simply has nothing today is not a
+    fault and must not be dressed up as one."""
+    blocks = attach(
+        date(2026, 10, 28), fresh(),
+        themes={"daily": [theme("Quiet", "90 min Deep Block 1")], "cycled": None},
+        fellowship={},
+    )
+    entry = next(b for b in blocks if "Deep Block 1" in b["label"])["plan"][0]
+    assert "unavailable" not in entry
+    assert entry["items"] == []
+
+
+def test_a_hook_that_did_load_is_untouched():
+    blocks = attach(
+        date(2026, 10, 28), fresh(),
+        themes={"daily": [{**theme("RareSkills", "90 min Deep Block 1",
+                                   tasks=["Proxy patterns — https://rareskills.io/x"]),
+                           "plan": "track:rareskills"}], "cycled": None},
+        fellowship={},
+    )
+    entry = next(b for b in blocks if "Deep Block 1" in b["label"])["plan"][0]
+    assert "unavailable" not in entry
+    assert entry["items"][0]["url"] == "https://rareskills.io/x"
+
+
+def test_attaching_twice_does_not_double_the_plan():
+    """Blocks that already carry a plan must be re-planned, not appended to."""
+    args = dict(
+        themes={"daily": [theme("RareSkills", "90 min Deep Block 1",
+                                tasks=["Proxy patterns — https://x.dev"])], "cycled": None},
+        fellowship={},
+    )
+    blocks = attach(date(2026, 10, 28), fresh(), **args)
+    blocks = attach(date(2026, 10, 28), blocks, **args)
+    deep_one = next(b for b in blocks if "Deep Block 1" in b["label"])
+    assert len(deep_one["plan"]) == 1
+    assert len(deep_one["plan"][0]["items"]) == 1

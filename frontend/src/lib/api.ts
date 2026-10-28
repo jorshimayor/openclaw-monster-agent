@@ -59,6 +59,8 @@ export interface BlockPlan {
   /** daily | cycled | fellowship | weekly — where this came from. */
   kind: string;
   items: PlanItem[];
+  /** The strand's source could not be reached, so `items` is an explanation. */
+  unavailable?: boolean;
 }
 
 export interface DayBlock {

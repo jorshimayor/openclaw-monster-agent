@@ -5,6 +5,12 @@ import { api, ApiError, type DayBlock, type DayItem, type DayView } from "@/lib/
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 /**
@@ -219,6 +225,12 @@ export default function DayPage() {
   const [addTime, setAddTime] = useState("");
   const [category, setCategory] = useState("study");
   const [expanded, setExpanded] = useState<string | null>(null);
+  /**
+   * The block whose full plan is open. A card can only ever show as much as
+   * its duration leaves room for, and the long fellowship weeks do not fit —
+   * so the card is a preview and this is the whole of it, links and all.
+   */
+  const [opened, setOpened] = useState<DayBlock | null>(null);
   const [artifact, setArtifact] = useState("");
   const [rejection, setRejection] = useState<string | null>(null);
   const nowRef = useRef<HTMLDivElement | null>(null);
@@ -925,9 +937,19 @@ export default function DayPage() {
                           return (
                             <div
                               key={`${b.start}-${b.label}`}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => setOpened(b)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setOpened(b);
+                                }
+                              }}
+                              title={`${b.start}–${b.end} · ${b.minutes}m · open the full plan`}
                               style={{ top: offset(toMinutes(b.start)), height }}
                               className={cn(
-                                "group absolute inset-x-0 flex overflow-hidden rounded-md border border-bg-border/70 bg-bg text-left transition-colors",
+                                "group absolute inset-x-0 flex cursor-pointer overflow-hidden rounded-md border border-bg-border/70 bg-bg text-left transition-colors hover:border-matrix/50",
                                 isCurrent && "border-matrix/60 ring-1 ring-matrix/40",
                                 b.done && "opacity-40"
                               )}
@@ -940,17 +962,23 @@ export default function DayPage() {
                                 aria-hidden
                                 className={cn("relative w-[3px] shrink-0 rounded-l", tone.bar)}
                               />
-                              <div className="relative min-w-0 flex-1">
+                              {tier !== "band" && (
                                 <button
                                   type="button"
                                   disabled={busy}
-                                  onClick={() => toggleBlock(b)}
-                                  title={
-                                    `${b.start}–${b.end} · ${b.minutes}m` +
-                                    (b.done
-                                      ? " · done, click to undo"
-                                      : " · click to tick off")
-                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleBlock(b);
+                                  }}
+                                  title={b.done ? "Done — click to undo" : "Tick this block off"}
+                                  aria-label={b.done ? "Mark not done" : "Mark done"}
+                                  className="relative z-10 shrink-0 self-start px-1.5 pt-1.5 text-[11px] leading-none text-matrix-dim hover:text-matrix"
+                                >
+                                  {b.done ? "☑" : "☐"}
+                                </button>
+                              )}
+                              <div className="relative min-w-0 flex-1">
+                                <div
                                   className={cn(
                                     "block w-full text-left",
                                     tier === "band"
@@ -972,7 +1000,6 @@ export default function DayPage() {
                                           b.done && "line-through"
                                         )}
                                       >
-                                        {b.done ? "☑ " : ""}
                                         {b.label}
                                       </span>
                                       <span className="shrink-0 text-[9px] font-mono text-matrix-dim/70 tabular-nums">
@@ -987,7 +1014,6 @@ export default function DayPage() {
                                           b.done && "line-through"
                                         )}
                                       >
-                                        {b.done ? "☑ " : ""}
                                         {b.label}
                                       </span>
                                       <span
@@ -1013,7 +1039,7 @@ export default function DayPage() {
                                       </span>
                                     </>
                                   )}
-                                </button>
+                                </div>
 
                                 {tier === "full" && shown.length > 0 && (
                                   <div className="mt-1 space-y-[1px] px-2.5 pb-1">
@@ -1033,6 +1059,7 @@ export default function DayPage() {
                                               href={line.url}
                                               target="_blank"
                                               rel="noreferrer"
+                                              onClick={(e) => e.stopPropagation()}
                                               title={`${line.text} — ${line.url}`}
                                               className="underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
                                             >
@@ -1089,6 +1116,98 @@ export default function DayPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/*
+        The whole plan, untruncated. A card can only show what its duration
+        leaves room for — a ninety-minute fellowship week has six lines and
+        fits five — so everything is reachable here, links included.
+      */}
+      <Dialog open={opened !== null} onOpenChange={(o) => !o && setOpened(null)}>
+        <DialogContent className="max-w-2xl">
+          {opened && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base tracking-wider">
+                  {opened.label}
+                </DialogTitle>
+                <p className="text-[11px] font-mono text-matrix-dim tabular-nums">
+                  {opened.start}–{opened.end} · {opened.minutes}m
+                  {opened.meridiem_corrected &&
+                    ` · read as morning; the sheet says ${opened.raw_time}`}
+                  {opened.shifted && " · moved later to clear the block before it"}
+                </p>
+              </DialogHeader>
+
+              <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
+                {(opened.plan ?? []).length === 0 && (
+                  <p className="text-xs text-matrix-dim">
+                    Nothing is scheduled against this block — it is yours.
+                  </p>
+                )}
+                {(opened.plan ?? []).map((entry, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[11px] uppercase tracking-widest text-matrix">
+                        {entry.label}
+                      </h3>
+                      <Badge variant={entry.unavailable ? "error" : "default"}>
+                        {entry.unavailable ? "UNAVAILABLE" : entry.kind.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <ul className="space-y-2">
+                      {entry.items.map((item, j) => (
+                        <li
+                          key={j}
+                          className={cn(
+                            "border-l pl-3",
+                            entry.unavailable ? "border-danger/40" : "border-matrix/25"
+                          )}
+                        >
+                          <p
+                            className={cn(
+                              "text-xs leading-relaxed",
+                              entry.unavailable && "text-danger"
+                            )}
+                          >
+                            {item.text}
+                          </p>
+                          {item.url && (
+                            <a
+                              href={item.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 inline-block break-all text-[11px] text-matrix underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
+                            >
+                              {item.url}
+                            </a>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2 border-t border-bg-border/60 pt-3">
+                <Button
+                  size="sm"
+                  variant={opened.done ? "ghost" : "matrix"}
+                  disabled={busy}
+                  onClick={() => {
+                    toggleBlock(opened);
+                    setOpened({ ...opened, done: !opened.done });
+                  }}
+                >
+                  {opened.done ? "↩ NOT DONE" : "✓ TICK OFF"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setOpened(null)}>
+                  CLOSE
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {corrected.length > 0 && (
         <details className="text-[10px] text-matrix-dim border border-matrix/15 rounded px-4 py-2">

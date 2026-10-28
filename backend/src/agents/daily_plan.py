@@ -94,13 +94,28 @@ def _match_by_clock(blocks: List[Dict[str, Any]], due_time: str) -> Optional[int
     return fallback
 
 
-def _entry(label: str, theme: str, tasks: List[str], kind: str) -> Dict[str, Any]:
-    return {
-        "theme": theme,
-        "label": label,
-        "kind": kind,
-        "items": [split_resource(t) for t in tasks if str(t).strip()],
-    }
+def _entry(
+    label: str, theme: str, tasks: List[str], kind: str, hooked: bool = False
+) -> Dict[str, Any]:
+    """One strand of work on a block.
+
+    A theme whose tasks are filled by a hook — an ordered track, the
+    fellowship week — can come back empty when the thing behind the hook is
+    unreachable. Rendering that as a bare heading is the worst of both: the
+    block looks scheduled and says nothing. `unavailable` lets the page tell
+    you the difference between "nothing today" and "could not load".
+    """
+    items = [split_resource(t) for t in tasks if str(t).strip()]
+    entry = {"theme": theme, "label": label, "kind": kind, "items": items}
+    if not items and hooked:
+        entry["unavailable"] = True
+        entry["items"] = [
+            {
+                "text": "Could not load this — the backend could not reach its store.",
+                "url": None,
+            }
+        ]
+    return entry
 
 
 def attach(
@@ -115,8 +130,11 @@ def attach(
     empty — most of the day is upkeep, and inventing study for breakfast would
     make the ones that matter harder to see.
     """
+    # Replaced, not appended to: `attach` has to be safe to run twice over the
+    # same blocks, and a setdefault here quietly doubled every strand when it
+    # was handed blocks that had already been through it once.
     for block in blocks:
-        block.setdefault("plan", [])
+        block["plan"] = []
     if not blocks:
         return blocks
 
@@ -143,6 +161,7 @@ def attach(
                 theme=get("base", "") or get("theme", "") or "study",
                 tasks=list(get("tasks", []) or []),
                 kind="daily" if theme is not themes.get("cycled") else "cycled",
+                hooked=bool(get("plan", "")),
             )
         )
 
