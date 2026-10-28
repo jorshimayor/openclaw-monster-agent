@@ -80,6 +80,37 @@ export interface DayBlock {
   plan: BlockPlan[];
 }
 
+/** One thing on the shelf. */
+export interface LibraryItem {
+  title: string;
+  url: string;
+  price: string | null;
+  note: string | null;
+}
+
+export interface LibraryGroup {
+  key: string;
+  label: string;
+  note: string | null;
+  items: LibraryItem[];
+}
+
+export interface LibrarySection {
+  key: string;
+  label: string;
+  blurb: string | null;
+  count: number;
+  groups: LibraryGroup[];
+}
+
+export interface Library {
+  enabled: boolean;
+  /** When the certification prices were last checked against official pages. */
+  prices_verified: string | null;
+  sections: LibrarySection[];
+  total: number;
+}
+
 export interface DayThemes {
   daily: string[];
   cycled: string | null;
@@ -196,6 +227,15 @@ export interface KnowledgeQueryHit {
 
 export class ApiClient {
   constructor(private baseUrl: string) {}
+
+  async getLibrary(): Promise<Library> {
+    const res = await fetch(`${this.baseUrl}/api/library`, {
+      headers: { Accept: "application/json" },
+      cache: "no-store"
+    });
+    if (!res.ok) throw await failure(res, "getLibrary");
+    return res.json();
+  }
 
   async health() {
     const res = await fetch(`${this.baseUrl}/api/health`, {

@@ -1,0 +1,359 @@
+{
+  "_comment": [
+    "The shelf, by what a thing IS rather than what it is about.",
+    "",
+    "study_sources.json answers 'what am I doing this morning'. This answers",
+    "'where do I go to learn X' — it is a catalogue, not a schedule, and",
+    "nothing here is ever filed as a commitment or nags you.",
+    "",
+    "Certification prices were checked on 2026-10-28 and every url is the",
+    "official page, so a rise is one click away rather than a rumour. They go",
+    "stale: re-check before paying. Prices are exam-only unless the note says",
+    "otherwise, and exclude tax.",
+    "",
+    "Add to any section by editing this file — title and url are the only",
+    "required fields."
+  ],
+  "enabled": true,
+  "prices_verified": "2026-10-28",
+  "sections": [
+    {
+      "key": "certifications",
+      "label": "Certifications",
+      "blurb": "Exam-only prices. The order inside each track is the order to take them.",
+      "groups": [
+        {
+          "key": "solutions-architect",
+          "label": "Solutions architect",
+          "note": "Cloud architecture, in the order of cheapest-first. AWS is the one most job ads name; the other two are worth holding only if you are targeting that cloud.",
+          "items": [
+            {
+              "title": "AWS Solutions Architect – Associate (SAA-C03)",
+              "price": "$150",
+              "url": "https://aws.amazon.com/certification/certified-solutions-architect-associate/",
+              "note": "130 min, 65 questions, valid 3 years. Take it first: cheapest by a factor of three and the most widely recognised."
+            },
+            {
+              "title": "AWS Solutions Architect – Professional (SAP-C02)",
+              "price": "$300",
+              "url": "https://aws.amazon.com/certification/certified-solutions-architect-professional/",
+              "note": "180 min. Only after the Associate and real design work — it assumes two years of hands-on."
+            },
+            {
+              "title": "Microsoft Azure Solutions Architect Expert (AZ-305)",
+              "price": "$165",
+              "url": "https://learn.microsoft.com/en-us/credentials/certifications/azure-solutions-architect/",
+              "note": "The Expert badge needs AZ-104 (Administrator Associate) as well, so budget two exams. Price is per exam and varies by country."
+            },
+            {
+              "title": "Google Professional Cloud Architect",
+              "price": "$200",
+              "url": "https://cloud.google.com/learn/certification/cloud-architect",
+              "note": "2 hours, valid 2 years. Google recommends 3+ years industry experience, 1+ on GCP."
+            }
+          ]
+        },
+        {
+          "key": "web3-security",
+          "label": "Web3 security",
+          "note": "Read this before spending: in smart contract security a public audit record counts for more than any certificate. Contest placings on Code4rena, Sherlock or CodeHawks and a repo of findings are what firms actually read. The certificates below exist and are listed honestly, but treat them as structure for your own study, not as the credential.",
+          "items": [
+            {
+              "title": "Certified Smart Contract Auditor (Blockchain Council)",
+              "price": "$399",
+              "url": "https://www.blockchain-council.org/certifications/certified-smart-contract-auditor/",
+              "note": "Exam-only has been listed around $299 and bundles around $349, so check all three pages before paying. Recognition in the audit industry is limited — it is a syllabus, not a door-opener."
+            },
+            {
+              "title": "CCSS Auditor (CCSSA) — CryptoCurrency Certification Consortium",
+              "price": "from $1,500",
+              "url": "https://cryptoconsortium.org/product/ccss-training/",
+              "note": "Live virtual training, auditor track 2–4 days, one exam attempt included. This one is about auditing custody and key management against the CCSS standard, not about reading Solidity."
+            }
+          ]
+        },
+        {
+          "key": "platform-security",
+          "label": "Platform & offensive security",
+          "note": "The existing ladder. CKS cannot be attempted until CKA has been passed.",
+          "items": [
+            {
+              "title": "CKA — Certified Kubernetes Administrator",
+              "price": "$445",
+              "url": "https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/",
+              "note": "$645 with the LFS258 course. Valid 2 years, one retake and two Killer.sh attempts included."
+            },
+            {
+              "title": "CKS — Certified Kubernetes Security Specialist",
+              "price": "$445",
+              "url": "https://training.linuxfoundation.org/certification/certified-kubernetes-security-specialist/",
+              "note": "$645 with LFS260. Requires a current CKA."
+            },
+            {
+              "title": "OSCP — Offensive Security Certified Professional",
+              "price": "$1,749",
+              "url": "https://www.offsec.com/pricing/",
+              "note": "Course + exam bundle, or $2,749/yr for Learn One. Existing AWS holders have had up to 20% off Learn One — check before buying."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "courses",
+      "label": "Courses",
+      "blurb": "Worked through, not watched. Each one has exercises you can show afterwards.",
+      "groups": [
+        {
+          "key": "security",
+          "label": "Smart contract security",
+          "items": [
+            {
+              "title": "Cyfrin Updraft — Smart Contract Security",
+              "price": "Free",
+              "url": "https://updraft.cyfrin.io/courses/security",
+              "note": "The most complete free security course. Do it with Foundry open."
+            },
+            {
+              "title": "Secureum — Smart Contract Security 101",
+              "price": "Free",
+              "url": "https://secureum.substack.com/p/smart-contract-security-101-secureum",
+              "note": "The reading behind the RACE quizzes. Dense; treat each post as a session."
+            },
+            {
+              "title": "Damn Vulnerable DeFi",
+              "price": "Free",
+              "url": "https://www.damnvulnerabledefi.xyz/",
+              "note": "Solve by hand in Foundry before pointing any agent at it, or you cannot tell a missed bug from a bad prompt."
+            },
+            {
+              "title": "Ethernaut (OpenZeppelin)",
+              "price": "Free",
+              "url": "https://ethernaut.openzeppelin.com/",
+              "note": "Write why each level broke, not just the exploit."
+            },
+            {
+              "title": "OWASP Smart Contract Security",
+              "price": "Free",
+              "url": "https://scs.owasp.org/",
+              "note": "A checklist to audit your own code against."
+            }
+          ]
+        },
+        {
+          "key": "protocol",
+          "label": "Protocol & language",
+          "items": [
+            {
+              "title": "RareSkills — Learn Solidity",
+              "price": "Free",
+              "url": "https://rareskills.io/learn-solidity",
+              "note": "The track that opens your day. One chapter, notes written as you go."
+            },
+            {
+              "title": "evm.codes",
+              "price": "Free",
+              "url": "https://www.evm.codes/",
+              "note": "Opcode reference. Explain a gas cost aloud before moving on."
+            },
+            {
+              "title": "Solana Cookbook",
+              "price": "Free",
+              "url": "https://solanacookbook.com/",
+              "note": "Typed out, not copied."
+            },
+            {
+              "title": "Anchor — Solana framework docs",
+              "price": "Free",
+              "url": "https://www.anchor-lang.com/",
+              "note": "Explain a program's account constraints line by line."
+            },
+            {
+              "title": "The Move Book",
+              "price": "Free",
+              "url": "https://move-book.com/",
+              "note": "Resources vs accounts, abilities, object ownership."
+            },
+            {
+              "title": "Alchemy University",
+              "price": "Free",
+              "url": "https://www.alchemy.com/university",
+              "note": "RPC, indexing and infra, with exercises."
+            }
+          ]
+        },
+        {
+          "key": "ai",
+          "label": "AI engineering",
+          "items": [
+            {
+              "title": "Hugging Face — LLM Course",
+              "price": "Free",
+              "url": "https://huggingface.co/learn/llm-course/en/chapter1/1",
+              "note": "Runs alongside the fellowship's first phase."
+            },
+            {
+              "title": "Hugging Face — Agents Course",
+              "price": "Free",
+              "url": "https://huggingface.co/learn/agents-course/en/unit0/introduction",
+              "note": "Tool calling and agent loops, which is what the auditor is."
+            },
+            {
+              "title": "AI Engineering — Chip Huyen (O'Reilly)",
+              "price": "Book",
+              "url": "https://www.oreilly.com/search/?q=AI+Engineering+Chip+Huyen",
+              "note": "One chapter a week, filed against the fellowship week."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "articles",
+      "label": "Articles & references",
+      "blurb": "Places to read from, not one-off links. Each is a well you go back to.",
+      "groups": [
+        {
+          "key": "findings",
+          "label": "Findings & post-mortems",
+          "items": [
+            {
+              "title": "Solodit",
+              "url": "https://solodit.cyfrin.io/",
+              "note": "Every public audit finding, searchable. Predict root cause and severity BEFORE reading the writeup."
+            },
+            {
+              "title": "yAudit reports",
+              "url": "https://reports.yaudit.dev/",
+              "note": "Short, well-argued reports — a good model for how to write your own."
+            },
+            {
+              "title": "Rekt",
+              "url": "https://rekt.news/",
+              "note": "Exploit post-mortems. Read for the mechanism, ignore the theatre."
+            },
+            {
+              "title": "smart-contract-vulnerabilities",
+              "url": "https://github.com/kadenzipfel/smart-contract-vulnerabilities",
+              "note": "One entry a day, explained from memory afterwards."
+            },
+            {
+              "title": "yAudit — Common Web3 Security Issues",
+              "url": "https://github.com/yAudit/CommonWeb3SecurityIssues",
+              "note": "On the yBorg prep shelf."
+            }
+          ]
+        },
+        {
+          "key": "writers",
+          "label": "Writers worth following",
+          "items": [
+            {
+              "title": "samczsun",
+              "url": "https://samczsun.com/",
+              "note": "The standard for exploit writeups."
+            },
+            {
+              "title": "Paradigm research",
+              "url": "https://www.paradigm.xyz/blog",
+              "note": "Protocol design and MEV, written properly."
+            },
+            {
+              "title": "OpenZeppelin blog",
+              "url": "https://blog.openzeppelin.com/",
+              "note": "Audit reports and proxy pattern explanations."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "newsletters",
+      "label": "Newsletters",
+      "blurb": "Inbox, once a week. If one stops being read for a month, drop it from this file.",
+      "groups": [
+        {
+          "key": "web3",
+          "label": "Web3",
+          "items": [
+            {
+              "title": "Week in Ethereum News",
+              "url": "https://weekinethereumnews.com/",
+              "note": "The one that is worth the whole week's reading if you only keep one."
+            },
+            {
+              "title": "Secureum Substack",
+              "url": "https://secureum.substack.com/",
+              "note": "Security fundamentals and RACE quiz announcements."
+            },
+            {
+              "title": "Rekt",
+              "url": "https://rekt.news/",
+              "note": "Also runs as a feed — same source as the post-mortems above."
+            }
+          ]
+        },
+        {
+          "key": "ai",
+          "label": "AI",
+          "items": [
+            {
+              "title": "The Batch (DeepLearning.AI)",
+              "url": "https://www.deeplearning.ai/the-batch/",
+              "note": "Weekly, readable, not hype-led."
+            },
+            {
+              "title": "Import AI (Jack Clark)",
+              "url": "https://jack-clark.net/",
+              "note": "Research-heavy. Good for fellowship paper leads."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "videos",
+      "label": "Videos",
+      "blurb": "Watched with the editor open, or not at all.",
+      "groups": [
+        {
+          "key": "channels",
+          "label": "Channels",
+          "items": [
+            {
+              "title": "Cyfrin Audits",
+              "url": "https://www.youtube.com/@CyfrinAudits",
+              "note": "Live audit walkthroughs — the closest thing to watching someone work."
+            },
+            {
+              "title": "Patrick Collins",
+              "url": "https://www.youtube.com/@PatrickAlphaC",
+              "note": "Long-form Solidity and Foundry."
+            },
+            {
+              "title": "Smart Contract Programmer",
+              "url": "https://www.youtube.com/@smartcontractprogrammer",
+              "note": "Short, precise explanations of single mechanisms."
+            }
+          ]
+        },
+        {
+          "key": "talks",
+          "label": "Talks worth one sitting",
+          "items": [
+            {
+              "title": "Things I Wish I Knew Before Starting yAcademy (@devtooligan)",
+              "url": "https://www.youtube.com/watch?v=QeNDS2Vk4zI",
+              "note": "On the yBorg prep shelf. Watch before applying."
+            },
+            {
+              "title": "Harnesses in AI, A Deep Dive",
+              "url": "https://www.youtube.com/watch?v=C_GG5g38vLU",
+              "note": "Directly relevant to the auditor's gate design."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

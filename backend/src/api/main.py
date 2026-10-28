@@ -39,6 +39,7 @@ from .routes.day import router as day_router
 from .routes.writing import router as writing_router
 from .routes.agent_card import router as agent_card_router
 from .routes.integrations import router as integrations_router
+from .routes.library import router as library_router
 from .routes.study_queue import router as study_queue_router
 from .routes.study_queue import track_router as study_track_router
 
@@ -477,6 +478,7 @@ def create_app() -> FastAPI:
     app.include_router(study_queue_router)
     app.include_router(study_track_router)
     app.include_router(integrations_router)
+    app.include_router(library_router)
     return app
 
 
