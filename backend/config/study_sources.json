@@ -762,9 +762,9 @@
           "than whatever is left over."
         ],
         "theme": "flow-fellowship",
-        "block": "90 min Deep Block 2",
+        "block": "Startup Checklist Progress",
         "label": "Flow fellowship",
-        "due_time": "09:15",
+        "due_time": "18:00",
         "plan": "fellowship",
         "remind": true,
         "tasks": [
