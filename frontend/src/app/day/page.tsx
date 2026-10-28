@@ -156,8 +156,33 @@ function normalize(blocks: DayBlock[]): DayBlock[] {
       const next = blocks[i + 1] ? toMinutes(blocks[i + 1].start) : start + 30;
       minutes = Math.max(15, next - start);
     }
-    return { ...b, minutes, end: b.end || toHHMM(start + minutes) };
+    return { ...b, minutes, end: b.end || toHHMM(start + minutes), plan: b.plan ?? [] };
   });
+}
+
+interface PlanLine {
+  kind: "head" | "item";
+  text: string;
+  url?: string | null;
+}
+
+/**
+ * A block's plan, flattened into the lines a card can draw.
+ *
+ * The theme's name goes above its work, so a block carrying two strands —
+ * the day's rotation and the week's cycled theme — reads as two groups rather
+ * than one run-on list. The caller slices this to whatever the block's height
+ * allows, which is why it is a flat list and not nested markup.
+ */
+function planLines(block: DayBlock, withHeads = true): PlanLine[] {
+  const out: PlanLine[] = [];
+  for (const entry of block.plan ?? []) {
+    if (withHeads) out.push({ kind: "head", text: entry.label });
+    for (const item of entry.items ?? []) {
+      out.push({ kind: "item", text: item.text, url: item.url });
+    }
+  }
+  return out;
 }
 
 function readDensity(): Density {
@@ -878,16 +903,28 @@ export default function DayPage() {
                           const tier =
                             height >= 40 ? "full" : height >= 20 ? "row" : "band";
                           const isCurrent = current === b;
+                          // The plan lines carry links, and an anchor cannot
+                          // live inside a button — so the block is a div and
+                          // only its header row toggles done.
+                          let lines = planLines(b);
+                          // A half-hour block is 43px: a label, a time and
+                          // nothing else. Book Reading is exactly that, and
+                          // what to read is the whole point of it — so when
+                          // the choice is the clock or the work, the clock
+                          // goes. It is still in the tooltip and the gutter.
+                          let room = Math.max(0, Math.floor((height - 34) / 14));
+                          const showTime = lines.length === 0 || room > 0;
+                          if (!showTime) room = Math.max(0, Math.floor((height - 21) / 14));
+                          // Headings name the strand; items are the work. When
+                          // the two will not both fit, the heading goes — a
+                          // block reading only "FELLOWSHIP WEEK 6 · PAPER",
+                          // with the paper itself cut, says nothing at all.
+                          if (room < lines.length) lines = planLines(b, false);
+                          const shown = lines.slice(0, room);
+                          const hidden = lines.length - shown.length;
                           return (
-                            <button
+                            <div
                               key={`${b.start}-${b.label}`}
-                              type="button"
-                              disabled={busy}
-                              onClick={() => toggleBlock(b)}
-                              title={
-                                `${b.start}–${b.end} · ${b.minutes}m` +
-                                (b.done ? " · done, click to undo" : " · click to tick off")
-                              }
                               style={{ top: offset(toMinutes(b.start)), height }}
                               className={cn(
                                 "group absolute inset-x-0 flex overflow-hidden rounded-md border border-bg-border/70 bg-bg text-left transition-colors",
@@ -903,55 +940,119 @@ export default function DayPage() {
                                 aria-hidden
                                 className={cn("relative w-[3px] shrink-0 rounded-l", tone.bar)}
                               />
-                              {tier === "band" ? (
-                                <span className="relative flex-1 truncate px-2 text-[9px] leading-[10px] text-matrix-dim">
-                                  {b.label}
-                                </span>
-                              ) : tier === "row" ? (
-                                <span className="relative flex flex-1 items-center justify-between gap-2 px-2.5">
-                                  <span
-                                    className={cn(
-                                      "truncate text-[11px]",
-                                      b.done && "line-through"
-                                    )}
-                                  >
-                                    {b.done ? "☑ " : ""}
-                                    {b.label}
-                                  </span>
-                                  <span className="shrink-0 text-[9px] font-mono text-matrix-dim/70 tabular-nums">
-                                    {b.minutes}m
-                                  </span>
-                                </span>
-                              ) : (
-                                <span className="relative flex-1 px-2.5 py-1.5">
-                                  <span
-                                    className={cn(
-                                      "block truncate text-[12px] leading-snug",
-                                      b.done && "line-through"
-                                    )}
-                                  >
-                                    {b.done ? "☑ " : ""}
-                                    {b.label}
-                                  </span>
-                                  <span className="mt-0.5 block text-[10px] font-mono text-matrix-dim/70 tabular-nums">
-                                    {b.start}–{b.end} · {b.minutes}m
-                                    {(b.meridiem_corrected || b.shifted) && (
+                              <div className="relative min-w-0 flex-1">
+                                <button
+                                  type="button"
+                                  disabled={busy}
+                                  onClick={() => toggleBlock(b)}
+                                  title={
+                                    `${b.start}–${b.end} · ${b.minutes}m` +
+                                    (b.done
+                                      ? " · done, click to undo"
+                                      : " · click to tick off")
+                                  }
+                                  className={cn(
+                                    "block w-full text-left",
+                                    tier === "band"
+                                      ? "px-2"
+                                      : tier === "row"
+                                        ? "px-2.5 py-[3px]"
+                                        : "px-2.5 pt-1.5"
+                                  )}
+                                >
+                                  {tier === "band" ? (
+                                    <span className="block truncate text-[9px] leading-[10px] text-matrix-dim">
+                                      {b.label}
+                                    </span>
+                                  ) : tier === "row" ? (
+                                    <span className="flex items-center justify-between gap-2">
                                       <span
-                                        className="text-warning"
-                                        title={
-                                          b.meridiem_corrected
-                                            ? `The sheet says ${b.raw_time}; read as morning to keep the rows in order.`
-                                            : "Moved later: the sheet had this overlapping the block before it."
-                                        }
+                                        className={cn(
+                                          "truncate text-[11px]",
+                                          b.done && "line-through"
+                                        )}
                                       >
-                                        {" "}
-                                        ✎
+                                        {b.done ? "☑ " : ""}
+                                        {b.label}
                                       </span>
+                                      <span className="shrink-0 text-[9px] font-mono text-matrix-dim/70 tabular-nums">
+                                        {b.minutes}m
+                                      </span>
+                                    </span>
+                                  ) : (
+                                    <>
+                                      <span
+                                        className={cn(
+                                          "block truncate text-[12px] leading-snug",
+                                          b.done && "line-through"
+                                        )}
+                                      >
+                                        {b.done ? "☑ " : ""}
+                                        {b.label}
+                                      </span>
+                                      <span
+                                        className={cn(
+                                          "block text-[10px] font-mono text-matrix-dim/70 tabular-nums",
+                                          !showTime && "hidden"
+                                        )}
+                                      >
+                                        {b.start}–{b.end} · {b.minutes}m
+                                        {(b.meridiem_corrected || b.shifted) && (
+                                          <span
+                                            className="text-warning"
+                                            title={
+                                              b.meridiem_corrected
+                                                ? `The sheet says ${b.raw_time}; read as morning to keep the rows in order.`
+                                                : "Moved later: the sheet had this overlapping the block before it."
+                                            }
+                                          >
+                                            {" "}
+                                            ✎
+                                          </span>
+                                        )}
+                                      </span>
+                                    </>
+                                  )}
+                                </button>
+
+                                {tier === "full" && shown.length > 0 && (
+                                  <div className="mt-1 space-y-[1px] px-2.5 pb-1">
+                                    {shown.map((line, i) =>
+                                      line.kind === "head" ? (
+                                        <div
+                                          key={i}
+                                          className="truncate text-[9px] uppercase tracking-wider text-matrix/70"
+                                        >
+                                          {line.text}
+                                        </div>
+                                      ) : (
+                                        <div key={i} className="truncate text-[10px] leading-[13px]">
+                                          <span className="text-matrix-dim/50">· </span>
+                                          {line.url ? (
+                                            <a
+                                              href={line.url}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              title={`${line.text} — ${line.url}`}
+                                              className="underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
+                                            >
+                                              {line.text}
+                                            </a>
+                                          ) : (
+                                            <span title={line.text}>{line.text}</span>
+                                          )}
+                                        </div>
+                                      )
                                     )}
-                                  </span>
-                                </span>
-                              )}
-                            </button>
+                                    {hidden > 0 && room >= 2 && (
+                                      <div className="text-[9px] text-matrix-dim/60">
+                                        +{hidden} more
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           );
                         })}
                       </div>

@@ -46,6 +46,21 @@ export interface ChatAction {
   candidates?: string[];
 }
 
+/** One thing to do in a block, and the page to do it from. */
+export interface PlanItem {
+  text: string;
+  url: string | null;
+}
+
+/** What a block is for, as decided by the rotation. */
+export interface BlockPlan {
+  theme: string;
+  label: string;
+  /** daily | cycled | fellowship | weekly — where this came from. */
+  kind: string;
+  items: PlanItem[];
+}
+
 export interface DayBlock {
   start: string;
   /** Always present: the backend shapes every row so the timeline can be drawn. */
@@ -61,6 +76,8 @@ export interface DayBlock {
   shifted: boolean;
   /** An AM/PM in the sheet contradicted the row order and was corrected. */
   meridiem_corrected?: boolean;
+  /** Usually empty: most of the day is upkeep, not study. */
+  plan: BlockPlan[];
 }
 
 export interface DayThemes {

@@ -744,8 +744,9 @@
           "05:30 so it lands before the web3 bounty at 07:30."
         ],
         "theme": "rareskills",
+        "block": "90 min Deep Block 1",
         "label": "RareSkills",
-        "due_time": "05:30",
+        "due_time": "05:45",
         "plan": "track:rareskills",
         "remind": true,
         "tasks": []
@@ -761,8 +762,9 @@
           "than whatever is left over."
         ],
         "theme": "flow-fellowship",
+        "block": "90 min Deep Block 2",
         "label": "Flow fellowship",
-        "due_time": "18:00",
+        "due_time": "09:15",
         "plan": "fellowship",
         "remind": true,
         "tasks": [
@@ -772,6 +774,8 @@
       },
       {
         "theme": "web3-bounty",
+        "block": "Daily Bug Bounty Session",
+        "days": ["monday", "wednesday", "friday"],
         "label": "Web3 bounty",
         "due_time": "07:30",
         "tasks": [
@@ -872,8 +876,10 @@
       },
       {
         "theme": "web3-study",
+        "block": "Daily Study Session",
+        "days": ["tuesday", "thursday", "saturday"],
         "label": "Web3 study",
-        "due_time": "05:45",
+        "due_time": "11:00",
         "tasks": [],
         "remind": false,
         "variants": [
@@ -921,6 +927,8 @@
       },
       {
         "theme": "chain-interviews",
+        "block": "Learning Application",
+        "days": ["tuesday", "thursday", "saturday"],
         "label": "Chain interview practice",
         "due_time": "14:30",
         "remind": false,
@@ -976,8 +984,9 @@
     "cycle": [
       {
         "theme": "web2",
+        "block": "Daily Study Session",
         "label": "Web2 / systems",
-        "due_time": "09:00",
+        "due_time": "11:00",
         "sources": [
           "sysdesign-interview"
         ],
@@ -993,6 +1002,7 @@
       },
       {
         "theme": "football",
+        "block": "Startup Checklist Progress",
         "label": "Football",
         "due_time": "19:00",
         "sources": [
@@ -1010,6 +1020,7 @@
       },
       {
         "theme": "video",
+        "block": "Content Creation",
         "label": "Video",
         "due_time": "16:00",
         "tasks": [
@@ -1024,6 +1035,7 @@
       },
       {
         "theme": "articles",
+        "block": "Content Creation",
         "label": "Writing",
         "due_time": "16:00",
         "tasks": [
@@ -1038,6 +1050,7 @@
       },
       {
         "theme": "code-review",
+        "block": "Learning Application",
         "label": "Code review",
         "due_time": "14:30",
         "tasks": [
@@ -1053,6 +1066,7 @@
       },
       {
         "theme": "interview-prep",
+        "block": "Learning Application",
         "label": "Interview prep",
         "due_time": "14:30",
         "sources": [
@@ -1071,6 +1085,7 @@
       },
       {
         "theme": "job-applications",
+        "block": "Buffer / light admin",
         "label": "Job applications",
         "due_time": "17:00",
         "tasks": [

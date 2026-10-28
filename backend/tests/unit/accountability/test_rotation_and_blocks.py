@@ -29,15 +29,28 @@ def test_the_shipped_rotation_is_valid() -> None:
     ), "a themed day with neither tasks nor variants does nothing"
 
 
-def test_web3_runs_every_single_day() -> None:
-    """It is the stated priority — it must never be crowded out by the cycle."""
+def test_the_priorities_run_every_single_day() -> None:
+    """RareSkills and the fellowship are the stated priorities — they must
+    never be crowded out, and they carry no `days` for exactly that reason."""
     for offset in range(21):
         picked = themes_for(date.fromordinal(date(2026, 9, 10).toordinal() + offset))
-        # web3-study resolves to a per-chain theme id ("web3-study-evm"), so
-        # match the family rather than the exact name. Chain practice is also
-        # daily now, so this is a superset check, not equality.
         families = {"-".join(t.theme.split("-")[:2]) for t in picked["daily"]}
-        assert {"web3-bounty", "web3-study"} <= families
+        assert {"rareskills", "flow-fellowship"} <= families
+
+
+def test_the_lower_priority_work_still_reaches_every_week() -> None:
+    """It runs on named weekdays rather than daily, which is the difference
+    between a backlog and a nag — but a week must never skip it entirely."""
+    seen: dict = {}
+    monday = date(2026, 11, 2)
+    for offset in range(7):
+        picked = themes_for(date.fromordinal(monday.toordinal() + offset))
+        for t in picked["daily"]:
+            seen.setdefault("-".join(t.theme.split("-")[:2]), 0)
+            seen["-".join(t.theme.split("-")[:2])] += 1
+    for family in ("web3-bounty", "web3-study", "chain-interviews"):
+        assert seen.get(family, 0) >= 2, f"{family} barely appears: {seen}"
+        assert seen[family] < 7, f"{family} is still daily: {seen}"
 
 
 def test_the_cycle_visits_every_theme_before_repeating() -> None:
@@ -291,10 +304,13 @@ def test_web3_study_visits_every_chain() -> None:
     expected = {v["name"] for v in study_cfg["variants"]}
 
     seen = set()
-    for i in range(len(expected) * 2):
+    for i in range(120):
         picked = themes_for(date.fromordinal(date(2026, 9, 11).toordinal() + i))
-        study = next(t for t in picked["daily"] if t.theme.startswith("web3-study"))
-        seen.add(study.variant_name)
+        study = next(
+            (t for t in picked["daily"] if t.theme.startswith("web3-study")), None
+        )
+        if study is not None:
+            seen.add(study.variant_name)
     assert seen == expected
 
 
@@ -303,12 +319,21 @@ def test_study_and_practice_land_on_the_same_chain(  ) -> None:
     Two independent rotations would pair Move study with EVM questions."""
     from src.agents.rotation import themes_for
 
-    for i in range(15):
+    for i in range(60):
         picked = themes_for(date.fromordinal(date(2026, 9, 11).toordinal() + i))
-        study = next(t for t in picked["daily"] if t.theme.startswith("web3-study"))
-        practice = next(
-            t for t in picked["daily"] if t.theme.startswith("chain-interviews")
+        study = next(
+            (t for t in picked["daily"] if t.theme.startswith("web3-study")), None
         )
+        practice = next(
+            (t for t in picked["daily"] if t.theme.startswith("chain-interviews")), None
+        )
+        # They share weekdays on purpose. If one runs the other must, or the
+        # morning's chain can never be the afternoon's.
+        assert (study is None) == (practice is None), (
+            f"{picked['date']}: study={study} practice={practice}"
+        )
+        if study is None:
+            continue
         # Position 4 is the non-chain day: infra study, security practice.
         if study.variant_name in {"EVM", "Solana", "Cosmos", "Move"}:
             assert study.variant_name == practice.variant_name, (
@@ -321,32 +346,33 @@ def test_move_is_practised_as_often_as_evm_and_solana() -> None:
     chain came round every forty days. Practice is daily now."""
     from src.agents.rotation import themes_for
 
-    # Over 30 CONTIGUOUS running days. A pause suspends the rotation by design,
+    # Over 30 CONTIGUOUS appearances. A pause suspends the rotation by design,
     # and counting across one leaves the five-variant cycle mid-stride, so the
-    # window has to be a real unbroken stretch rather than 30 days collected
-    # from either side of a gap.
+    # window has to be a real unbroken stretch. A weekday the theme simply does
+    # not run on is not such a gap — it is the schedule working.
     start = date(2026, 9, 11)
     run: list = []
-    for i in range(200):
+    for i in range(400):
         picked = themes_for(date.fromordinal(start.toordinal() + i))
-        practice = (
-            None if picked.get("paused")
-            else next((t for t in picked["daily"] if t.theme.startswith("chain-interviews")), None)
+        if picked.get("paused"):
+            run = []
+            continue
+        practice = next(
+            (t for t in picked["daily"] if t.theme.startswith("chain-interviews")), None
         )
         if practice is None:
-            run = []
             continue
         run.append(practice.variant_name)
         if len(run) == 30:
             break
-    assert len(run) == 30, "no 30-day unbroken stretch found in 200 days"
+    assert len(run) == 30, "no unbroken stretch of 30 appearances in 400 days"
 
     counts: dict = {}
     for name in run:
         counts[name] = counts.get(name, 0) + 1
 
     assert counts["Move"] == counts["EVM"] == counts["Solana"], counts
-    assert counts["Move"] >= 6, f"Move should come round every fifth day: {counts}"
+    assert counts["Move"] >= 6, f"Move should come round every fifth time: {counts}"
 
 
 def test_a_theme_without_variants_is_untouched() -> None:
@@ -390,11 +416,19 @@ def test_one_shelf_item_a_week_survives_the_variant_shuffle() -> None:
     """The five web3-bounty variants must file one weekly item between them."""
     monday = date(2026, 9, 28)
     seen = set()
+    days = 0
     for offset in range(7):
         day = monday + timedelta(days=offset)
-        theme = next(t for t in themes_for(day)["daily"] if t.theme.startswith("web3-bounty"))
+        theme = next(
+            (t for t in themes_for(day)["daily"] if t.theme.startswith("web3-bounty")),
+            None,
+        )
+        if theme is None:
+            continue
+        days += 1
         index = max(theme.task_keys)
         seen.add((theme.task_keys[index], theme.tasks[index]))
+    assert days >= 2, "the shelf cannot be tested on a week it never runs"
     assert len(seen) == 1, f"the week filed {len(seen)} different items"
 
 

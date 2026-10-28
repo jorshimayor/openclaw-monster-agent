@@ -65,6 +65,16 @@ class Theme:
     # The id a variant rewrites, so a weekly task keyed on the theme stays the
     # same task on Monday's variant and Thursday's.
     base: str = ""
+    # Which weekdays this theme runs on. Empty means every day.
+    #
+    # The two stated priorities run daily; everything else earns a slot in the
+    # week rather than a line on every day. Filing all of it every morning does
+    # not make a day with more hours in it — it makes a list you stop reading.
+    days: List[str] = field(default_factory=list)
+    # The timetable block this belongs in, matched on the sheet's own label.
+    # The rotation says what to study; the sheet says when. Pairing them here
+    # means neither has to guess from the other's clock.
+    block: str = ""
 
     @classmethod
     def from_dict(cls, raw: Dict[str, Any]) -> "Theme":
@@ -79,6 +89,8 @@ class Theme:
             plan=raw.get("plan"),
             weekly=raw.get("weekly"),
             base=str(raw.get("theme") or "theme"),
+            days=[str(d).strip().lower() for d in (raw.get("days") or [])],
+            block=str(raw.get("block") or ""),
         )
 
     def resolve(self, day: date_cls, stride: int = 1) -> "Theme":
@@ -106,6 +118,8 @@ class Theme:
             plan=self.plan,
             weekly=self.weekly,
             base=self.base or self.theme,
+            days=list(self.days),
+            block=self.block,
         )
 
 
@@ -284,6 +298,20 @@ def cycle_index(day: date_cls, length: int) -> int:
     return day.toordinal() % length if length else 0
 
 
+def runs_on(spec: Dict[str, Any], day: date_cls) -> bool:
+    """Whether a daily theme runs on this weekday.
+
+    No `days` means every day, which is what the two priorities want. A theme
+    that names weekdays runs only on those, so the lower-priority work is
+    spread across the week instead of competing for every morning.
+    """
+    wanted = [str(d).strip().lower() for d in (spec.get("days") or [])]
+    if not wanted:
+        return True
+    name = day.strftime("%A").lower()
+    return name in wanted or name[:3] in wanted
+
+
 def themes_for(day: Optional[date_cls] = None) -> Dict[str, Any]:
     """{date, daily: [Theme], cycled: Theme|None, upcoming: [...]}"""
     day = day or _local_today()
@@ -298,6 +326,7 @@ def themes_for(day: Optional[date_cls] = None) -> Dict[str, Any]:
         # and a 48-week clock that does not stop because you are travelling, so
         # it keeps filing — as one weekly block, not daily noise.
         daily_specs = [t for t in daily_specs if t.get("pausable") is False]
+    daily_specs = [t for t in daily_specs if runs_on(t, day)]
 
     daily = [
         _expand_weekly(_expand_plan(Theme.from_dict(t).resolve(day), day), day)

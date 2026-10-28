@@ -166,6 +166,13 @@ async def get_day(date: Optional[str] = None) -> Dict[str, Any]:
     for b in blocks:
         b["done"] = (b["start"], b["label"]) in done
 
+    picked = themes_for(day)
+    # What each block is for, from the rotation that already decides it. The
+    # blocks are the template and stay read-only; this only annotates them.
+    from ...agents.daily_plan import attach
+
+    attach(day, blocks, themes=picked)
+
     start_utc, end_utc = _local_bounds(day)
 
     items: List[Dict[str, Any]] = []
@@ -182,7 +189,6 @@ async def get_day(date: Optional[str] = None) -> Dict[str, Any]:
         items.append(entry)
     items.sort(key=lambda i: i["local_time"])
 
-    picked = themes_for(day)
     return {
         "date": day.isoformat(),
         "weekday": day.strftime("%A"),
