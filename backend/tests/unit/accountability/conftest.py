@@ -11,6 +11,7 @@ from __future__ import annotations
 import pytest
 
 from src.core import commitment_repo as repo
+from src.core import config
 
 
 # Stashed before the override so a test can still reach the real guard.
@@ -23,3 +24,17 @@ def allow_memory_store(monkeypatch: pytest.MonkeyPatch):
     repo._MEM.clear()
     yield
     repo._MEM.clear()
+
+
+@pytest.fixture(autouse=True)
+def nagging_enabled(monkeypatch: pytest.MonkeyPatch):
+    """Reminders ship switched off; these tests are about the engine itself.
+
+    The engine is disabled rather than deleted, so it still has to work when
+    someone turns it back on — which is only true if something exercises it.
+    The shipped default is pinned separately, in test_reminders_off_by_default.
+    """
+    monkeypatch.setenv("NAG_ENABLED", "true")
+    config.get_settings.cache_clear()
+    yield
+    config.get_settings.cache_clear()

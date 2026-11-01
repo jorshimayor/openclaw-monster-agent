@@ -154,9 +154,12 @@
     "LLM_FALLBACK_ORDER": "[\"nvidia_nim\",\"groq\"]",
     "LOG_LEVEL": "INFO",
     "PUBLIC_APP_URL": "https://monster-agent-frontend-2dn.pages.dev",
-    "NAG_ENABLED": "true",
-    // Reminders are suppressed 22:00-07:00 local and do not advance the
-    // escalation ladder while suppressed.
+    // Off: the timetable is for reading, not for being chased by. This is the
+    // line that decides it — it is passed into the container and overrides the
+    // Python default. Set it to "true" to bring the whole engine back.
+    "NAG_ENABLED": "false",
+    // Only consulted while reminders are on. Suppressed 22:00-07:00 local,
+    // without advancing the escalation ladder.
     "QUIET_HOURS_ENABLED": "true",
     "QUIET_HOURS_START": "22",
     "QUIET_HOURS_END": "7",

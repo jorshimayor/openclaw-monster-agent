@@ -1,6 +1,6 @@
 import { Container, getContainer } from "@cloudflare/containers";
 import { AGENT_CARD_PATH, verifyAccess } from "./access";
-import { inQuietHours, type QuietHoursEnv } from "./schedule";
+import { inQuietHours, type QuietHoursEnv, nagEnabled } from "./schedule";
 
 /**
  * Cloudflare Containers Durable Object — wraps the FastAPI Python backend.
@@ -167,7 +167,7 @@ function buildEnvVars(env: Env): Record<string, string> {
     TELEGRAM_WEBHOOK_SECRET: env.TELEGRAM_WEBHOOK_SECRET ?? "",
     PUBLIC_APP_URL:
       env.PUBLIC_APP_URL ?? "https://monster-agent-frontend-2dn.pages.dev",
-    NAG_ENABLED: env.NAG_ENABLED ?? "true",
+    NAG_ENABLED: env.NAG_ENABLED ?? "false",
     QUIET_HOURS_ENABLED: env.QUIET_HOURS_ENABLED ?? "true",
     QUIET_HOURS_START: env.QUIET_HOURS_START ?? "22",
     QUIET_HOURS_END: env.QUIET_HOURS_END ?? "7",
@@ -317,6 +317,9 @@ export default {
     // Pure DO work: it never touches the container, so a check costs nothing
     // when there is nothing to do.
     if (event.cron === "*/30 * * * *") {
+      // Reminders are off: do not re-arm a wake whose only outcome is a
+      // container start that finds the engine disabled.
+      if (!nagEnabled(env)) return;
       if (inQuietHours(new Date(), env)) return;
       try {
         const state = await stub.ensureNagSchedule();

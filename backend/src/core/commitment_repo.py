@@ -220,6 +220,14 @@ async def next_nag_at(now: Optional[datetime] = None) -> Optional[datetime]:
 
     None means nothing is pending — do not schedule a wake at all.
     """
+    from .config import get_settings
+
+    if not get_settings().nag_enabled:
+        # Nothing will ever be sent, so nothing is worth waking the container
+        # for. Returning a time here would book an alarm whose only outcome is
+        # a container start that finds the engine switched off.
+        return None
+
     now = now or _now()
     soonest: Optional[datetime] = None
     for r in await list_all(status=CommitmentStatus.OPEN.value, limit=500):
@@ -253,6 +261,11 @@ async def next_nag_at(now: Optional[datetime] = None) -> Optional[datetime]:
 async def due_for_nag(now: Optional[datetime] = None) -> List[CommitmentDB]:
     """Open commitments whose due time has passed and whose nag interval has
     elapsed since the last reminder (snooze respected)."""
+    from .config import get_settings
+
+    if not get_settings().nag_enabled:
+        return []
+
     now = now or _now()
     rows = await list_all(status=CommitmentStatus.OPEN.value, limit=500)
     out: List[CommitmentDB] = []

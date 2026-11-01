@@ -42,3 +42,24 @@ export function inQuietHours(now: Date, env: QuietHoursEnv): boolean {
   return start < end ? hour >= start && hour < end : hour >= start || hour < end;
 }
 
+
+
+export type NagEnv = {
+  NAG_ENABLED?: string;
+};
+
+/**
+ * True when the reminder engine is switched on.
+ *
+ * The container's own config decides whether a reminder is sent, but the
+ * Worker decides whether to wake the container to ask. Those have to agree:
+ * the half-hourly safety net re-books a wake whenever none is stored, so with
+ * the engine off the chain becomes wake -> start the container -> learn it is
+ * disabled -> book nothing -> safety net re-arms, forever. A container start
+ * every thirty minutes to be told there is nothing to say.
+ *
+ * Defaults to off, matching the backend.
+ */
+export function nagEnabled(env: NagEnv): boolean {
+  return (env.NAG_ENABLED ?? "false") === "true";
+}

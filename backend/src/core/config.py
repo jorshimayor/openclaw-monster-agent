@@ -168,7 +168,14 @@ class Settings(BaseSettings):
     # The assistant chases open commitments until an artifact closes them.
     # nag_tick_seconds drives the in-process loop; the Cloudflare cron wakes
     # a sleeping container on the same cadence so reminders survive sleep.
-    nag_enabled: bool = Field(default=True, validation_alias=AliasChoices("nag_enabled", "NAG_ENABLED"))
+    # Off. You asked for the timetable without the chasing, and self-discipline
+    # is not something a bot can install by repeating itself.
+    #
+    # Everything else still runs: work is still filed against the day, still
+    # shown on /day and /todo, still closed with an artifact. The only thing
+    # that stops is the unsolicited message. Set NAG_ENABLED=true to bring the
+    # whole engine back — it is disabled, not deleted.
+    nag_enabled: bool = Field(default=False, validation_alias=AliasChoices("nag_enabled", "NAG_ENABLED"))
     # Quiet hours, in the user's LOCAL clock (see user_timezone_offset_hours).
     # Reminders do not fire in this window and do not advance the escalation
     # ladder — you wake up to reminder #4, not reminder #40.
