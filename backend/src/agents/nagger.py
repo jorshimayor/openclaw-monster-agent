@@ -165,6 +165,14 @@ def compose_nag(
         "",
         f"Other options: <code>/snooze {short} 30</code> · <code>/drop {short}</code>",
     ]
+    if get_settings().nag_max_per_commitment <= 1:
+        # Otherwise the message carries an unspoken "or I will ask again",
+        # which is no longer true. A reminder you know is the only one is a
+        # reminder worth reading.
+        lines.append(
+            "<i>This is the only reminder for this. It stays on the day until "
+            "you close it.</i>"
+        )
     if also_waiting:
         # Say what is being held back, so a quiet queue is never mistaken for
         # an empty one.

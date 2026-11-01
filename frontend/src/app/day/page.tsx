@@ -1233,8 +1233,9 @@ export default function DayPage() {
         Blocks are drawn to scale, so height is real time. Click one to tick it off —
         recorded for this date only, never written back to the shared sheet. Commitments
         sit beside the block they fall in: drag one onto the timeline to move it to the
-        quarter hour you drop it on, click to close it with an artifact. Reminders are
-        capped at two per round and stay quiet 22:00–07:00.
+        quarter hour you drop it on, click to close it with an artifact. Each commitment is
+        reminded about once and never again — it stays here until you close it.
+        Reminders are capped at two per round and stay quiet 22:00–07:00.
       </p>
     </div>
   );

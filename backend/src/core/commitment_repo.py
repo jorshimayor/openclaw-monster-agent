@@ -197,6 +197,20 @@ async def resolve_ref(ref: str) -> Optional[CommitmentDB]:
     return None
 
 
+def _nag_budget_spent(row: Any) -> bool:
+    """Whether this commitment has had all the reminders it is going to get.
+
+    Applied by both due_for_nag and next_nag_at. If only the first honoured
+    it, the container would still be woken on a schedule built around rows
+    that can never produce a message — paying to find out there is nothing
+    to say.
+    """
+    from .config import get_settings
+
+    cap = get_settings().nag_max_per_commitment
+    return (getattr(row, "nag_count", 0) or 0) >= cap
+
+
 async def next_nag_at(now: Optional[datetime] = None) -> Optional[datetime]:
     """When the earliest open commitment next becomes eligible for a reminder.
 
@@ -210,6 +224,8 @@ async def next_nag_at(now: Optional[datetime] = None) -> Optional[datetime]:
     soonest: Optional[datetime] = None
     for r in await list_all(status=CommitmentStatus.OPEN.value, limit=500):
         if not getattr(r, "remind", True):
+            continue
+        if _nag_budget_spent(r):
             continue
         due = _aware(r.due_at)
         if due is None:
@@ -243,6 +259,10 @@ async def due_for_nag(now: Optional[datetime] = None) -> List[CommitmentDB]:
     for r in rows:
         # Silent by choice: still tracked, still shown, never interrupts.
         if not getattr(r, "remind", True):
+            continue
+        # Already said once. Saying it again is how an assistant teaches you
+        # to ignore it.
+        if _nag_budget_spent(r):
             continue
         due = _aware(r.due_at)
         if due is None or due > now:

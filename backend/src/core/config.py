@@ -179,6 +179,22 @@ class Settings(BaseSettings):
         default=2, ge=1, le=50,
         validation_alias=AliasChoices("nag_max_per_round", "NAG_MAX_PER_ROUND"),
     )
+    # How many times ONE commitment may be reminded about, ever.
+    #
+    # One. A reminder tells you something is due; the second one onwards tells
+    # you nothing you did not already know, and an assistant that repeats
+    # itself is one you learn to ignore — which costs you the first reminder
+    # too. The day page and /todo still show everything open, so nothing is
+    # lost by not being shouted about.
+    #
+    # 0 silences reminders entirely. Raising it brings back the escalation
+    # ladder in agents/nagger.py, which is kept for exactly that reason.
+    nag_max_per_commitment: int = Field(
+        default=1, ge=0, le=100,
+        validation_alias=AliasChoices(
+            "nag_max_per_commitment", "NAG_MAX_PER_COMMITMENT"
+        ),
+    )
     quiet_hours_enabled: bool = Field(
         default=True, validation_alias=AliasChoices("quiet_hours_enabled", "QUIET_HOURS_ENABLED")
     )

@@ -70,16 +70,52 @@ async def test_overdue_commitment_is_picked_up_for_nagging() -> None:
 
 
 @pytest.mark.asyncio
-async def test_nag_interval_suppresses_a_second_reminder_until_it_elapses() -> None:
+async def test_one_reminder_is_all_a_commitment_ever_gets() -> None:
+    """The default. A reminder says something is due; the second onwards says
+    nothing new, and an assistant that repeats itself is one you learn to
+    ignore — which costs you the first reminder too."""
     row = await _file_one()
     await repo.mark_nagged(row.id, next_interval_sec=1800, escalation=0)
     assert await repo.due_for_nag() == []
 
-    # Simulate the interval elapsing.
+    # However long passes, and however overdue it gets, it is not sent again.
     await repo._mutate(
-        row.id, last_nagged_at=datetime.now(timezone.utc) - timedelta(seconds=1801)
+        row.id, last_nagged_at=datetime.now(timezone.utc) - timedelta(days=30)
     )
-    assert [c.id for c in await repo.due_for_nag()] == [row.id]
+    assert await repo.due_for_nag() == []
+    assert (await repo.get(row.id)).status == CommitmentStatus.OPEN.value  # still owed
+
+
+@pytest.mark.asyncio
+async def test_a_spent_commitment_never_wakes_the_container() -> None:
+    """next_nag_at drives the sleeping container's alarm. A row that can no
+    longer produce a message must not buy a wake-up to discover that."""
+    row = await _file_one()
+    assert await repo.next_nag_at() is not None
+    await repo.mark_nagged(row.id, next_interval_sec=1800, escalation=0)
+    assert await repo.next_nag_at() is None
+
+
+@pytest.mark.asyncio
+async def test_the_interval_still_governs_when_the_cap_is_raised(monkeypatch) -> None:
+    """The escalation ladder is kept for anyone who wants it back, so the
+    interval it rides on has to keep working."""
+    from src.core import config
+
+    monkeypatch.setenv("NAG_MAX_PER_COMMITMENT", "5")
+    config.get_settings.cache_clear()
+    try:
+        row = await _file_one()
+        await repo.mark_nagged(row.id, next_interval_sec=1800, escalation=0)
+        assert await repo.due_for_nag() == []
+
+        # Simulate the interval elapsing.
+        await repo._mutate(
+            row.id, last_nagged_at=datetime.now(timezone.utc) - timedelta(seconds=1801)
+        )
+        assert [c.id for c in await repo.due_for_nag()] == [row.id]
+    finally:
+        config.get_settings.cache_clear()
 
 
 @pytest.mark.asyncio
