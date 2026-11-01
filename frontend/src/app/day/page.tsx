@@ -166,6 +166,14 @@ function normalize(blocks: DayBlock[]): DayBlock[] {
   });
 }
 
+/** Any link inside a commitment's own words. */
+const URL_IN_TEXT = /https?:\/\/[^\s<>"')\]]+/g;
+
+function linksIn(...parts: (string | null | undefined)[]): string[] {
+  const found = parts.join(" ").match(URL_IN_TEXT) ?? [];
+  return [...new Set(found.map((u) => u.replace(/[.,;)]+$/, "")))];
+}
+
 interface PlanLine {
   kind: "head" | "item";
   text: string;
@@ -224,13 +232,18 @@ export default function DayPage() {
   const [title, setTitle] = useState("");
   const [addTime, setAddTime] = useState("");
   const [category, setCategory] = useState("study");
-  const [expanded, setExpanded] = useState<string | null>(null);
   /**
    * The block whose full plan is open. A card can only ever show as much as
    * its duration leaves room for, and the long fellowship weeks do not fit —
    * so the card is a preview and this is the whole of it, links and all.
    */
   const [opened, setOpened] = useState<DayBlock | null>(null);
+  /**
+   * The commitment whose detail is open. Same reason as the block dialog: a
+   * card in a 17rem lane shows two clamped lines, and the thing you need —
+   * what to study and the link to study it from — is in the part that was cut.
+   */
+  const [openedItem, setOpenedItem] = useState<DayItem | null>(null);
   const [artifact, setArtifact] = useState("");
   const [rejection, setRejection] = useState<string | null>(null);
   const nowRef = useRef<HTMLDivElement | null>(null);
@@ -481,7 +494,7 @@ export default function DayPage() {
     try {
       await api.completeCommitment(item.short_id, { artifact_text: artifact });
       setArtifact("");
-      setExpanded(null);
+      setOpenedItem(null);
       await load(day?.date);
     } catch (e) {
       const err = e as ApiError;
@@ -508,132 +521,58 @@ export default function DayPage() {
   const renderItem = (
     { item, top, nudged }: { item: DayItem; top: number; nudged: boolean },
     positioned = true
-  ) => {
-    const isOpen = expanded === item.id;
-    return (
+  ) => (
+    <div
+      key={item.id}
+      className={cn(positioned ? "absolute inset-x-0 z-10" : "relative")}
+      style={positioned ? { top } : undefined}
+    >
       <div
-        key={item.id}
+        draggable
+        onDragStart={() => setDragging(item.short_id)}
+        onDragEnd={() => {
+          setDragging(null);
+          setDropAt(null);
+        }}
+        onClick={() => setOpenedItem(item)}
+        title={`${item.title} — click for the detail`}
+        style={{ height: positioned ? ITEM_HEIGHT - ITEM_GAP : undefined }}
         className={cn(
-          positioned ? "absolute inset-x-0" : "relative",
-          isOpen ? "z-30" : "z-10"
+          "cursor-pointer overflow-hidden rounded-md border border-bg-border border-l-2 bg-bg px-2.5 py-1.5 text-xs shadow-sm transition-colors hover:border-matrix/50 active:cursor-grabbing",
+          SOURCE_TONE[item.source] ?? "border-l-matrix/40",
+          dragging === item.short_id && "opacity-40",
+          item.status === "done" && "opacity-50 line-through",
+          item.overdue_sec > 0 && item.status === "open" && "border-danger/50"
         )}
-        style={positioned ? { top } : undefined}
       >
-        <div
-          draggable
-          onDragStart={() => setDragging(item.short_id)}
-          onDragEnd={() => {
-            setDragging(null);
-            setDropAt(null);
-          }}
-          onClick={() => setExpanded(isOpen ? null : item.id)}
-          title={item.title}
-          style={{
-            height: isOpen || !positioned ? undefined : ITEM_HEIGHT - ITEM_GAP
-          }}
-          className={cn(
-            "cursor-grab active:cursor-grabbing overflow-hidden rounded-md border border-bg-border border-l-2 bg-bg px-2.5 py-1.5 text-xs shadow-sm hover:border-matrix/50 transition-colors",
-            SOURCE_TONE[item.source] ?? "border-l-matrix/40",
-            dragging === item.short_id && "opacity-40",
-            item.status === "done" && "opacity-50 line-through",
-            item.overdue_sec > 0 && item.status === "open" && "border-danger/50"
-          )}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <span
-              className={cn("min-w-0 leading-snug", !isOpen && positioned && "line-clamp-2")}
-            >
-              {item.title}
-            </span>
-            <span className="flex items-center gap-1.5 shrink-0">
-              {item.status === "proposed" && <Badge variant="warning">PROPOSED</Badge>}
-              {item.status === "open" && item.nag_count > 0 && (
-                <Badge variant={item.nag_count >= 4 ? "error" : "warning"}>
-                  {item.nag_count}×
-                </Badge>
-              )}
-              {item.status === "done" && <Badge variant="success">DONE</Badge>}
-            </span>
-          </div>
-          <div className="truncate text-[9px] font-mono text-matrix-dim/70 tabular-nums">
-            {item.local_time}
-            {nudged && (
-              <span title="Shown below its slot so it is not hidden behind another card">
-                {" "}
-                ↓
-              </span>
-            )}
-            {item.detail && <span className="font-sans"> · {item.detail}</span>}
-          </div>
+        <div className="flex items-start justify-between gap-2">
+          <span className={cn("min-w-0 leading-snug", positioned && "line-clamp-2")}>
+            {item.title}
+          </span>
+          <span className="flex shrink-0 items-center gap-1.5">
+            {item.status === "proposed" && <Badge variant="warning">PROPOSED</Badge>}
+            {item.status === "done" && <Badge variant="success">DONE</Badge>}
+          </span>
         </div>
-
-        {isOpen && item.status !== "done" && (
-          <div className="mt-1.5 space-y-2 rounded-md border border-matrix/25 bg-bg p-2.5 shadow-accent-glow">
-            {item.status === "proposed" ? (
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="matrix"
-                  disabled={busy}
-                  onClick={() => act(() => api.approveCommitment(item.short_id))}
-                >
-                  ✓ APPROVE
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  disabled={busy}
-                  onClick={() => act(() => api.dropCommitment(item.short_id))}
-                >
-                  DROP
-                </Button>
-              </div>
-            ) : (
-              <>
-                <textarea
-                  value={artifact}
-                  onChange={(e) => setArtifact(e.target.value)}
-                  placeholder="Paste the link, or 40+ characters of what you made…"
-                  className="w-full h-16 bg-bg/50 border border-matrix/30 rounded p-2 text-[11px] focus:border-matrix focus:outline-none resize-none placeholder:text-matrix-dim/50"
-                />
-                {rejection && (
-                  <div className="text-[10px] text-danger whitespace-pre-wrap">
-                    {rejection}
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    size="sm"
-                    variant="matrix"
-                    disabled={busy || !artifact.trim()}
-                    onClick={() => close(item)}
-                  >
-                    ✓ CLOSE
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => act(() => api.snoozeCommitment(item.short_id, 30))}
-                  >
-                    😴 30M
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={busy}
-                    onClick={() => act(() => api.dropCommitment(item.short_id))}
-                  >
-                    DROP
-                  </Button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
+        <div className="truncate text-[9px] font-mono text-matrix-dim/70 tabular-nums">
+          {item.local_time}
+          {nudged && (
+            <span title="Shown below its slot so it is not hidden behind another card">
+              {" "}
+              ↓
+            </span>
+          )}
+          {linksIn(item.title, item.detail).length > 0 && (
+            <span className="text-matrix" title="Has links — open it to follow them">
+              {" "}
+              ↗
+            </span>
+          )}
+          {item.detail && <span className="font-sans"> · {item.detail}</span>}
+        </div>
       </div>
-    );
-  };
+    </div>
+  );
 
   return (
     <div className="space-y-5">
@@ -1202,6 +1141,172 @@ export default function DayPage() {
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => setOpened(null)}>
                   CLOSE
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/*
+        A commitment's own detail. The lane is 17rem wide and the card shows
+        two clamped lines, so the link and the instruction are exactly the part
+        that gets cut. Everything it carries is here, and the actions moved
+        here too rather than living in a panel that pushed the lane around.
+      */}
+      <Dialog
+        open={openedItem !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setOpenedItem(null);
+            setRejection(null);
+            setArtifact("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          {openedItem && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="text-base leading-snug tracking-wide">
+                  {openedItem.title}
+                </DialogTitle>
+                <div className="flex flex-wrap items-center gap-2 pt-1">
+                  <span className="font-mono text-[11px] text-matrix-dim tabular-nums">
+                    {openedItem.local_time}
+                  </span>
+                  <Badge
+                    variant={
+                      openedItem.status === "done"
+                        ? "success"
+                        : openedItem.status === "proposed"
+                          ? "warning"
+                          : "default"
+                    }
+                  >
+                    {openedItem.status.toUpperCase()}
+                  </Badge>
+                  <Badge variant="default">{openedItem.source.toUpperCase()}</Badge>
+                  {openedItem.overdue_sec > 0 && openedItem.status === "open" && (
+                    <Badge variant="error">
+                      {Math.floor(openedItem.overdue_sec / 3600)}h OVERDUE
+                    </Badge>
+                  )}
+                </div>
+              </DialogHeader>
+
+              <div className="max-h-[55vh] space-y-4 overflow-y-auto pr-1">
+                {openedItem.detail && (
+                  <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-matrix-dim">
+                    {openedItem.detail}
+                  </p>
+                )}
+
+                {linksIn(openedItem.title, openedItem.detail).length > 0 && (
+                  <div className="space-y-1.5">
+                    <h3 className="text-[10px] uppercase tracking-widest text-matrix">
+                      Links
+                    </h3>
+                    {linksIn(openedItem.title, openedItem.detail).map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block break-all border-l border-matrix/25 pl-3 text-[11px] text-matrix underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
+                      >
+                        {url}
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                {openedItem.status === "done" && openedItem.artifact_text && (
+                  <div className="space-y-1">
+                    <h3 className="text-[10px] uppercase tracking-widest text-matrix">
+                      What closed it
+                    </h3>
+                    <p className="whitespace-pre-wrap break-words border-l border-success/40 pl-3 text-[11px] text-matrix-dim">
+                      {openedItem.artifact_text}
+                    </p>
+                  </div>
+                )}
+
+                {openedItem.status === "open" && (
+                  <div className="space-y-2">
+                    <h3 className="text-[10px] uppercase tracking-widest text-matrix">
+                      Close it with an artifact
+                    </h3>
+                    <textarea
+                      value={artifact}
+                      onChange={(e) => setArtifact(e.target.value)}
+                      placeholder="Paste the link, or 40+ characters of what you made…"
+                      className="h-20 w-full resize-none rounded border border-matrix/30 bg-bg/50 p-2 text-[11px] placeholder:text-matrix-dim/50 focus:border-matrix focus:outline-none"
+                    />
+                    {rejection && (
+                      <p className="whitespace-pre-wrap text-[10px] text-danger">
+                        {rejection}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-wrap gap-2 border-t border-bg-border/60 pt-3">
+                {openedItem.status === "proposed" && (
+                  <Button
+                    size="sm"
+                    variant="matrix"
+                    disabled={busy}
+                    onClick={() =>
+                      act(() => api.approveCommitment(openedItem.short_id)).then(() =>
+                        setOpenedItem(null)
+                      )
+                    }
+                  >
+                    ✓ APPROVE
+                  </Button>
+                )}
+                {openedItem.status === "open" && (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="matrix"
+                      disabled={busy || !artifact.trim()}
+                      onClick={() => close(openedItem)}
+                    >
+                      ✓ CLOSE
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busy}
+                      onClick={() =>
+                        act(() => api.snoozeCommitment(openedItem.short_id, 30)).then(
+                          () => setOpenedItem(null)
+                        )
+                      }
+                    >
+                      😴 30M
+                    </Button>
+                  </>
+                )}
+                {openedItem.status !== "done" && (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    disabled={busy}
+                    onClick={() =>
+                      act(() => api.dropCommitment(openedItem.short_id)).then(() =>
+                        setOpenedItem(null)
+                      )
+                    }
+                  >
+                    DROP
+                  </Button>
+                )}
+                <Button size="sm" variant="ghost" onClick={() => setOpenedItem(null)}>
+                  BACK
                 </Button>
               </div>
             </>
