@@ -1296,12 +1296,16 @@
         "a container restart would lose it. This file holds the order; the order",
         "is the opinion and belongs in git.",
         "",
-        "Due at 05:30 \u2014 first thing, ahead of the web3 bounty at 07:30. Every URL",
-        "verified 2026-10-20."
+        "Due at 05:45 \u2014 Deep Block 1, the first real block of the day. This has",
+        "to match the rotation entry's due_time: the rotation decides when it is",
+        "filed, this is what /api/study/track reports, and two answers to the",
+        "same question is how you end up trusting the wrong one.",
+        "",
+        "Every URL verified 2026-10-20."
       ],
       "key": "rareskills",
       "label": "RareSkills",
-      "due_time": "05:30",
+      "due_time": "05:45",
       "start_at": "proxy-patterns",
       "items": [
         {

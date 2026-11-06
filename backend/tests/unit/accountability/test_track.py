@@ -82,3 +82,24 @@ async def test_a_cursor_pointing_at_a_removed_item_falls_back_to_the_start(monke
     monkeypatch.setattr(track_mod, "_state", fake_state)
     state = await track_mod.current("t")
     assert state["item"]["key"] == "b", "should fall back to the configured start"
+
+
+def test_a_track_and_its_rotation_entry_agree_on_the_time():
+    """Two answers to "when is this due" is how you end up trusting the wrong
+    one: the rotation decides when it is filed, the track's own due_time is
+    what /api/study/track reports back."""
+    from src.agents.rotation import load_rotation
+    from src.agents.study_sync import _config_path
+    import json
+
+    config = json.loads(_config_path().read_text())
+    daily = load_rotation()["daily"]
+    for track in config.get("tracks", []):
+        entry = next(
+            (t for t in daily if t.get("plan") == f"track:{track['key']}"), None
+        )
+        assert entry is not None, f"{track['key']} has no rotation entry"
+        assert track["due_time"] == entry["due_time"], (
+            f"{track['key']}: track says {track['due_time']}, "
+            f"rotation says {entry['due_time']}"
+        )
