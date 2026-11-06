@@ -63,3 +63,34 @@ export type NagEnv = {
 export function nagEnabled(env: NagEnv): boolean {
   return (env.NAG_ENABLED ?? "false") === "true";
 }
+
+
+export type WakeEnv = QuietHoursEnv & NagEnv;
+
+/**
+ * Whether a cron fire may wake the container.
+ *
+ * Waking it is the expensive act, not the work it then does. The container
+ * lives 15 minutes after a wake and holds a Postgres pool open for all of it,
+ * which stops Neon scaling to zero — so one fire costs roughly twenty minutes
+ * of database compute whatever the request was. Deciding out here costs
+ * nothing, which is the whole point of deciding out here.
+ *
+ * Anything not named is allowed through: a new trigger should have to opt into
+ * being skipped, not discover by accident that it was.
+ */
+export function shouldWakeContainer(cron: string, now: Date, env: WakeEnv): boolean {
+  switch (cron) {
+    case "*/30 * * * *":
+      // The nag safety net. It never touches the container itself, but it
+      // books wakes that do, so with reminders off it has nothing to arm.
+      return nagEnabled(env);
+    case "5 * * * *":
+      // The timetable sync. The sheet does not change while you are asleep,
+      // and the day page reads it live on every request rather than from
+      // this — so skipping overnight costs nothing and saves nine wakes.
+      return !inQuietHours(now, env);
+    default:
+      return true;
+  }
+}

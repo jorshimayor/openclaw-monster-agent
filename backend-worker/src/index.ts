@@ -1,6 +1,11 @@
 import { Container, getContainer } from "@cloudflare/containers";
 import { AGENT_CARD_PATH, verifyAccess } from "./access";
-import { inQuietHours, type QuietHoursEnv, nagEnabled } from "./schedule";
+import {
+  inQuietHours,
+  nagEnabled,
+  shouldWakeContainer,
+  type QuietHoursEnv
+} from "./schedule";
 
 /**
  * Cloudflare Containers Durable Object — wraps the FastAPI Python backend.
@@ -317,9 +322,7 @@ export default {
     // Pure DO work: it never touches the container, so a check costs nothing
     // when there is nothing to do.
     if (event.cron === "*/30 * * * *") {
-      // Reminders are off: do not re-arm a wake whose only outcome is a
-      // container start that finds the engine disabled.
-      if (!nagEnabled(env)) return;
+      if (!shouldWakeContainer(event.cron, new Date(), env)) return;
       if (inQuietHours(new Date(), env)) return;
       try {
         const state = await stub.ensureNagSchedule();
@@ -408,6 +411,9 @@ export default {
     // Sheet become commitments; ones you ticked off close; outcomes are
     // written back. No-ops cheaply when SCHEDULE_SHEET_ID is unset.
     if (event.cron === "5 * * * *") {
+      // Nine fires a night that each hold a Postgres pool open for fifteen
+      // minutes, to re-read a sheet nobody is editing. See shouldWakeContainer.
+      if (!shouldWakeContainer(event.cron, new Date(), env)) return;
       try {
         const r = await stub.fetch(
           new Request("http://container/api/schedule/sync", {
