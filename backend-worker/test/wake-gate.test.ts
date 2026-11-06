@@ -6,7 +6,7 @@ const NOON = new Date("2026-11-06T11:00:00Z");   // 12:00 local
 const NIGHT = new Date("2026-11-06T02:00:00Z");  //  3:00 local
 
 /** The timetable sync's trigger. Must stay in step with wrangler.jsonc. */
-const SYNC = "5 6,12,18 * * *";
+const SYNC = "5 6 * * *";
 
 describe("shouldWakeContainer", () => {
   it("lets the timetable sync through during the day", () => {

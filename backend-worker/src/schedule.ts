@@ -85,7 +85,7 @@ export function shouldWakeContainer(cron: string, now: Date, env: WakeEnv): bool
       // The nag safety net. It never touches the container itself, but it
       // books wakes that do, so with reminders off it has nothing to arm.
       return nagEnabled(env);
-    case "5 6,12,18 * * *":
+    case "5 6 * * *":
       // The timetable sync. The sheet does not change while you are asleep,
       // and the day page reads it live on every request rather than from
       // this — so skipping overnight costs nothing and saves nine wakes.

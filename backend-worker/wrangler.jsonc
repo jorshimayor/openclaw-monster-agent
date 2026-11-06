@@ -86,10 +86,12 @@
       // chain if a wake was ever missed — and it does so without waking the
       // container. See BackendContainer.ensureNagSchedule.
       "*/30 * * * *",
-      // Timetable sync, 07:05 / 13:05 / 19:05 WAT. Was hourly, which woke
-      // the container 24 times a day to re-read a sheet that changes when
-      // you edit it and not otherwise.
-      "5 6,12,18 * * *",
+      // Timetable sync, 07:05 WAT, once. A weekday-matrix sheet files
+      // nothing, and the day page reads the sheet live on every request, so
+      // extra fires only woke the container. This one lands ten minutes
+      // before the study pick below, inside the same container lifetime, so
+      // the pair costs one wake rather than two.
+      "5 6 * * *",
       "15 6 * * *",
       "0 8 1 * *",
       "0 6 * * 1",

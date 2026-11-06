@@ -395,7 +395,7 @@ export default {
     // Schedule sheet reconciliation, hourly. Rows you added or edited in the
     // Sheet become commitments; ones you ticked off close; outcomes are
     // written back. No-ops cheaply when SCHEDULE_SHEET_ID is unset.
-    if (event.cron === "5 6,12,18 * * *") {
+    if (event.cron === "5 6 * * *") {
       // Belt and braces: the schedule is already daytime-only, but the guard
       // stays so moving these hours can never silently reintroduce night
       // wakes. See shouldWakeContainer.
