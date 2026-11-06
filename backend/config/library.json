@@ -105,6 +105,55 @@
       "blurb": "Worked through, not watched. Each one has exercises you can show afterwards.",
       "groups": [
         {
+          "key": "aws-saa",
+          "label": "AWS Solutions Architect (SAA-C03)",
+          "note": "Everything here is free except where the price says otherwise. The exam is $150; the only thing worth paying for beyond it is a practice-question bank, because SAA is a question-reading exam as much as a knowledge one.",
+          "items": [
+            {
+              "title": "AWS Skill Builder — SAA-C03 exam prep plan",
+              "price": "Free tier",
+              "url": "https://skillbuilder.aws/category/exam-prep/solutions-architect-associate-SAA-C03",
+              "note": "AWS's own four-step plan. Skill Builder has a free tier of 900+ courses; the full exam-prep suite including official practice exams is the $29/month subscription. AWS does not state which tier this plan sits in — check when you sign in."
+            },
+            {
+              "title": "SAA-C03 exam guide",
+              "price": "Free",
+              "url": "https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html",
+              "note": "The actual syllabus. Secure 30%, resilient 26%, high-performing 24%, cost-optimised 20% — study in proportion, not by interest."
+            },
+            {
+              "title": "AWS Well-Architected Framework",
+              "price": "Free",
+              "url": "https://aws.amazon.com/architecture/well-architected/",
+              "note": "The vocabulary the exam and interviewers both use. Run a real review against something you own rather than reading it."
+            },
+            {
+              "title": "Disaster recovery of workloads on AWS",
+              "price": "Free",
+              "url": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-workloads-on-aws.html",
+              "note": "Backup/restore, pilot light, warm standby, multi-site. Scenario questions give an RTO and want the cheapest strategy that meets it."
+            },
+            {
+              "title": "AWS Architecture Center",
+              "price": "Free",
+              "url": "https://aws.amazon.com/architecture/",
+              "note": "Reference architectures. Read them as worked examples of the trade-offs the exam asks about."
+            },
+            {
+              "title": "AWS Pricing Calculator",
+              "price": "Free",
+              "url": "https://calculator.aws/",
+              "note": "Cost is 20% of the exam and the domain people leave until last. Price one of your own designs in it."
+            },
+            {
+              "title": "Exam booking — AWS Certified Solutions Architect – Associate",
+              "price": "$150",
+              "url": "https://aws.amazon.com/certification/certified-solutions-architect-associate/",
+              "note": "130 min, 65 questions, valid 3 years. Check your AWS Certification account for a 50% voucher first — passing any AWS exam earns one for the next."
+            }
+          ]
+        },
+        {
           "key": "security",
           "label": "Smart contract security",
           "items": [

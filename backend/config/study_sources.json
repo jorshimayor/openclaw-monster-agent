@@ -753,6 +753,21 @@
       },
       {
         "_comment": [
+          "Deep Block 2 was empty after the fellowship went back to the evening.",
+          "Ninety minutes a day is what four weeks to SAA-C03 needs.",
+          "",
+          "remind is false like everything else — reminders are off engine-wide.",
+          "This appears on the day and nowhere else."
+        ],
+        "theme": "aws-saa",
+        "block": "90 min Deep Block 2",
+        "label": "AWS SAA",
+        "due_time": "09:15",
+        "plan": "track:aws-saa",
+        "remind": false,
+        "tasks": []
+      },      {
+        "_comment": [
           "Tasks come from backend/config/fellowship.json via the plan hook, not",
           "from here \u2014 48 dated weeks do not cycle. The standing tasks below run",
           "alongside whatever this week resolves to.",
@@ -1118,6 +1133,160 @@
     "limit": 150
   },
   "tracks": [
+    {
+      "_comment": [
+        "Four weeks to SAA-C03, in the order the exam rewards.",
+        "",
+        "Booking comes before studying on purpose: the booking is what makes it",
+        "a deadline, and without one this slips. The voucher check is first",
+        "because ten minutes there can halve the $150.",
+        "",
+        "VPC sits early because it is the hardest domain and the one most",
+        "failures come from — it belongs in a fresh brain, not week three.",
+        "",
+        "The last three items are practice exams, not reading. SAA is a",
+        "question-reading exam as much as a knowledge exam, and the review item",
+        "between the two is where the marks actually come from."
+      ],
+      "key": "aws-saa",
+      "label": "AWS SAA",
+      "due_time": "09:15",
+      "start_at": "voucher-check",
+      "items": [
+        {
+          "key": "voucher-check",
+          "title": "Check for a voucher before you pay",
+          "url": "https://aws.amazon.com/certification/",
+          "note": "Ten minutes. AWS Certification account -> benefits for a 50% voucher, and check Pearson VUE for a running promotion. Could halve the $150."
+        },
+        {
+          "key": "book-exam",
+          "title": "Book the exam, online-proctored, four weeks out",
+          "url": "https://aws.amazon.com/certification/certified-solutions-architect-associate/",
+          "note": "$150, 130 min, 65 questions. OnVUE from home needs a quiet room, clear desk, photo ID. The booking is the deadline — everything after this is against a clock."
+        },
+        {
+          "key": "exam-guide",
+          "title": "Read the exam guide end to end",
+          "url": "https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html",
+          "note": "The actual syllabus. Secure 30%, resilient 26%, high-performing 24%, cost-optimised 20% — study in proportion to that, not to interest."
+        },
+        {
+          "key": "skill-builder",
+          "title": "Start the official Skill Builder prep plan",
+          "url": "https://skillbuilder.aws/category/exam-prep/solutions-architect-associate-SAA-C03",
+          "note": "AWS's own four-step plan. Run it alongside the items below rather than instead of them."
+        },
+        {
+          "key": "iam",
+          "title": "IAM: users, roles, policies",
+          "url": "https://docs.aws.amazon.com/IAM/latest/UserGuide/introduction.html",
+          "note": "Roles vs users is the single most tested distinction. Know trust policy vs permission policy cold."
+        },
+        {
+          "key": "vpc",
+          "title": "VPC: subnets, routing, NAT, SG vs NACL",
+          "url": "https://docs.aws.amazon.com/vpc/latest/userguide/what-is-amazon-vpc.html",
+          "note": "The hardest domain and where most failures come from. Draw one by hand: public/private subnets, IGW, NAT, route tables. Stateful SG vs stateless NACL."
+        },
+        {
+          "key": "ec2",
+          "title": "EC2: families, purchasing options, placement",
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/concepts.html",
+          "note": "On-demand vs reserved vs spot vs savings plans is a cost-domain question in disguise."
+        },
+        {
+          "key": "s3",
+          "title": "S3: storage classes, lifecycle, encryption",
+          "url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html",
+          "note": "Storage classes and lifecycle rules appear in both the cost and resilience domains. Know retrieval times for Glacier tiers."
+        },
+        {
+          "key": "ebs-efs",
+          "title": "EBS vs EFS vs instance store",
+          "url": "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html",
+          "note": "A question type, not a topic: 'shared across instances' means EFS, 'ephemeral' means instance store."
+        },
+        {
+          "key": "rds-aurora",
+          "title": "RDS and Aurora: multi-AZ vs read replicas",
+          "url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Welcome.html",
+          "note": "Multi-AZ is availability, read replicas are scale. Exams punish confusing the two."
+        },
+        {
+          "key": "dynamodb",
+          "title": "DynamoDB: keys, indexes, capacity",
+          "url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/Introduction.html",
+          "note": "Partition key design, GSI vs LSI, on-demand vs provisioned, and when DAX is the answer."
+        },
+        {
+          "key": "elb-asg",
+          "title": "Load balancers and Auto Scaling",
+          "url": "https://docs.aws.amazon.com/elasticloadbalancing/latest/userguide/what-is-load-balancing.html",
+          "note": "ALB vs NLB vs GWLB by layer and use case. Scaling policies: target tracking, step, scheduled."
+        },
+        {
+          "key": "sqs-sns",
+          "title": "SQS, SNS and EventBridge: decoupling",
+          "url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/welcome.html",
+          "note": "You have built this on Workers and queues already — map it across. Standard vs FIFO, DLQs, fan-out."
+        },
+        {
+          "key": "lambda-apigw",
+          "title": "Lambda and API Gateway",
+          "url": "https://docs.aws.amazon.com/lambda/latest/dg/welcome.html",
+          "note": "Limits and concurrency are the examinable part. The closest thing to what you already run on Workers."
+        },
+        {
+          "key": "resilience-dr",
+          "title": "Resilience and DR: RTO, RPO, the four strategies",
+          "url": "https://docs.aws.amazon.com/whitepapers/latest/disaster-recovery-workloads-on-aws/disaster-recovery-workloads-on-aws.html",
+          "note": "Backup/restore, pilot light, warm standby, multi-site. Scenario questions give you an RTO and expect the cheapest strategy that meets it."
+        },
+        {
+          "key": "kms-secrets",
+          "title": "KMS, Secrets Manager, Parameter Store",
+          "url": "https://docs.aws.amazon.com/kms/latest/developerguide/overview.html",
+          "note": "Encryption at rest and in transit, key rotation, and when Secrets Manager beats Parameter Store (rotation, and it costs more)."
+        },
+        {
+          "key": "cloudfront-route53",
+          "title": "CloudFront and Route 53",
+          "url": "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/Introduction.html",
+          "note": "Routing policies — simple, weighted, latency, failover, geolocation — are near-guaranteed marks. Learn OAC for private S3 origins."
+        },
+        {
+          "key": "cost",
+          "title": "Cost: the 20% everyone leaves until last",
+          "url": "https://calculator.aws/",
+          "note": "Savings Plans vs RIs, S3 class transitions, and data transfer — egress is the charge that surprises people. Price one of your own designs."
+        },
+        {
+          "key": "well-architected",
+          "title": "The Well-Architected Framework",
+          "url": "https://aws.amazon.com/architecture/well-architected/",
+          "note": "The vocabulary the exam and interviewers both use. Run a real review against something you own — an audit with findings, not reading."
+        },
+        {
+          "key": "practice-1",
+          "title": "First full timed practice exam",
+          "url": "https://skillbuilder.aws/category/exam-prep/solutions-architect-associate-SAA-C03",
+          "note": "Full 130 minutes, no pausing. The score matters less than which domain is weakest — that is what week four is for."
+        },
+        {
+          "key": "practice-review",
+          "title": "Review every wrong answer",
+          "url": "https://docs.aws.amazon.com/aws-certification/latest/solutions-architect-associate-03/solutions-architect-associate-03.html",
+          "note": "Write why each distractor is wrong, not just why the right one is right. This item is where the marks come from."
+        },
+        {
+          "key": "practice-2",
+          "title": "Second practice exam, fresh questions",
+          "url": "https://skillbuilder.aws/category/exam-prep/solutions-architect-associate-SAA-C03",
+          "note": "Gate: 85%+ consistently before you sit it. Below that you are gambling $150 to save a week."
+        }
+      ]
+    },
     {
       "_comment": [
         "An ordered curriculum, not a rotation. The cursor moves when an item is",
