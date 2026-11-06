@@ -175,6 +175,23 @@ class Settings(BaseSettings):
     # shown on /day and /todo, still closed with an artifact. The only thing
     # that stops is the unsolicited message. Set NAG_ENABLED=true to bring the
     # whole engine back — it is disabled, not deleted.
+    # A weekday-matrix sheet is a template, not a list of things you owe.
+    #
+    # Filing it puts the whole timetable on the hook as commitments — Morning
+    # Tea and Breakfast included — duplicating the blocks the day page already
+    # draws from the same sheet, and writing a row per block per day. The day
+    # view's own note says it: turning twenty-one recurring blocks into
+    # twenty-one commitments means twenty-one things to answer for daily.
+    #
+    # Off only for the matrix layout. A long-form sheet with a Task column is
+    # a real task list and still files normally.
+    schedule_template_files_commitments: bool = Field(
+        default=False,
+        validation_alias=AliasChoices(
+            "schedule_template_files_commitments",
+            "SCHEDULE_TEMPLATE_FILES_COMMITMENTS",
+        ),
+    )
     nag_enabled: bool = Field(default=False, validation_alias=AliasChoices("nag_enabled", "NAG_ENABLED"))
     # Quiet hours, in the user's LOCAL clock (see user_timezone_offset_hours).
     # Reminders do not fire in this window and do not advance the escalation

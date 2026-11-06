@@ -5,20 +5,23 @@ import { shouldWakeContainer } from "../src/schedule";
 const NOON = new Date("2026-11-06T11:00:00Z");   // 12:00 local
 const NIGHT = new Date("2026-11-06T02:00:00Z");  //  3:00 local
 
+/** The timetable sync's trigger. Must stay in step with wrangler.jsonc. */
+const SYNC = "5 6,12,18 * * *";
+
 describe("shouldWakeContainer", () => {
   it("lets the timetable sync through during the day", () => {
-    expect(shouldWakeContainer("5 * * * *", NOON, {})).toBe(true);
+    expect(shouldWakeContainer(SYNC, NOON, {})).toBe(true);
   });
 
   it("skips the timetable sync overnight", () => {
     // Nine fires a night, each holding a Postgres pool open for fifteen
     // minutes, to re-read a sheet nobody is editing.
-    expect(shouldWakeContainer("5 * * * *", NIGHT, {})).toBe(false);
+    expect(shouldWakeContainer(SYNC, NIGHT, {})).toBe(false);
   });
 
   it("honours quiet hours being switched off", () => {
     expect(
-      shouldWakeContainer("5 * * * *", NIGHT, { QUIET_HOURS_ENABLED: "false" })
+      shouldWakeContainer(SYNC, NIGHT, { QUIET_HOURS_ENABLED: "false" })
     ).toBe(true);
   });
 

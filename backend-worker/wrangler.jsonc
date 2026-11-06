@@ -86,7 +86,10 @@
       // chain if a wake was ever missed — and it does so without waking the
       // container. See BackendContainer.ensureNagSchedule.
       "*/30 * * * *",
-      "5 * * * *",
+      // Timetable sync, 07:05 / 13:05 / 19:05 WAT. Was hourly, which woke
+      // the container 24 times a day to re-read a sheet that changes when
+      // you edit it and not otherwise.
+      "5 6,12,18 * * *",
       "15 6 * * *",
       "0 8 1 * *",
       "0 6 * * 1",

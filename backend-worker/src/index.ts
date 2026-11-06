@@ -333,29 +333,14 @@ export default {
       return;
     }
 
-    if (event.cron === "*/10 * * * *") {
-      const hit = async (path: string): Promise<void> => {
-        try {
-          const r = await stub.fetch(
-            new Request(`http://container${path}`, { method: "POST" })
-          );
-          if (!r.ok) console.error(`cron ${path} -> ${r.status}`);
-        } catch (err) {
-          console.error(`cron ${path} failed`, err);
-        }
-      };
-      // Asleep: skip entirely rather than wake the container to be told so.
-      if (inQuietHours(new Date(), env)) return;
+    // There is no */10 trigger any more. The handler that lived here hit the
+    // container every ten minutes with no guard, which is what kept it from
+    // ever reaching its idle threshold and burned a month of Neon compute.
+    // It is gone rather than left unreachable: re-adding the trigger would
+    // have silently restored that, and a comment is a cheaper warning than a
+    // dormant handler. The nag round now runs from a Durable Object schedule;
+    // /api/telegram/drain stays as a manual fallback to the webhook.
 
-      await hit("/api/commitments/tick");
-      // Keep the schedule chain alive while both triggers are configured.
-      await stub.ensureNagSchedule().catch(() => {});
-      // /api/telegram/drain is deliberately NOT called. It polled getUpdates
-      // every ten minutes; the webhook through monster-telegram-ingress now
-      // delivers in real time, so the poll was duplicating it at the cost of a
-      // container wake each round. The endpoint stays as a manual fallback.
-      return;
-    }
 
     // Daily study pick, 06:15 UTC = 07:15 WAT — just after quiet hours end, so
     // the day opens with a finite ask rather than a backlog.
@@ -410,9 +395,10 @@ export default {
     // Schedule sheet reconciliation, hourly. Rows you added or edited in the
     // Sheet become commitments; ones you ticked off close; outcomes are
     // written back. No-ops cheaply when SCHEDULE_SHEET_ID is unset.
-    if (event.cron === "5 * * * *") {
-      // Nine fires a night that each hold a Postgres pool open for fifteen
-      // minutes, to re-read a sheet nobody is editing. See shouldWakeContainer.
+    if (event.cron === "5 6,12,18 * * *") {
+      // Belt and braces: the schedule is already daytime-only, but the guard
+      // stays so moving these hours can never silently reintroduce night
+      // wakes. See shouldWakeContainer.
       if (!shouldWakeContainer(event.cron, new Date(), env)) return;
       try {
         const r = await stub.fetch(

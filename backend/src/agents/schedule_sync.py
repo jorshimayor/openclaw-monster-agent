@@ -307,6 +307,30 @@ class ScheduleSync:
                 "header_seen": [str(h) for h in header],
             }
 
+        if matrix and not settings.schedule_template_files_commitments:
+            # Read-only, and it returns before touching Postgres at all — the
+            # point is to stop the writes, not just to hide their results.
+            return {
+                "ok": True,
+                "sheet_id": sheet_id,
+                "range": sheet_range,
+                "layout": "matrix",
+                "read_only": True,
+                "reason": (
+                    "a weekday matrix is a template, not a task list — the day "
+                    "page draws these blocks live from the same sheet. Set "
+                    "SCHEDULE_TEMPLATE_FILES_COMMITMENTS=true to file them."
+                ),
+                "rows_seen": len(rows),
+                "entries_seen": 0,
+                "filed": 0,
+                "updated": 0,
+                "closed_from_sheet": 0,
+                "skipped": 0,
+                "written_back": 0,
+                "commitments": [],
+            }
+
         # A daily template repeats across all seven columns. Filing the whole
         # grid would put 150+ items a week on the hook, so only the requested
         # days are synced — today by default.

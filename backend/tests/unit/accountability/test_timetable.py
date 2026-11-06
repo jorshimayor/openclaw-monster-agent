@@ -105,3 +105,31 @@ def test_the_real_sheet_has_no_gaps_through_the_morning():
     out = shape([row(*r) for r in REAL])
     for earlier, later in zip(out, out[1:]):
         assert earlier["end"] == later["start"], f"gap after {earlier['label']}"
+
+
+# --- the template is not a task list --------------------------------------
+
+def test_a_weekday_template_files_nothing_by_default():
+    """The day page draws these blocks live from the same sheet. Filing them
+    too put Morning Tea and Breakfast on the hook as things to answer for."""
+    import asyncio
+
+    from src.agents.schedule_sync import ScheduleSync
+    from src.core.config import get_settings
+
+    assert get_settings().schedule_template_files_commitments is False
+
+    sync = ScheduleSync()
+
+    async def fake_read(sheet_id, sheet_range):
+        header = ["", "DURATION", "TIME", "MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
+        rows = [["", "30 mins", "5:00 AM"] + ["Book Reading"] * 7]
+        return header, rows, None
+
+    sync.read_rows = fake_read
+    out = asyncio.run(sync.sync(sheet_id="sheet-1", sheet_range="A1:L60"))
+
+    assert out["ok"] is True
+    assert out["read_only"] is True
+    assert out["filed"] == 0 and out["written_back"] == 0
+    assert "template" in out["reason"]

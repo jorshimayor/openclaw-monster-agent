@@ -18,6 +18,19 @@ SHEET = "sheet-abc"
 
 
 @pytest.fixture(autouse=True)
+def template_filing_on(monkeypatch: pytest.MonkeyPatch):
+    """Matrix filing ships off — a weekday template is not a list of things
+    you owe. It still works behind the flag, so these tests turn it on; the
+    shipped default is pinned in test_timetable.py."""
+    from src.core import config
+
+    monkeypatch.setenv("SCHEDULE_TEMPLATE_FILES_COMMITMENTS", "true")
+    config.get_settings.cache_clear()
+    yield
+    config.get_settings.cache_clear()
+
+
+@pytest.fixture(autouse=True)
 def _clean_store():
     repo._MEM.clear()
     yield
