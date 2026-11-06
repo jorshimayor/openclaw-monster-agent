@@ -34,10 +34,10 @@
               "note": "130 min, 65 questions, valid 3 years. Take it first: cheapest by a factor of three and the most widely recognised."
             },
             {
-              "title": "AWS Solutions Architect – Professional (SAP-C02)",
+              "title": "AWS Solutions Architect – Professional (SAP-C03)",
               "price": "$300",
               "url": "https://aws.amazon.com/certification/certified-solutions-architect-professional/",
-              "note": "180 min. Only after the Associate and real design work — it assumes two years of hands-on."
+              "note": "180 min, 75 questions, valid 3 years. AWS recommends two or more years of designing and implementing on AWS before attempting it — it is a trade-off exam, not a facts exam."
             },
             {
               "title": "Microsoft Azure Solutions Architect Expert (AZ-305)",
