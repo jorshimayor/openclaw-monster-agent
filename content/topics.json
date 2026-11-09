@@ -1,0 +1,243 @@
+{
+  "_comment": [
+    "The topic bank. Order and opinion live here, in git; the published version",
+    "lives in the Google Doc, the same split as study_sources.json and the",
+    "track cursor.",
+    "",
+    "Every topic carries a `project`, because the doc's own best section is",
+    "'BLOG IDEAS (with enforced projects)' and because docs/writing-standard.md",
+    "refuses generated prose. A topic without a project is a title you will",
+    "never have anything true to say under. The project is what produces the",
+    "evidence that content/pipeline.py then turns into the three levels.",
+    "",
+    "`query` is the search it targets — the thing that makes this SEO rather",
+    "than vibes. Pick topics where you can out-specific the first page, not",
+    "out-rank it: 'aws multi-az vs read replica' has a thousand summaries and",
+    "almost no measured failover times.",
+    "",
+    "Add topics by editing this file. `python3 content/topics.py --publish`",
+    "appends the next version to the doc; nothing is ever overwritten.",
+    "",
+    "`tab` is the Google Doc tab a section is published into. The doc is eight",
+    "tabs, not eight headings — documents.get returns only the FIRST tab unless",
+    "you ask for includeTabsContent, which is how a whole bank once landed at",
+    "the end of 'Web3 Security Topics'."
+  ],
+  "doc_id": "165XuUvubLFk3sAaB7QznrWK8frRnqHQ0ucYP2zJFY9w",
+  "sections": [
+    {
+      "key": "aws-solutions-architecture",
+      "title": "AWS Solutions Architecture",
+      "why": "You are sitting SAA-C03 and you have no AWS writing. Publishing as you study is the cheapest portfolio there is: the work is already happening, and 'I measured this' outranks 'here is what AWS docs say' on every one of these queries.",
+      "topics": [
+        {
+          "title": "I rebuilt a Cloudflare Workers app on AWS Lambda — what each costs and where each breaks",
+          "level": "advanced",
+          "query": "cloudflare workers vs aws lambda cost comparison",
+          "project": "Port one slice of Monster Agent: Workers to Lambda, cron triggers to EventBridge, Durable Object alarms to EventBridge Scheduler, Neon to RDS. Price both in the AWS Pricing Calculator and against your real Cloudflare bill.",
+          "angle": "Almost nobody has run the same non-trivial workload on both. This is the piece only you can write, it is SAA revision, and it is the interview answer for 'tell me about an architecture trade-off you made'."
+        },
+        {
+          "title": "A 15-minute RTO costs this much: pricing the four AWS disaster recovery strategies",
+          "level": "advanced",
+          "query": "aws disaster recovery cost comparison rto rpo",
+          "project": "Take one workload. Price backup/restore, pilot light, warm standby and multi-site in the Pricing Calculator. Publish the table and the RTO each actually buys.",
+          "angle": "The four strategies are described everywhere and costed nowhere. A real table is a permanent reference and a direct SAA domain."
+        },
+        {
+          "title": "Multi-AZ is not a read replica: measuring RDS failover instead of describing it",
+          "level": "intermediate",
+          "query": "rds multi-az vs read replica difference",
+          "project": "Deploy both. Force a failover, time it with a client writing continuously. Record connection errors and seconds lost.",
+          "angle": "The single most confused distinction in the exam, and every article explains it without a number."
+        },
+        {
+          "title": "Security groups vs NACLs, proven with packets rather than prose",
+          "level": "beginner",
+          "query": "security group vs nacl stateful stateless",
+          "project": "Build a two-subnet VPC and break traffic four ways: SG ingress, SG egress, NACL ingress, NACL egress. Screenshot the flow logs for each.",
+          "angle": "Stateful vs stateless is a sentence everyone repeats. Showing the return traffic dropping is the thing that makes it stick."
+        },
+        {
+          "title": "The VPC diagram that finally made it click — built in Terraform, not drawn",
+          "level": "beginner",
+          "query": "aws vpc public private subnet nat gateway tutorial",
+          "project": "Two AZs, public and private subnets, IGW, NAT. Prove a private instance reaches the internet and nothing reaches it. Commit the Terraform.",
+          "angle": "The hardest SAA domain and the highest-volume query here. Yours ranks if the repo is runnable."
+        },
+        {
+          "title": "Egress is the bill nobody models",
+          "level": "intermediate",
+          "query": "aws data transfer cost between availability zones",
+          "project": "Move a fixed payload cross-AZ, cross-region and out to the internet. Put the three costs side by side per GB.",
+          "angle": "Data transfer is where real AWS bills go wrong and where the cost-optimised domain hides. Nobody writes it with numbers."
+        },
+        {
+          "title": "S3 lifecycle transitions: where the money actually goes, including retrieval",
+          "level": "intermediate",
+          "query": "s3 storage class lifecycle cost glacier retrieval",
+          "project": "Lifecycle a bucket Standard to IA to Glacier. Chart cost per GB-month, and then the retrieval cost and time nobody includes.",
+          "angle": "Every comparison stops at storage price. The retrieval cost is the part that bites."
+        },
+        {
+          "title": "Running a Well-Architected review on your own side project",
+          "level": "intermediate",
+          "query": "aws well architected framework review example",
+          "project": "Run the real review against Monster Agent. Publish the findings, including the ones that embarrass you.",
+          "angle": "Reviews are published as checklists and never as results. A real one with real findings is both rare and exactly what an architect interview probes."
+        }
+      ],
+      "tab": "Web2 Topics"
+    },
+    {
+      "key": "system-design-interview",
+      "title": "System Design & Interview Prep (beginner to advanced)",
+      "why": "This section of the doc was an empty heading. These are the highest-intent queries you can target — people searching them are preparing for the same interviews you are — and every one doubles as your own revision.",
+      "topics": [
+        {
+          "title": "Turning an awesome-list into a study plan: how to actually read a system design repo",
+          "level": "beginner",
+          "query": "how to study system design github repo",
+          "project": "Take liquidslr/system-design-notes and the primer. Produce a 6-week ordered plan with one narration per topic, and publish the plan itself.",
+          "angle": "Thousands star these repos and bounce off them. The plan is the product."
+        },
+        {
+          "title": "The back-of-envelope numbers every interview assumes you already know",
+          "level": "beginner",
+          "query": "latency numbers every programmer should know 2026",
+          "project": "Build the cheat sheet, then verify at least three numbers yourself on your own hardware and say where they differ.",
+          "angle": "The canonical list is fifteen years old. Re-measuring even three entries is a legitimate, citable update."
+        },
+        {
+          "title": "Designing a rate limiter: token bucket vs sliding window, implemented and benchmarked",
+          "level": "intermediate",
+          "query": "token bucket vs sliding window rate limiter",
+          "project": "Implement both. Benchmark burst behaviour and memory. Show where each lets through traffic the other blocks.",
+          "angle": "The most common design question after the URL shortener, and almost always answered from memory rather than from code."
+        },
+        {
+          "title": "Idempotency keys: the detail that separates a junior answer from a senior one",
+          "level": "intermediate",
+          "query": "idempotency key api design retry",
+          "project": "Build a payment endpoint that survives duplicate submits, client retries and a crash between write and response. Prove each case with a test.",
+          "angle": "You have already lived this — your webhook ingress and the nag engine both needed it. Write from the scar."
+        },
+        {
+          "title": "Caching strategies, measured: write-through, write-back, write-around",
+          "level": "intermediate",
+          "query": "write through vs write back vs write around cache",
+          "project": "Three implementations over the same workload. Publish hit rates, staleness windows and what each loses on a crash.",
+          "angle": "Universally described as a diagram, never as a measurement."
+        },
+        {
+          "title": "Why 'design a URL shortener' is a trick question",
+          "level": "intermediate",
+          "query": "url shortener system design interview",
+          "project": "Build it, then deliberately break it at the points interviewers probe: key collisions, hot keys, analytics writes drowning reads.",
+          "angle": "Enormous search volume and uniformly shallow results. The angle — what is actually being tested — is the differentiator."
+        },
+        {
+          "title": "Consistent hashing, implemented and then rebalanced under load",
+          "level": "advanced",
+          "query": "consistent hashing implementation virtual nodes",
+          "project": "Implement a ring with virtual nodes. Add and remove a node under live traffic and chart how many keys move.",
+          "angle": "Explained constantly, demonstrated rarely. The rebalance chart is the asset."
+        },
+        {
+          "title": "The outbox pattern: exactly-once that survives a crash between the write and the publish",
+          "level": "advanced",
+          "query": "transactional outbox pattern implementation",
+          "project": "Build a service that writes a row and publishes an event atomically. Kill it mid-flight and show no event lost and none duplicated.",
+          "angle": "The crash test is the whole article, and it is the part nobody shows."
+        },
+        {
+          "title": "Reading someone else's architecture docs and finding the decision they did not write down",
+          "level": "advanced",
+          "query": "how to read architecture decision records adr",
+          "project": "Take two open-source ADR sets. Find a decision implied by the code but absent from the record, and write the missing ADR.",
+          "angle": "You already keep architecture docs and agent.md. This demonstrates the skill interviews actually test — reconstructing intent from a system."
+        }
+      ],
+      "tab": "Web2 Topics"
+    },
+    {
+      "key": "ai-engineering",
+      "title": "AI Engineering",
+      "why": "Another empty heading, and the section with the most direct line to the Flow fellowship: every week of that programme produces a lab, and a lab plus a result is an article you already paid for.",
+      "topics": [
+        {
+          "title": "Tool calling breaks on malformed output — what a schema validator actually has to handle",
+          "level": "intermediate",
+          "query": "llm tool calling schema validation malformed json",
+          "project": "Build a two-tool pipeline with strict validation. Log every malformed response over a hundred runs and classify the failure modes.",
+          "angle": "This is fellowship week 6's lab. The taxonomy of failures is the contribution — everyone writes the happy path."
+        },
+        {
+          "title": "An MCP server for your own tools, and what exposing them costs you",
+          "level": "intermediate",
+          "query": "model context protocol mcp server tutorial",
+          "project": "Re-expose the same two tools behind MCP. Compare integration effort, latency and failure surface against direct calling.",
+          "angle": "You run MCP servers in production already. The cost side is unwritten."
+        },
+        {
+          "title": "The harness is the product: evaluating an agent you built",
+          "level": "advanced",
+          "query": "llm agent evaluation harness benchmark",
+          "project": "Run your auditor against targets you solved by hand. Record found, missed and wrongly discarded. That table is the eval harness.",
+          "angle": "Agent demos are everywhere; agent evaluations are not. This is the single most credible thing you can publish in AI right now."
+        },
+        {
+          "title": "RAG over your own documents, and the retrieval failures nobody screenshots",
+          "level": "intermediate",
+          "query": "rag retrieval failure modes chunking",
+          "project": "Build RAG over your own notes. Collect twenty queries it answers wrongly and classify why — chunking, embedding, or reranking.",
+          "angle": "Fellowship week 7. The failure gallery is the piece."
+        },
+        {
+          "title": "What finetuning actually bought me, measured against a better prompt",
+          "level": "advanced",
+          "query": "finetuning vs prompt engineering when worth it",
+          "project": "Take one task. Baseline with prompting, then finetune. Publish cost, latency and quality side by side, including the case where prompting won.",
+          "angle": "The honest negative result is rarer and more linkable than another finetuning tutorial."
+        }
+      ],
+      "tab": "AI Topics"
+    },
+    {
+      "key": "web3-ai-crossover",
+      "title": "Web3 Security x AI (your differentiator)",
+      "why": "The doc is already deep on Web3 security and separately on AI. The intersection is where you have something almost nobody else has — a working auditing agent and the hand-solved findings to judge it against.",
+      "topics": [
+        {
+          "title": "I pointed an AI auditor at bugs I had already solved by hand. Here is what it missed.",
+          "level": "advanced",
+          "query": "ai smart contract audit tool accuracy",
+          "project": "Run the auditor against five hand-solved targets. Publish found, missed, and wrongly discarded, with the PoC prompt that failed in each case.",
+          "angle": "Every AI audit tool publishes what it found. None publish what they missed. Being the one who does is the whole position."
+        },
+        {
+          "title": "Turning a Solodit finding into an executable invariant",
+          "level": "intermediate",
+          "query": "smart contract invariant testing foundry",
+          "project": "Take ten findings. Restate each as an assertion a fuzzer can break, not a topic. Commit them to the knowledge YAML and show two that caught a regression.",
+          "angle": "'Accounting should be correct' is not an invariant. 'totalBorrows + cash == totalSupplied - reserves' is. Showing the conversion is teachable and rare."
+        },
+        {
+          "title": "The discard pile is the product: tuning an AI auditor's false-positive gate",
+          "level": "advanced",
+          "query": "ai code audit false positive filtering",
+          "project": "Open a run's discard pile. For each, decide whether it was correctly discarded or the PoC prompt failed. Make one tuning change justified by a specific discard.",
+          "angle": "Precision work on agent output, with a real artifact — the commit. This is the Phase 6 eval work you already have scheduled."
+        },
+        {
+          "title": "Reading a bridge exploit as an architect rather than an auditor",
+          "level": "advanced",
+          "query": "cross chain bridge exploit post mortem analysis",
+          "project": "Take one bridge post-mortem. Rewrite it as an architecture decision record: what was traded away, when, and whether the trade was defensible at the time.",
+          "angle": "Bridges your two tracks together and is unusually strong in an interview, because it shows you reason about systems and not just bugs."
+        }
+      ],
+      "tab": "Web3 Topics"
+    }
+  ]
+}
