@@ -1,0 +1,299 @@
+{
+  "tab": "Web3 Security Topics",
+  "intro": "Where you specialise, and what it takes to be the best at each. Four specialisations, each with the protocols to audit, the codebases to read, the contests and bounties that pay, and the articles that prove you did it. Pick one to go deep on; the other three are context.",
+  "groups": [
+    {
+      "title": "The curriculum — what a complete auditor knows",
+      "note": "The nineteen areas a working auditor is expected to reason about. Treat each as a topic you must be able to write 2,000 words on without notes before you call it learned.",
+      "items": [
+        {
+          "t": "Blockchain and distributed ledger fundamentals",
+          "d": "What a ledger guarantees and what it does not. The base you will keep returning to when a bug turns out to be an assumption about ordering."
+        },
+        {
+          "t": "Economic incentives and mechanism design",
+          "d": "Why a protocol that is correct in code can still be drained by someone acting rationally. Most large losses are economic, not syntactic."
+        },
+        {
+          "t": "Solidity smart contract security",
+          "d": "The language-level vulnerability classes, in the order they actually appear in audit reports rather than in tutorials."
+        },
+        {
+          "t": "Cryptography and Merkle trees",
+          "d": "Hashes, commitments, inclusion proofs. Enough to spot when a proof scheme proves something other than what the protocol assumes."
+        },
+        {
+          "t": "The Ethereum Virtual Machine",
+          "d": "Stack, memory, storage, calldata and gas as one model. Every assembly-level finding depends on holding this in your head."
+        },
+        {
+          "t": "Ethereum Improvement Proposals",
+          "d": "How a standard becomes a standard, and why reading the rejected alternatives tells you more than reading the accepted one."
+        },
+        {
+          "t": "ERC-20 and ERC-4626",
+          "d": "The two standards most protocols integrate wrongly. ERC-4626's rounding and inflation surface is a permanent source of findings."
+        },
+        {
+          "t": "Decentralised exchanges, with Uniswap as the case study",
+          "d": "Constant product, fees, and what a swap actually costs. The reference implementation most DeFi code is cargo-culted from."
+        },
+        {
+          "t": "Layer 2 blockchains",
+          "d": "Rollups, sequencers, data availability and the trust you take on by using one. See the L2 specialisation below."
+        },
+        {
+          "t": "Cross-chain protocols — Wormhole, LayerZero",
+          "d": "Messaging, verification and the trust assumptions each bridge quietly makes. See the bridge specialisation below."
+        },
+        {
+          "t": "Zero-knowledge proofs",
+          "d": "What soundness and completeness mean in practice, and where circuits break. See the ZK tab for depth."
+        },
+        {
+          "t": "Formal verification",
+          "d": "Specifying what must always be true and letting a prover attack it. Certora is the practical entry point."
+        },
+        {
+          "t": "Writing the best report",
+          "d": "The deliverable clients actually buy. Severity, impact, reproduction and a fix they can apply — in that order."
+        },
+        {
+          "t": "Using LLMs in security work",
+          "d": "Where models genuinely help in auditing and where they manufacture confident nonsense. Your differentiator if you measure it honestly."
+        },
+        {
+          "t": "Building your own security tools",
+          "d": "The detectors and harnesses you write are the portfolio that outlasts any single contest placing."
+        },
+        {
+          "t": "The zero-assumption mindset",
+          "d": "Treating every invariant as unproven until you have tried to break it yourself. The habit that separates auditors from readers."
+        },
+        {
+          "t": "Completing a contest you started",
+          "d": "Finishing badly beats not finishing. The discipline of submitting a weak report is worth more than abandoning a strong one."
+        },
+        {
+          "t": "Auditing in a language you do not know",
+          "d": "Move, Cairo, Rust. The method for reading unfamiliar code safely is itself a teachable skill."
+        },
+        {
+          "t": "Oracles",
+          "d": "Price feeds, staleness, manipulation windows and TWAPs. The single most common root cause in DeFi incident reports."
+        }
+      ]
+    },
+    {
+      "title": "Specialisation: cross-chain bridge security",
+      "note": "The highest-loss category in the industry — Wormhole alone was $325M. To be among the best: audit 50+ bridge codebases, publish 10+ vulnerability analyses, place in 5+ contests, and build a reputation through anonymous bounties rather than interviews.",
+      "items": [
+        {
+          "t": "Protocols to audit (bridges)",
+          "d": "Wormhole, LayerZero, Axelar, Stargate, Symbiosis, Squid Router, Chainport, Eco Portal, Synapse, DeFiWay, Multichain. Study the post-hack versions especially — the fix tells you what the team believed went wrong."
+        },
+        {
+          "t": "Codebases to read end to end (bridges)",
+          "d": "github.com/wormhole-foundation, github.com/LayerZero-Labs, github.com/axelarnetwork, github.com/solana-labs/bridge-adapter."
+        },
+        {
+          "t": "Skills that produce findings (bridges)",
+          "d": "Signature malleability, relay and oracle attacks, liquidity verification, cross-chain message ordering, replay across forks, AI-assisted pattern detection."
+        },
+        {
+          "t": "Tooling (bridges)",
+          "d": "Foundry and Anvil for bridge simulation, Slither for static analysis, Echidna for fuzzing, Graudit for grep-based sweeps."
+        },
+        {
+          "t": "Where the money is (bridges)",
+          "d": "Immunefi (Wormhole up to $10M), HackenProof crypto programmes, Cantina bridge bounties."
+        },
+        {
+          "t": "Contests and CTFs (bridges)",
+          "d": "Cantina cross-chain CTFs, Paradigm CTF, the bridge levels of Damn Vulnerable DeFi, Parrot CTFs."
+        },
+        {
+          "t": "Portfolio artifact (bridges)",
+          "d": "A GitHub repo of mock audits against open-source bridges, plus accepted bounty reports, plus 20+ documented findings on your own site."
+        }
+      ],
+      "links": [
+        "Hacken bridge security — https://hacken.io/discover/cross-chain-bridge-security/",
+        "Chainlink: seven key cross-chain bridge vulnerabilities — https://chain.link/education-hub/cross-chain-bridge-vulnerabilities",
+        "Chainlink Education Hub — https://chain.link/education",
+        "Solodit — https://solodit.cyfrin.io/",
+        "Paradigm CTF — https://github.com/paradigmxyz/paradigm-ctf-2023",
+        "Parrot CTFs — https://parrot-ctfs.com/",
+        "Immunefi — https://immunefi.com/",
+        "HackenProof — https://hackenproof.com/",
+        "Cantina bounties — https://cantina.xyz/opportunities/bounties"
+      ]
+    },
+    {
+      "title": "Specialisation: Layer 2 security",
+      "note": "Rollup-specific risk — sequencer failure, fraud proofs, data availability. To be among the best: audit 100+ L2 codebases, publish research on fraud proofs, and rank on Code4rena leaderboards. EVM-compatible L2s have the most demand.",
+      "items": [
+        {
+          "t": "Protocols to audit (L2)",
+          "d": "Base, Arbitrum, Optimism, Polygon zkEVM, Starknet, zkSync, Scroll, Immutable X."
+        },
+        {
+          "t": "Codebases to read end to end (L2)",
+          "d": "OP Stack, Arbitrum Orbit, zkSync Era, Starknet's Cairo implementation."
+        },
+        {
+          "t": "Skills that produce findings (L2)",
+          "d": "Fraud proof construction and challenge windows, data availability assumptions, sequencer censorship and liveness, ZK-rollup integration seams."
+        },
+        {
+          "t": "Tooling (L2)",
+          "d": "Certora for formal verification, Foundry for rollup testing, SonarQube and Snyk Code for static review, Wapiti where an L2 ships a frontend."
+        },
+        {
+          "t": "Where the money is (L2)",
+          "d": "Code4rena and Sherlock L2 scopes, Immunefi (up to $2M on major L2s), HackenProof."
+        },
+        {
+          "t": "Portfolio artifact (L2)",
+          "d": "15+ public reports of L2-specific bugs, plus contest placings, written up on your own blog rather than only in the contest repo."
+        }
+      ],
+      "links": [
+        "OP Stack — https://github.com/ethereum-optimism/optimism",
+        "Arbitrum Orbit SDK — https://github.com/OffchainLabs/arbitrum-chain-sdk",
+        "zkSync Era — https://github.com/matter-labs/zksync-era",
+        "Starknet Cairo — https://github.com/starkware-libs/cairo",
+        "Ethereum.org L2 docs — https://ethereum.org/layer-2/learn/",
+        "The Block: 2026 Layer 2 outlook — https://www.theblock.co/post/383329/2026-layer-2-outlook",
+        "Code4rena — https://code4rena.com/",
+        "Sherlock — https://sherlock.xyz/"
+      ]
+    },
+    {
+      "title": "Specialisation: zero-knowledge security",
+      "note": "Circuit-level work, and the specialisation with the fewest competent people in it. To be among the best: find bugs in 30+ ZK applications, publish on the zkSecurity blog, and target $50K+ bounties. See the ZK tab for the article ideas.",
+      "items": [
+        {
+          "t": "Protocols to audit (ZK)",
+          "d": "Zcash, StarkNet, zkSync Era, Polygon Hermez, Mina, Immutable X, Loopring, Aztec, dYdX."
+        },
+        {
+          "t": "Codebases to read end to end (ZK)",
+          "d": "zkSync Era, StarkNet, Zcash, and Circom example circuits as the entry point."
+        },
+        {
+          "t": "Skills that produce findings (ZK)",
+          "d": "SNARK and STARK internals, proof soundness and under-constrained circuits, trusted setup assumptions, post-quantum considerations."
+        },
+        {
+          "t": "Tooling (ZK)",
+          "d": "Circom for circuits, Halo2, Bulletproofs, zkFuzzer, and agent-based hunting for repeated constraint mistakes."
+        },
+        {
+          "t": "Where the money is (ZK)",
+          "d": "Immunefi zkVerify (up to $50K), HackenProof ZK programmes, general web3 scopes on Cantina."
+        },
+        {
+          "t": "Portfolio artifact (ZK)",
+          "d": "A repo of circuit audits with the under-constrained case written out as a minimal reproduction, plus 10+ publications."
+        }
+      ],
+      "links": [
+        "zkSecurity — https://www.zksecurity.xyz/",
+        "Bug hunt: zero-knowledge, full-paranoia — https://blog.zksecurity.xyz/posts/snarksentinel/",
+        "Alchemy ZK tools — https://www.alchemy.com/dapps/top/zero-knowledge-tools",
+        "Crypto101 — https://www.crypto101.io/",
+        "Aztec — https://github.com/AztecProtocol",
+        "Mina — https://github.com/MinaProtocol/mina",
+        "Loopring — https://github.com/loopring",
+        "zkVerify bounty — https://immunefi.com/bug-bounty/zkverify/",
+        "zk.golf — https://zk.golf/"
+      ]
+    },
+    {
+      "title": "Specialisation: blockchain infrastructure (Ethereum and Solana)",
+      "note": "Core clients, consensus and validators — the layer almost no smart contract auditor touches. To be among the best: audit validators and consensus code, publish on BlockThreat, and win Ethereum Foundation or Solana bounties.",
+      "items": [
+        {
+          "t": "Protocols to audit (infra)",
+          "d": "Ethereum clients (Geth, Prysm, Reth), Solana (validators, BPF, Agave), plus Stellar, Tezos, Polkadot, Hedera, Tron."
+        },
+        {
+          "t": "Codebases to read end to end (infra)",
+          "d": "ethereum/go-ethereum, paradigmxyz/reth, solana-labs/solana, anza-xyz/agave."
+        },
+        {
+          "t": "Skills that produce findings (infra)",
+          "d": "Consensus and proof-of-stake security, proof-of-history specifics on Solana, validator DDoS surfaces, P2P and gossip analysis, protocol-level fuzzing."
+        },
+        {
+          "t": "Languages you must actually be fluent in (infra)",
+          "d": "Rust for Solana and Reth, Go for Geth. This specialisation is closed to you without one of them."
+        },
+        {
+          "t": "Tooling (infra)",
+          "d": "Nmap and Wireshark for network analysis, embedded fuzzing harnesses, client-specific test suites."
+        },
+        {
+          "t": "Where the money is (infra)",
+          "d": "Ethereum Foundation bug bounty (up to $250K), Solana grants and Immunefi programmes, Hashlock."
+        },
+        {
+          "t": "Portfolio artifact (infra)",
+          "d": "Accepted patches on a real client. One merged fix in Geth or Agave outweighs twenty contract findings for this specialisation."
+        }
+      ],
+      "links": [
+        "go-ethereum — https://github.com/ethereum/go-ethereum",
+        "Reth — https://github.com/paradigmxyz/reth",
+        "Solana — https://github.com/solana-labs/solana",
+        "Agave — https://github.com/anza-xyz/agave",
+        "Ethereum developer docs — https://ethereum.org/developers/docs/",
+        "Alchemy blockchain security tools — https://www.alchemy.com/dapps/best/blockchain-security-tools",
+        "SoluLab: blockchain security tools — https://www.solulab.com/blockchain-security-tools/",
+        "Ethereum Foundation bounty — https://ethereum.org/bug-bounty/",
+        "Hashlock — https://hashlock.com/"
+      ]
+    },
+    {
+      "title": "Exploits to replay, and CTFs to finish",
+      "note": "Each one is a post-mortem you can reproduce in Foundry and then write up. A replayed exploit with a passing test is a better portfolio piece than a summary of someone else's analysis.",
+      "items": [
+        {
+          "t": "Damn Vulnerable DeFi — Naive Receiver, Side Entrance, Truster",
+          "d": "Start here, in this order. Each isolates one flash-loan assumption."
+        },
+        {
+          "t": "Damn Vulnerable DeFi — Unstoppable",
+          "d": "Do this one last. The goal is to brick the contract, not drain it, which is a different way of thinking about impact."
+        },
+        {
+          "t": "Flash Loaner (Mr Steal Yo Crypto)",
+          "d": "Requires real ERC-4626 understanding first. The vault maths is the level."
+        },
+        {
+          "t": "Ethernaut level 22 and the OpenZeppelin CTF 2024 set",
+          "d": "Canonical puzzles with published solutions — write your own before reading theirs."
+        },
+        {
+          "t": "DeUS DAO, Jimbo, Platypus, Beanstalk, Inverse, MEV bot",
+          "d": "Six rekt.news post-mortems worth replaying. Beanstalk for governance, Platypus for collateral logic, Jimbo for liquidity design."
+        },
+        {
+          "t": "Speedrun Ethereum",
+          "d": "Interactive Solidity challenges — the fastest way to close gaps in basics you skipped."
+        }
+      ],
+      "links": [
+        "Damn Vulnerable DeFi — https://www.damnvulnerabledefi.xyz/",
+        "Mr Steal Yo Crypto — https://mrstealyocrypto.xyz/",
+        "OpenZeppelin CTF 2024 — https://github.com/OpenZeppelin/ctf-2024",
+        "Ethernaut — https://ethernaut.openzeppelin.com/",
+        "Speedrun Ethereum — https://speedrunethereum.com/",
+        "Bank web3 security tutorial — https://github.com/Al-Qa-qa/bank-web3-security-tutorial",
+        "rekt.news — https://rekt.news/",
+        "Immunefi SR Summer 2026 — https://immunefisupport.zendesk.com/hc/en-us/articles/47558436152209-SR-Summer-2026"
+      ]
+    }
+  ]
+}

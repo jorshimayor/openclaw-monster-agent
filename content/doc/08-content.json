@@ -1,0 +1,68 @@
+{
+  "tab": "Content",
+  "intro": "How the writing becomes a job rather than a hobby. Cadence, promotion and positioning — plus the build ideas that are content in their own right.",
+  "groups": [
+    {
+      "title": "The publishing loop",
+      "note": "One piece of work, four artifacts. The premise that makes this sustainable: everything published comes out of something you actually did, so the research is already paid for.",
+      "items": [
+        { "t": "Evidence first, topic second", "d": "A measurement, a finding or a bug is the input. A topic picked without one produces an article with nothing true in it." },
+        { "t": "Three depths on one piece of work", "d": "Beginner: the idea that made it make sense. Intermediate: the walkthrough with code that runs. Advanced: what surprised you, which only you can write." },
+        { "t": "The canonical article, then the adaptations", "d": "Long form on the site is the canonical version; the thread, the newsletter and the video all point back to it." },
+        { "t": "Weekly cadence that survives a bad week", "d": "One advanced piece a fortnight, one intermediate in between, beginner pieces only when they fall out of the other two." },
+        { "t": "Run every draft through the writing check", "d": "POST /api/writing/check before publishing. Block-level findings fail; the judgement calls come back as questions." }
+      ]
+    },
+    {
+      "title": "Promotion: the thread and the newsletter",
+      "note": "Generated as structure by content/topics.py --promote. The structure is automated; the words are not, because a generated thread reads exactly like one.",
+      "items": [
+        { "t": "Open with the finding, not with 'a thread'", "d": "The first post is the number or the surprise. If it is not interesting without the rest, the rest will not be read." },
+        { "t": "One claim per post", "d": "Each post should be the claim you could not have made before doing the work." },
+        { "t": "Include the counter-intuitive one", "d": "What you expected versus what happened. This is the post that gets quoted." },
+        { "t": "Show the method briefly so it is checkable", "d": "Credibility comes from being falsifiable, not from confidence." },
+        { "t": "Last post links the article, and nothing else", "d": "No 'follow for more'. The link is the call to action." },
+        { "t": "Newsletter subject: the finding in under nine words", "d": "No colon-subtitle construction. The intro is the one sentence that makes someone open the article." },
+        { "t": "Promote advanced and intermediate only", "d": "A thread that opens with something your audience already knows spends the attention it just earned." }
+      ]
+    },
+    {
+      "title": "Positioning: twenty-four weeks to top-1% candidate",
+      "note": "The plan behind the writing. Weeks 1-8 depth, 9-16 portfolio, 17-24 visibility.",
+      "items": [
+        { "t": "Weeks 1-8: advanced contract patterns", "d": "Upgradeable patterns, fail-safes — circuit breakers and pausability — and a library of reusable secure modules you actually reuse." },
+        { "t": "Weeks 1-8: cross-chain and L2 fluency", "d": "Deploy the same contract to Ethereum, Arbitrum, Optimism, Polygon and Solana. Build a demo bridge. Document the latency, fee and security trade-offs." },
+        { "t": "Weeks 1-8: infrastructure and DevOps", "d": "Run your own node. Automate deployment with CI. Stand up monitoring in Grafana, Tenderly and Dune." },
+        { "t": "Weeks 9-16, project 1: a DeFi protocol with fail-safe architecture", "d": "Lending and borrowing with a circuit breaker and oracle integration. Document how liquidity drains are prevented — this is where the audit background shows." },
+        { "t": "Weeks 9-16, project 2: cross-chain asset transfer", "d": "An Ethereum to Solana transfer over Wormhole or LayerZero, with the risk analysis written alongside." },
+        { "t": "Weeks 9-16, project 3: an enterprise use case", "d": "Supply chain or identity on IPFS plus contracts, integrated with a Web2 API, to prove you can bridge both worlds." },
+        { "t": "Every project ships three things", "d": "A public repo with a clean README and architecture diagram, a technical post explaining the design decisions, and a demo video." },
+        { "t": "Weeks 17-24: personal branding", "d": "Deep dives on your own projects, architecture commentary where your peers are, and a talk at a meetup or hackathon." },
+        { "t": "Weeks 17-24: networking that is not asking for things", "d": "Be where solutions engineers already are. Offer free architecture reviews to small projects — credibility compounds faster than applications." },
+        { "t": "Weeks 17-24: targeted applications", "d": "Protocol teams, L2s and infra providers. Lead the CV with system design and integration rather than with languages." }
+      ]
+    },
+    {
+      "title": "Differentiators and daily habits",
+      "items": [
+        { "t": "Security plus architecture is the combination", "d": "Very few engineers pair audit-level security with solution design. Market that pairing explicitly rather than listing both separately." },
+        { "t": "Enterprise readiness", "d": "Compliance basics — KYC/AML, GDPR, token regulation — are what make you valuable to companies crossing from Web2." },
+        { "t": "Thought leadership artifacts", "d": "'Web3 architecture playbooks' and 'secure design patterns for DeFi' as named, reusable assets rather than one-off posts." },
+        { "t": "Daily: two hours building", "d": "Projects and experiments. This is what produces the evidence everything else depends on." },
+        { "t": "Daily: one hour reading", "d": "Whitepapers and protocol docs, not feeds." },
+        { "t": "Daily: thirty minutes writing", "d": "Documenting what you learned, publicly. The compounding habit." },
+        { "t": "Daily: one networking touchpoint", "d": "A comment, a message or a shared insight. One is enough if it is every day." }
+      ]
+    },
+    {
+      "title": "Build ideas that are content",
+      "items": [
+        { "t": "A chatbot with the Vercel AI SDK, LangGraph, Supabase and Next.js", "d": "A full-stack AI build that doubles as the deployment half of the AI roadmap." },
+        { "t": "Webhooks versus APIs, explained with your own migration", "d": "You replaced polling with webhooks and have the bill. Use the real numbers." },
+        { "t": "An AI bug bounty agent, in public", "d": "Build it, measure it, and publish the misses. The single most credible thing you can ship this year." },
+        { "t": "A function selector collision checker", "d": "Small, useful, and the kind of tool that gets starred and cited." },
+        { "t": "A gas cost translator: gas to ETH to USD to cost-per-user", "d": "The calculator every product team wants and nobody has built well." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,160 @@
+{
+  "tab": "Web3 Topics",
+  "intro": "The writing bank. Every entry is a piece you can only write after building the thing — which is the point, and the reason none of these read like the tutorials already ranking for them. Duplicates from the earlier lists have been merged; where a topic appeared twice the stronger framing was kept.",
+  "groups": [
+    {
+      "title": "EVM internals and low-level Solidity",
+      "note": "The layer where findings come from. All of these are demonstrable in a Foundry test, which is what makes them publishable rather than restated.",
+      "items": [
+        { "t": "data, calldata, memory and storage: what each actually costs", "d": "The four locations as one mental model, priced in gas, with a test showing where a wrong choice doubles a function's cost." },
+        { "t": "Visualising the EVM stack", "d": "Step a single transaction and render the stack at each opcode. The diagram you wish someone had shown you." },
+        { "t": "uint256 and two's complement: how the EVM represents signed numbers", "d": "Why int256(-1) is a wall of f's, and the casting bugs that follow from not knowing it." },
+        { "t": "What bytecode is — creation code, runtime code, and delegatecall instances", "d": "Three things people call 'the bytecode'. Separating them explains why constructors do not exist at runtime." },
+        { "t": "Ethereum contract creation code, explained by building one", "d": "Hand-write the init code that returns runtime code, and deploy it without a compiler." },
+        { "t": "Offsets in bytecode: reading a jump table by hand", "d": "Where the function dispatcher lives and how a selector becomes a jump." },
+        { "t": "Practising assembly revert with real snippets", "d": "Reverting from Yul with correctly encoded error data, which is where most hand-written assembly quietly gets it wrong." },
+        { "t": "Writing to any storage slot: when private is not private", "d": "Read and overwrite a private variable with vm.load and vm.store. Private is a compiler convention, not a guarantee." },
+        { "t": "Transient storage (tstore/tload) versus regular storage", "d": "What EIP-1153 changed for reentrancy guards and what it costs compared to a storage slot." },
+        { "t": "The 63/64 gas rule and why reentrancy guards sometimes fail", "d": "Gas forwarding semantics, and the fallback-based guard that breaks because of them." },
+        { "t": "Bitwise operators for gas savings: flags in a single uint256", "d": "Packing booleans into one slot, with the before-and-after gas table." },
+        { "t": "Cache values to avoid duplicated SLOADs", "d": "The optimisation Initializable.sol applies, measured, so the advice stops being folklore." },
+        { "t": "Why custom errors are cheaper, illustrated rather than asserted", "d": "Compare revert strings, require strings and custom errors at the bytecode level and in gas." },
+        { "t": "Gas in ETH, in USD, and per thousand users", "d": "Translating gas units into a number a product manager can act on. The missing article in every optimisation guide." },
+        { "t": "Gas optimisation in assembly Solidity", "d": "Where dropping to Yul actually wins, and the cases where the optimiser already did it for you." },
+        { "t": "The birthday paradox, for people who collide hashes", "d": "Why 4-byte selectors collide sooner than intuition says, with the arithmetic done out loud." },
+        { "t": "Building a function selector checker tool", "d": "A small CLI that detects clashing selectors across an interface set. Ships as a repo, not just an article." }
+      ]
+    },
+    {
+      "title": "Proxies and upgradeability — the series",
+      "note": "Your deepest existing cluster, and worth publishing as an ordered series rather than scattered posts. Each pattern gets one piece with runnable code, and the series index becomes the thing people link to.",
+      "items": [
+        { "t": "Storage collisions in upgradeable contracts: how proxies really work", "d": "Deploy a UUPS proxy, add a variable in the wrong slot, and catch the collision in a Foundry test rather than describing it." },
+        { "t": "Writing a minimal proxy (EIP-1167) from scratch in assembly", "d": "Implement clone() with mload and mstore, no OpenZeppelin. Deploy a hundred and compare gas against OZ." },
+        { "t": "A practical implementation of the beacon proxy", "d": "The pattern for upgrading many instances at once, built and then upgraded live in a test." },
+        { "t": "Transparent versus UUPS: rewriting TUPP from first principles", "d": "Both patterns implemented side by side, with the admin-collision problem transparent proxies exist to solve." },
+        { "t": "Practical vulnerabilities in UUPS", "d": "Uninitialised implementations, missing _authorizeUpgrade, and the self-destruct path that bricks everything." },
+        { "t": "Upgradeable bugs via initialisation", "d": "Initializer versus constructor, re-initialisation, and the reinitializer modifier people misuse." },
+        { "t": "Constructors versus initializers", "d": "Why constructor state never reaches the proxy, told through a contract that works standalone and breaks behind one." },
+        { "t": "Explaining and writing OpenZeppelin's Initializable.sol", "d": "Read the real implementation line by line, then write your own and diff the decisions." },
+        { "t": "ERC-7201 namespaced storage, in your own words", "d": "The layout scheme that makes collisions structurally impossible, and why it took so long to arrive." },
+        { "t": "Where the bytecode lives for each proxy type", "d": "Minimal, transparent, UUPS and beacon — which contract holds what, and what an explorer shows you." },
+        { "t": "Malicious backdoors in Ethereum proxies", "d": "Work the Nomic Foundation exercise: steal the testnet ETH, then explain the delegatecall mechanism that allowed it." },
+        { "t": "When to use delegatecall instead of a library", "d": "Both compile to similar call shapes; the storage context is the whole difference." },
+        { "t": "The delegatecall sandbox: a multi-delegatecall router", "d": "Accept a list of targets and calldata, execute all, inspect final storage. Test with two logic contracts." },
+        { "t": "Practising the OpenZeppelin upgrade plugins with Foundry", "d": "The safety checks the plugins run, and what each one catches that a human reviewer misses." },
+        { "t": "The fallback extension pattern, and changing the extension", "d": "The step most write-ups skip — demonstrating an extension swap rather than only the initial wiring." },
+        { "t": "IDiamondLoupe and the DiamondCut event controversy", "d": "Why the loupe is mandated, who objects, and what you lose by omitting it." },
+        { "t": "Implementing a DiamondLoupe", "d": "The introspection interface built from scratch, with the facet enumeration that makes diamonds auditable." },
+        { "t": "Storage collisions in diamond proxies", "d": "Diamond storage, app storage, and the collision classes unique to multi-facet layouts." }
+      ]
+    },
+    {
+      "title": "Standards and token mechanics",
+      "note": "Integrations fail at standard boundaries far more often than inside protocol logic. These are the pieces that get cited in audit reports.",
+      "items": [
+        { "t": "ERC-20 API: an attack vector on approve and transferFrom", "d": "The race between approve and spend, why it was never fixed, and what increaseAllowance actually buys." },
+        { "t": "ERC-20 versus SafeERC20", "d": "Non-standard returns, USDT, and the wrapper that exists because the standard was under-specified." },
+        { "t": "ERC-20 permit: gasless approvals done right, and wrong", "d": "Build a permit flow, then break it with a wrong v value and missing domain separator replay protection." },
+        { "t": "Forging signatures off-chain: EIP-712 and ecrecover pitfalls", "d": "Malleability, signer recovery of the wrong address, and the domain binding that stops cross-chain replay." },
+        { "t": "Explaining ERC-1155", "d": "Batch semantics and the callback surface, written for someone who already knows ERC-721." },
+        { "t": "Explaining ERC-6909", "d": "The minimal multi-token standard and the ERC-1155 complexity it refuses." },
+        { "t": "ERC-777 and the hooks that reintroduced reentrancy", "d": "A standard that made token transfers call untrusted code, and the incidents that followed." },
+        { "t": "ERC-4626 and the inflation attack: three real defences", "d": "Virtual shares, dead shares and minimum deposits, each implemented and each attacked." },
+        { "t": "Hashing wars: keccak256(abi.encode) versus abi.encodePacked", "d": "The collision that packed encoding permits, shown with two different inputs producing one hash." },
+        { "t": "Encoding attacks: abi.decode with malicious calldata", "d": "What happens when decoded length fields lie, and why decoding untrusted bytes is a trust boundary." },
+        { "t": "Is there calldata when ether is transferred?", "d": "When calldata exists on a plain transfer, when it does not, and whether it decodes to anything human-readable." },
+        { "t": "Explaining calldata and why we use it", "d": "Immutability, cost, and the cases where memory is the only legal choice." },
+        { "t": "Why interfaces exist in Solidity", "d": "Type safety across contract boundaries and the ABI they generate — written for people who copy them without knowing why." },
+        { "t": "When to use structs and enums", "d": "Packing, readability and the storage cost each choice commits you to." },
+        { "t": "Libraries and abstract contracts in Solidity", "d": "Internal versus external libraries, linking, and when inheritance is the wrong tool." },
+        { "t": "EIP-2930 optional access lists, in your own words", "d": "Pre-declaring the slots you touch, what it saves, and why almost nobody uses it." }
+      ]
+    },
+    {
+      "title": "DeFi protocol mechanics",
+      "note": "Uniswap is the reference implementation most DeFi is derived from. Understanding it precisely is the fastest route to reading everything else.",
+      "items": [
+        { "t": "Retelling the Uniswap V2 swap function", "d": "Walk the real function line by line, including the optimistic transfer that makes flash swaps possible." },
+        { "t": "Uniswap V2 flash swap: borrow first, pay later", "d": "Build one, then show the invariant check that makes repayment non-optional." },
+        { "t": "Minimal AMM: constant product versus constant sum", "d": "Two curves implemented side by side, with the slippage profile each produces." },
+        { "t": "Uniswap V3 and V4 ticks", "d": "Concentrated liquidity as a data structure — tick spacing, crossing, and what a position actually owns." },
+        { "t": "The mathematical relationship between Q64.96, ticks and price", "d": "The fixed-point representation that confuses everyone, derived rather than quoted." },
+        { "t": "How sqrtPriceLimitX96 defines slippage in Uniswap V4", "d": "The parameter most integrators pass as zero, and what that silently permits." },
+        { "t": "A minimal oracle with Uniswap V3 TWAP", "d": "Build it, then show the manipulation window a short observation period leaves open." },
+        { "t": "What vaults are, and why EVM architecture keeps reaching for them", "d": "Share accounting, rounding direction, and the ERC-4626 surface that follows." },
+        { "t": "What factory patterns are", "d": "Deterministic deployment, registry, and the access control a factory concentrates." },
+        { "t": "Adapters in Web3", "d": "The integration layer between protocols, and why adapters are where composability bugs live." },
+        { "t": "Building a leverage loop in a single transaction", "d": "Borrow, swap, re-deposit, repeat — with the health factor maths that decides when it stops." },
+        { "t": "Pull repayment", "d": "Why pushing funds to users is a reentrancy and griefing surface, and what pulling costs in UX." },
+        { "t": "Checks-Effects-Interactions in Solidity", "d": "The ordering rule, the cases where it is insufficient, and why guards are not a substitute." },
+        { "t": "How to use the onlyOwner modifier — and when not to", "d": "Single-owner access control, its failure modes, and the step up to roles and timelocks." },
+        { "t": "Building a time lock with queue and execute", "d": "Delay, grace period and cancellation, with the governance attack a missing grace period enables." },
+        { "t": "A time lock with multi-sig execution", "d": "Combining threshold signing with delay, and the operational trade-off between the two." },
+        { "t": "Building a minimal multisig from scratch, no OpenZeppelin", "d": "Signature collection, ordering and replay protection implemented by hand." },
+        { "t": "Multi-call batching: building your own multicall", "d": "Aggregating calls, and the msg.sender subtlety that makes naive implementations dangerous." },
+        { "t": "Is Circle Arc truly permissionless?", "d": "Read the contracts rather than the announcement, and say what the permissions actually are." }
+      ]
+    },
+    {
+      "title": "Attack patterns and defences",
+      "note": "Each of these should ship with a passing exploit test. The test is the evidence; the article is the write-up.",
+      "items": [
+        { "t": "Reentrancy, beyond the canonical example", "d": "Cross-function, cross-contract and read-only reentrancy, each with a minimal reproduction." },
+        { "t": "create2 versus create: precomputing addresses before deployment", "d": "A factory that deploys at predictable addresses, and the redeployment trick create2 enables." },
+        { "t": "Creating a contract from another contract", "d": "new, create and create2 compared, including what happens on constructor revert." },
+        { "t": "Selfdestruct attack: killing a contract that still holds ETH", "d": "Force-feeding ether, breaking balance assumptions, and what EIP-6780 changed." },
+        { "t": "Phishing with tx.origin: a malicious approval sniffer", "d": "Why tx.origin authentication fails, demonstrated with a contract that drains an approving user." },
+        { "t": "Front-running a Dutch auction: MEV in practice", "d": "Simulate the mempool race with vm.txGasPrice and show the extracted value." },
+        { "t": "Sandwich attacks: post-mortem and vectors", "d": "Reproduce one against your own AMM, then price the user's loss." },
+        { "t": "Breaking a Merkle airdrop via proof replay", "d": "Reusing a valid proof where the contract forgot to mark a leaf claimed." },
+        { "t": "Signature replay across forks", "d": "The same signature valid on two chains, and the chainId binding that prevents it." },
+        { "t": "Hiding malicious code in external contracts", "d": "Upgradeable dependencies and delegatecall targets as a supply-chain surface." },
+        { "t": "Governance as an attack vector", "d": "Flash-loaned voting power, proposal execution windows, and the Beanstalk replay." },
+        { "t": "Fallback versus receive: what happens when you send ETH", "d": "The dispatch rules, gas stipends, and why transfer() stopped being safe advice." },
+        { "t": "Try/catch in Solidity: calling external contracts safely", "d": "What it catches, what it cannot, and the bubbling behaviour that surprises people." },
+        { "t": "Advanced events: indexing, anonymous events and log decoding", "d": "What indexers actually rely on, and the cost of getting topics wrong." },
+        { "t": "Learning Tenderly properly", "d": "Simulation, state overrides and debugging a failed transaction — the tool most auditors under-use." }
+      ]
+    },
+    {
+      "title": "The RareSkills reading track",
+      "note": "Ordered. This is the same track that opens your day in the study system — proxy patterns first, ZK last.",
+      "items": [
+        { "t": "Proxy patterns", "d": "Where you are. Storage collisions and delegatecall. https://rareskills.io/proxy-patterns" },
+        { "t": "Beware of the proxy: function clashing", "d": "The OpenZeppelin forum thread that explains selector collisions between proxy and implementation." },
+        { "t": "Learn Solidity, all modules", "d": "The systematic sweep that fills the gaps self-teaching leaves. https://rareskills.io/learn-solidity#modules" },
+        { "t": "Foundry testing, extensively", "d": "Fuzzing, invariants, cheatcodes and fork tests — the toolchain every other item here depends on." },
+        { "t": "Uniswap V2 book", "d": "The reference AMM, read completely rather than skimmed." },
+        { "t": "Uniswap V3 book", "d": "Concentrated liquidity and the tick maths. https://rareskills.io/uniswap-v3-book" },
+        { "t": "Compound V3 book", "d": "The most thorough treatment of a major lending protocol available. https://rareskills.io/compound-v3-book" },
+        { "t": "Curve", "d": "The stableswap invariant, and why it is harder than it looks." },
+        { "t": "Certora book", "d": "Formal verification in practice. https://rareskills.io/certora-book" },
+        { "t": "The gas optimisation book", "d": "The most comprehensive gas guide on the internet, and a direct feed into the gas topics above." },
+        { "t": "ZK book", "d": "The most approachable rigorous ZK material there is. https://rareskills.io/zk-book" },
+        { "t": "60 days of Solana", "d": "The non-EVM account model, which is also your chain-interview material. https://rareskills.io/solana-tutorial" },
+        { "t": "Cairo tutorial", "d": "Starknet's language, and the entry point to L2-native auditing. https://rareskills.io/cairo-tutorial" },
+        { "t": "Huff and Yul", "d": "Writing contracts with no Solidity at all, which is the fastest way to stop guessing about the EVM." },
+        { "t": "Move 2025 — Chaos Security", "d": "The resource model as a contrast to EVM, and increasingly its own audit specialisation." }
+      ]
+    },
+    {
+      "title": "Twelve-week build roadmap",
+      "note": "One protocol a week, built small and audited. Each week produces a repo, an article and an audit checklist — which is three artifacts from one piece of work.",
+      "items": [
+        { "t": "Week 1 — Yul assembly", "d": "Project: a minimal ERC-20 in pure Yul. Checklist: memory safety, selector dispatch, revert encoding." },
+        { "t": "Week 2 — ERC and EIP standards", "d": "Project: implement ERC-20, 721, 1155 and 4626 from the specs, not from OpenZeppelin. Checklist: return values, hooks, rounding." },
+        { "t": "Week 3 — DEX (Uniswap V2 mini)", "d": "Project: pair, factory, router. Checklist: K invariant, fee-on-transfer tokens, reserve sync." },
+        { "t": "Week 4 — Lending protocol (Aave-lite)", "d": "Project: supply, borrow, liquidate. Checklist: oracle staleness, health factor rounding, bad debt." },
+        { "t": "Week 5 — Yield and staking", "d": "Project: a reward distributor with per-second accrual. Checklist: precision loss, reward griefing, exit timing." },
+        { "t": "Week 6 — Stablecoin (DAI-lite)", "d": "Project: collateralised debt positions with liquidation. Checklist: peg mechanics, auction design, oracle dependence." },
+        { "t": "Week 7 — Derivatives and synthetics", "d": "Project: a perpetual with funding rate. Checklist: mark versus index, funding manipulation, insurance fund." },
+        { "t": "Week 8 — AI and NFTs", "d": "Project: generative metadata with on-chain provenance. Checklist: randomness, metadata mutability, royalty enforcement." },
+        { "t": "Week 9 — Insurance protocol", "d": "Project: cover purchase and claims assessment. Checklist: claim oracle trust, capital adequacy, correlated risk." },
+        { "t": "Week 10 — Asset management and vault strategies", "d": "Project: an ERC-4626 vault with a strategy adapter. Checklist: inflation attack, strategy trust, withdrawal queue." },
+        { "t": "Week 11 — Bridges and interoperability", "d": "Project: a mock bridge with a relayer. Checklist: message replay, verification trust, liveness failure." },
+        { "t": "Week 12 — DAO and governance", "d": "Project: proposal, vote, timelock, execute. Checklist: flash-loan voting, quorum gaming, execution window." }
+      ]
+    }
+  ]
+}

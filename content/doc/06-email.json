@@ -1,0 +1,30 @@
+{
+  "tab": "Email",
+  "intro": "Email deliverability — a Web2 specialism with real commercial demand and far less competition than anything crypto. Kept because it pays, and because the ZK crossover below is genuinely novel.",
+  "groups": [
+    {
+      "title": "Intermediate",
+      "items": [
+        { "t": "SPF, DKIM and DMARC explained: your 2026 authentication checklist", "d": "Core mechanics, alignment rules, and the one-record SPF practice people keep breaking." },
+        { "t": "Gmail, Yahoo and Microsoft bulk sender rules in 2026", "d": "What changed, the 5,000-a-day threshold, one-click unsubscribe, and how enforcement actually bites." },
+        { "t": "Building a clean subscriber list: verification, engagement and sunset policies", "d": "The tooling and the policy that keep bounces and complaints under 0.3%." }
+      ]
+    },
+    {
+      "title": "Advanced",
+      "items": [
+        { "t": "DMARC reporting mastery: reading aggregate and forensic reports", "d": "Parsing rua and ruf data, fixing what it exposes, and the path from p=none to p=reject without losing mail." },
+        { "t": "DKIM key rotation, 2048-bit standards and third-party sender alignment", "d": "ESPs, subdomains, and the permerror failures that come from getting delegation wrong." },
+        { "t": "Sender reputation management: IP warming, shared versus dedicated, monitoring", "d": "Postmaster Tools, volume ramping, and a recovery plan for when you are blacklisted." }
+      ]
+    },
+    {
+      "title": "Integration and use cases",
+      "items": [
+        { "t": "Automating email authentication: DNS-as-code, CI/CD and ESP integration", "d": "Scripts and pipelines that make authentication reproducible instead of a one-off console afternoon." },
+        { "t": "Transactional email deliverability at scale", "d": "Onboarding and notification flows, segmentation, and staying compliant while staying in the inbox." },
+        { "t": "Privacy-first email deliverability: combining ZK proofs with compliant sending", "d": "Verified-yet-private sender reputation. The crossover piece, shared with the ZK tab." }
+      ]
+    }
+  ]
+}

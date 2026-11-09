@@ -1,0 +1,214 @@
+{
+  "tab": "Videos",
+  "intro": "Every video here is a screen recording of something running, not a slide deck. The rule from the pipeline holds: show the terminal before explaining it, because the proof earns the explanation. Grouped into series, because a series gets subscribed to and a loose video does not.",
+  "groups": [
+    {
+      "title": "Series: Proxies, one pattern at a time",
+      "note": "The strongest series you can ship. Each episode is one pattern, built live, broken live.",
+      "items": [
+        {
+          "t": "Delegatecall storage collision in five minutes",
+          "d": "The shortest possible demonstration of why proxy storage layout matters. The hook for the whole series."
+        },
+        {
+          "t": "Minimal proxy (EIP-1167) assembly deep dive",
+          "d": "Read the 45 bytes of runtime code opcode by opcode, then deploy a clone with it."
+        },
+        {
+          "t": "Transparent versus UUPS, built side by side",
+          "d": "Two proxies, one admin-collision bug, demonstrated rather than described."
+        },
+        {
+          "t": "Beacon proxy: upgrading a hundred contracts at once",
+          "d": "Deploy many, upgrade once, show every instance change behaviour in the same transaction."
+        },
+        {
+          "t": "Bricking a UUPS proxy live",
+          "d": "Uninitialised implementation plus selfdestruct, and the recovery that does not exist."
+        },
+        {
+          "t": "Diamond proxy: adding and removing a facet on camera",
+          "d": "DiamondCut in practice, with the loupe showing the facet set change."
+        }
+      ]
+    },
+    {
+      "title": "Series: Live exploits",
+      "note": "Each episode: the vulnerable contract, the exploit test going green, then the fix. Twelve to twenty minutes.",
+      "items": [
+        {
+          "t": "Reentrancy on a minimal staking contract",
+          "d": "The canonical bug, done properly, with the guard added afterwards and the test still passing."
+        },
+        {
+          "t": "Merkle airdrop replay, on camera",
+          "d": "The video treatment of the article in Web3 Topics: one valid proof claimed twice because a leaf was never marked spent."
+        },
+        {
+          "t": "Signature replay across forks, demonstrated on two chains",
+          "d": "The video treatment of the article in Web3 Topics — the same signature accepted twice, then chainId binding closing it live."
+        },
+        {
+          "t": "Forging signatures with invalid v values",
+          "d": "ecrecover returning an unexpected address, and the check that was missing."
+        },
+        {
+          "t": "Selfdestruct, live: force-feeding ETH to break an accounting assumption",
+          "d": "The video treatment of the article in Web3 Topics — force-fed balance breaking an invariant, on camera, in under ten minutes."
+        },
+        {
+          "t": "Front-running simulation with vm.prank and vm.txGasPrice",
+          "d": "Building the mempool race inside Foundry so the MEV is reproducible."
+        },
+        {
+          "t": "Sandwiching a swap on your own AMM",
+          "d": "Front-run, victim transaction, back-run — with the extracted value printed."
+        },
+        {
+          "t": "The inflation attack on an ERC-4626 vault",
+          "d": "First-depositor donation, rounding, and the three defences compared on camera."
+        },
+        {
+          "t": "Calldata bomb: DoSing a contract with an oversized payload",
+          "d": "Gas exhaustion as an availability attack rather than a theft."
+        },
+        {
+          "t": "From phishing to drain: a key compromise simulation",
+          "d": "The non-code half of security, walked through end to end."
+        }
+      ]
+    },
+    {
+      "title": "Series: EVM under the hood",
+      "note": "Short, dense, highly linkable. These age well and get embedded in other people's posts.",
+      "items": [
+        {
+          "t": "Assembly debugging: reading raw calldata",
+          "d": "Decode a real transaction's calldata by hand before letting a tool do it."
+        },
+        {
+          "t": "Reading another contract's private variables with vm.load",
+          "d": "Two minutes, one slot, and the end of 'private means hidden'."
+        },
+        {
+          "t": "Deploying the same contract at two addresses with create2",
+          "d": "Salt, init code hash, and the address computed before deployment."
+        },
+        {
+          "t": "Fallback versus receive, four sends on screen",
+          "d": "The video treatment of the article in Web3 Topics: four cases, with the dispatch decision shown for each."
+        },
+        {
+          "t": "Gas profiling: bytes32 versus string in a loop",
+          "d": "The gas report before and after, with the reason in the opcodes."
+        },
+        {
+          "t": "Bitwise flags in a single uint256",
+          "d": "Packing eight booleans into one slot and watching the gas drop."
+        },
+        {
+          "t": "Forge fuzz test: finding an overflow you did not know existed",
+          "d": "Write the invariant, let the fuzzer find the counterexample, read the shrunk case."
+        },
+        {
+          "t": "Why custom errors are cheaper, in the bytecode",
+          "d": "Compile both, diff the output, and show where the string went."
+        }
+      ]
+    },
+    {
+      "title": "Series: Build it from scratch",
+      "note": "Longer format, 30 to 45 minutes. These convert viewers into subscribers because they are genuinely useful to follow along with.",
+      "items": [
+        {
+          "t": "A minimal multisig, no OpenZeppelin",
+          "d": "Signature collection, threshold and replay protection, written live."
+        },
+        {
+          "t": "A time lock with queue and execute",
+          "d": "Delay, grace period and cancellation, including the window where governance attacks live."
+        },
+        {
+          "t": "A minimal ERC-20 in pure Yul",
+          "d": "No Solidity at all — the fastest way to stop guessing about the EVM."
+        },
+        {
+          "t": "Building your own multicall",
+          "d": "Aggregation plus the msg.sender subtlety that makes naive versions dangerous."
+        },
+        {
+          "t": "A secure relayer with commit and reveal",
+          "d": "The cross-chain pattern, built and then attacked."
+        },
+        {
+          "t": "A monitoring dashboard for protocol health",
+          "d": "Tenderly and Dune wired to alerts, built live."
+        }
+      ]
+    },
+    {
+      "title": "Series: Explainers with the maths done properly",
+      "note": "Whiteboard-style, where the value is deriving rather than asserting.",
+      "items": [
+        {
+          "t": "Merkle trees and Merkle proofs, derived",
+          "d": "Build the tree by hand, then the proof, then the verification — with the arithmetic visible."
+        },
+        {
+          "t": "Account abstraction, explained with the maths",
+          "d": "ERC-4337 flow, the UserOperation lifecycle, and who pays for what."
+        },
+        {
+          "t": "The Ethereum Yellow Paper, chapter by chapter",
+          "d": "A long-running series. Nobody has done this well, and the first three episodes would rank for years."
+        },
+        {
+          "t": "Mastering Ethereum, chapter by chapter",
+          "d": "The approachable companion series to the Yellow Paper one."
+        },
+        {
+          "t": "Uniswap V3 ticks and Q64.96, on a whiteboard",
+          "d": "The fixed-point maths that confuses everyone, derived from scratch."
+        },
+        {
+          "t": "The 63/64 gas rule, visualised",
+          "d": "Why a guard that relied on running out of gas stopped working."
+        },
+        {
+          "t": "Seven-layer security model for cross-chain",
+          "d": "The framework, then a real bridge mapped onto it."
+        }
+      ]
+    },
+    {
+      "title": "Series: Audit walkthroughs",
+      "note": "The format that gets you hired, because it is the job performed in public.",
+      "items": [
+        {
+          "t": "Auditing a bridge contract: live walkthrough",
+          "d": "One contract, one hour, thinking out loud including the dead ends."
+        },
+        {
+          "t": "Finding five bugs in one hour",
+          "d": "A deliberately seeded codebase, timed, with the method narrated."
+        },
+        {
+          "t": "Foundry fork testing: simulating mainnet conditions",
+          "d": "Forking at a block, impersonating a whale, and reproducing a real incident."
+        },
+        {
+          "t": "Post-mortem writing workshop: from exploit to report",
+          "d": "Turning a finding into the deliverable a client pays for."
+        },
+        {
+          "t": "Web3 attack vectors playlist: reentrancy first",
+          "d": "Start with what the class is, then work through the post-mortems. The playlist is the product."
+        },
+        {
+          "t": "CTF playlist with proper explanations",
+          "d": "Damn Vulnerable DeFi and Ethernaut, solved slowly, with the reasoning kept in."
+        }
+      ]
+    }
+  ]
+}

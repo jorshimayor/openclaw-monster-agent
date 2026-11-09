@@ -1,0 +1,51 @@
+{
+  "tab": "AI Topics",
+  "intro": "AI engineering, and the place it meets your security work. The crossover is the differentiator: plenty of people build agents and plenty audit contracts, and almost nobody measures an agent doing the auditing.",
+  "groups": [
+    {
+      "title": "AI engineering",
+      "note": "Most of these are fellowship labs you are doing anyway. A lab plus a result is an article you already paid for.",
+      "items": [
+        { "t": "Tool calling breaks on malformed output — what a schema validator actually has to handle", "d": "A two-tool pipeline with strict validation, every malformed response over a hundred runs logged and classified. The taxonomy of failures is the contribution; everyone writes the happy path." },
+        { "t": "An MCP server for your own tools, and what exposing them costs you", "d": "Re-expose two tools behind MCP and compare integration effort, latency and failure surface against direct calling. You run MCP in production; the cost side is unwritten." },
+        { "t": "The harness is the product: evaluating an agent you built", "d": "Run your auditor against targets you solved by hand and record found, missed and wrongly discarded. That table is the eval harness. Agent demos are everywhere; agent evaluations are not." },
+        { "t": "RAG over your own documents, and the retrieval failures nobody screenshots", "d": "Twenty queries it answers wrongly, each classified by cause — chunking, embedding or reranking. The failure gallery is the piece." },
+        { "t": "What finetuning actually bought me, measured against a better prompt", "d": "One task, baselined with prompting then finetuned, with cost, latency and quality side by side — including the case where prompting won. The honest negative result is rarer and more linkable." },
+        { "t": "Structured outputs: forcing clean JSON out of a model", "d": "Schemas, retries and repair, with the failure rate before and after." },
+        { "t": "Context windows, tokens and what you are actually paying for", "d": "Tokenisation made concrete, priced per request, for people who have only seen the marketing number." },
+        { "t": "Prompt templates as a library, not as strings in a file", "d": "Versioning, testing and diffing prompts the way you would any other interface." },
+        { "t": "Models and hardware: a practical reference", "d": "What runs locally, what needs an API, and the quality cliff between them for your actual workload." }
+      ]
+    },
+    {
+      "title": "AI for security — your differentiator",
+      "note": "This cluster is the strongest position available to you right now. Nobody credible is publishing honest numbers here.",
+      "items": [
+        { "t": "I pointed an AI auditor at bugs I had already solved by hand. Here is what it missed.", "d": "Five hand-solved targets, with found, missed and wrongly discarded published, plus the PoC prompt that failed in each case. Every AI audit tool publishes what it found; none publish what they missed." },
+        { "t": "The discard pile is the product: tuning an AI auditor's false-positive gate", "d": "Open a run's discards, decide for each whether the gate was right or the prompt failed, and make one tuning change justified by a specific discard. The commit is the artifact." },
+        { "t": "Turning a Solodit finding into an executable invariant", "d": "Ten findings restated as assertions a fuzzer can break. 'Accounting should be correct' is not an invariant; 'totalBorrows + cash == totalSupplied - reserves' is." },
+        { "t": "Browsing for bugs: what the Zellic Premia find teaches about agent-assisted auditing", "d": "Read their $3M write-up as a method, then try the method on a live scope and report whether it transfers." },
+        { "t": "Writing a detector: Cyfrin's detector API in practice", "d": "Build one real detector for a bug class you have seen twice, and measure its false-positive rate on real code." },
+        { "t": "AI-assisted CTF solving: where it helps and where it hallucinates", "d": "Run an agent at CTF levels you have already solved, and classify its reasoning failures." }
+      ]
+    },
+    {
+      "title": "Twelve-week AI roadmap",
+      "note": "Preserved from the previous version of this tab. Each week: study, a small build, an article and a video, producing one public deliverable.",
+      "items": [
+        { "t": "Week 1 — Foundations: LLM basics and prompt engineering", "d": "Study tokens, context windows and sampling. Build a tiny CLI that calls an LLM API. Deliverable: prompt-cli repo, blog post, 5-minute video." },
+        { "t": "Week 2 — APIs and structured outputs", "d": "Study JSON mode, temperature and retries. Build an API wrapper that always returns valid JSON. Deliverable: public wrapper repo plus an 8-minute video." },
+        { "t": "Week 3 — Prompt templates for real primitives", "d": "Templates for email, hero copy and summaries. Build a prompt library with a small web UI. Deliverable: a deployed site plus blog post." },
+        { "t": "Week 4 — Retrieval basics", "d": "Embeddings, chunking and vector stores. Build search over your own notes. Deliverable: repo plus a write-up of what retrieval got wrong." },
+        { "t": "Week 5 — RAG end to end", "d": "Reranking and citation. Build RAG that cites its sources. Deliverable: a demo plus the failure gallery." },
+        { "t": "Week 6 — Tool calling and MCP", "d": "Function schemas, validation and error handling. Build a two-tool pipeline, then expose it behind MCP. Deliverable: repo plus the integration comparison." },
+        { "t": "Week 7 — Agents and loops", "d": "Planning, memory and termination. Build an agent that completes a multi-step task. Deliverable: repo plus a post on where the loop fails." },
+        { "t": "Week 8 — Evaluation", "d": "Building a harness, scoring, and regression tests for prompts. Deliverable: the eval harness as a repo — this is the week that matters most." },
+        { "t": "Week 9 — Finetuning", "d": "When it beats prompting, and the dataset work it actually requires. Deliverable: a measured comparison." },
+        { "t": "Week 10 — Dataset engineering", "d": "Collection, cleaning and labelling, with the cost per example written down. Deliverable: a documented dataset." },
+        { "t": "Week 11 — Deployment and cost", "d": "Latency, caching, batching and spend per request. Deliverable: a deployed service with a cost model." },
+        { "t": "Week 12 — Applying it to security", "d": "Point everything built so far at the auditor. Deliverable: the agent evaluation that anchors the whole series." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "tab": "ZK Topics",
+  "intro": "Zero-knowledge, from Semaphore as the concrete entry point through to circuit auditing. The specialisation with the fewest competent people in it, which is exactly why it pays.",
+  "groups": [
+    {
+      "title": "Semaphore — intermediate",
+      "note": "Anonymous signalling as the way into ZK that produces working code in a week rather than a month.",
+      "items": [
+        {
+          "t": "Semaphore identities 101: building secure anonymous credentials from trapdoor and nullifier",
+          "d": "Identity creation, commitment generation, and why two secrets rather than one. Ships with @semaphore-protocol/identity code."
+        },
+        {
+          "t": "Getting started with Semaphore groups: Merkle trees for scalable anonymous membership",
+          "d": "Incremental trees, adding and removing members, and choosing depth — with the anonymity-set argument for why depth matters."
+        },
+        {
+          "t": "Anonymous signalling with Semaphore: from votes to endorsements in dApps",
+          "d": "Generating and verifying proofs with scope and message, demonstrated on private polling."
+        },
+        {
+          "t": "Integrating Semaphore with Ethereum dApps",
+          "d": "Full-stack boilerplate: Hardhat, frontend SDK and on-chain verification, end to end."
+        }
+      ]
+    },
+    {
+      "title": "Semaphore — advanced",
+      "items": [
+        {
+          "t": "Deep dive into Semaphore circuits: Groth16, Poseidon and proof generation",
+          "d": "Membership, nullifier and message components, witness generation, and performance benchmarks you ran yourself."
+        },
+        {
+          "t": "Preventing double-signalling: nullifiers, scope and replay mitigation",
+          "d": "How the nullifier hash is derived, what the on-chain check must enforce, and the edge cases that break it."
+        },
+        {
+          "t": "Scaling Semaphore to millions: Merkle forests, PIR and proof delegation",
+          "d": "Where the naive design stops working, what each optimisation costs in gas, and which are production-ready."
+        }
+      ]
+    },
+    {
+      "title": "ZK security auditing",
+      "note": "Feeds the ZK specialisation in the Web3 Security tab. Circuit bugs are under-constrained systems, not wrong arithmetic — that framing is the article.",
+      "items": [
+        {
+          "t": "Under-constrained circuits: the bug class that has no Solidity equivalent",
+          "d": "A circuit that proves something weaker than intended, reduced to a minimal reproduction in Circom."
+        },
+        {
+          "t": "Soundness versus completeness, for people who audit",
+          "d": "What each failure lets an attacker do, stated as impact rather than as definition."
+        },
+        {
+          "t": "Trusted setup: what you are actually trusting",
+          "d": "Ceremony structure, toxic waste, and what a compromised setup buys an attacker."
+        },
+        {
+          "t": "Auditing a ZK application end to end",
+          "d": "Circuit, verifier contract and the glue between — with the seam between them as the most common finding."
+        },
+        {
+          "t": "zk.golf and the art of the minimal circuit",
+          "d": "Code-golfing constraints as a way to learn what each one costs."
+        }
+      ]
+    },
+    {
+      "title": "Crossovers",
+      "note": "Where ZK meets your other specialisms. Small audiences, but almost no competition and very linkable.",
+      "items": [
+        {
+          "t": "ZK proofs for verified-yet-private sender reputation",
+          "d": "The ZK half of the crossover piece written up in the Email tab: proving sender reputation without disclosing the sending history behind it."
+        },
+        {
+          "t": "ZK validity bridges: are they really trustless?",
+          "d": "What a validity proof removes from a bridge's trust assumptions and what it quietly leaves behind."
+        },
+        {
+          "t": "Post-quantum considerations for ZK systems",
+          "d": "Which schemes survive, which do not, and the migration nobody has planned."
+        }
+      ]
+    }
+  ]
+}
