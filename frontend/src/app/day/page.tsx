@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, ApiError, type DayBlock, type DayItem, type DayView } from "@/lib/api";
+import {
+  api,
+  ApiError,
+  type BlockPlan,
+  type DayBlock,
+  type DayItem,
+  type DayView,
+  type PlanItem
+} from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,51 +22,34 @@ import {
 import { cn } from "@/lib/utils";
 
 /**
- * The day, drawn to scale.
+ * The day, drawn to scale — one column, detail on demand.
  *
- * Every block is positioned and sized by its real start and end, so a quarter
- * hour is a sliver and a ninety minute deep block is six times taller.
+ * Blocks are positioned and sized by their real start and end, so a quarter
+ * hour is a sliver and a ninety-minute block is six times taller.
  *
- * Two layers, deliberately distinct. The blocks are your timetable template,
- * read from the sheet: the *shape* of the day. It repeats daily and is not
- * tracked, because turning twenty-one recurring blocks into twenty-one
- * commitments would mean twenty-one things nagging you every morning. Ticking
- * one is recorded for that date only and never written back to the sheet.
+ * The previous version put commitments in a lane beside the blocks, and wrote
+ * each block's plan inside the block. Those two things come from the same
+ * place: the rotation files a commitment from a theme, and the same theme's
+ * tasks are attached to the block it belongs to. So six of ten cards were a
+ * second rendering of text already on screen, in a parallel column, both
+ * truncated to fit. That is what made it unreadable.
  *
- * Commitments — study picks, tasks, reminders, anything you add — sit beside
- * the blocks they fall in. Drag one and it reschedules to where you dropped
- * it, snapped to the quarter hour.
+ * Now there is one column. A commitment belongs to the block its time falls
+ * in; where it repeats a line of that block's plan, the commitment wins —
+ * it is the trackable one. The row says what the hour is for and how much is
+ * in it; opening a block gives the whole of it, links and actions included.
  *
- * Two layout decisions do most of the work here:
- *
- *   - A sixteen hour day at a readable scale is far taller than a screen, so
- *     on a wide one it is split into two columns side by side, the way a
- *     printed timetable is. The seam is placed on a block boundary so nothing
- *     is ever cut in half.
- *   - The commitments lane only exists in a column that has commitments.
- *     Reserving half the width for it permanently left most of the screen as
- *     empty ruled lines on a day with nothing booked.
- *
- * Drag-and-drop is the native HTML5 API rather than a library — one dependency
- * not added, and it degrades to the time field on touch devices.
+ * Drag-and-drop is the native HTML5 API rather than a library. Blocks are the
+ * drop targets: dropping something on a block moves it to that block's start,
+ * which is the only time anyone ever actually wants.
  */
 
 /** Pixels per minute. The timeline is this one number times a duration. */
 const DENSITY = { compact: 0.85, comfortable: 1.45 } as const;
 type Density = keyof typeof DENSITY;
 
-const SNAP_MINUTES = 15;
-/** A commitment is a point in time, not a span, so every card is this tall. */
-const ITEM_HEIGHT = 56;
-const ITEM_GAP = 4;
 /** Below this the day is one column; above it, two. */
-const SPLIT_QUERY = "(min-width: 1280px)";
-/**
- * Below this there is no room for a lane beside the blocks: at 375px it
- * squeezed the blocks to a sliver and their labels disappeared. On a phone the
- * commitments go under the timeline as a list instead.
- */
-const NARROW_QUERY = "(max-width: 639px)";
+const SPLIT_QUERY = "(min-width: 1120px)";
 /** A day shorter than this is not worth splitting. */
 const MIN_SPLIT_MINUTES = 300;
 const FALLBACK_BOUNDS = { from: 5 * 60, to: 22 * 60 };
@@ -71,54 +62,37 @@ const CATEGORIES = [
   { key: "admin", label: "ADMIN" }
 ];
 
-const SOURCE_TONE: Record<string, string> = {
-  study: "border-l-[var(--theme-accent)]",
-  apply: "border-l-warning",
-  practice: "border-l-success",
-  build: "border-l-matrix",
-  sheet: "border-l-matrix-dim",
-  reminder: "border-l-warning"
-};
-
 /**
- * What kind of hour this is, by what the sheet calls it.
- *
- * Colour carries the one judgement worth making at a glance: how much of the
- * day is focused work rather than upkeep. Keyword matching rather than a column
- * in the sheet, so adding a row needs no extra bookkeeping.
+ * What kind of hour this is, by what the sheet calls it. Colour carries the
+ * one judgement worth making at a glance: how much of the day is focused work
+ * rather than upkeep.
  */
 const TONES = [
   {
-    match: /deep block|study|reading|anchor|bounty|audit|interview|practice/i,
+    match: /deep block|study|reading|anchor|bounty|audit|interview|practice|saa/i,
     bar: "bg-[var(--theme-accent)]",
-    fill: "bg-matrix/[0.08] group-hover:bg-matrix/[0.14]",
-    key: "focus"
+    tint: "bg-matrix/[0.05] group-hover:bg-matrix/[0.1]",
+    dot: "bg-matrix"
   },
   {
     match: /walk|stretch|gym|workout|run|jog|exercise|sleep/i,
     bar: "bg-success",
-    fill: "bg-success/[0.08] group-hover:bg-success/[0.14]",
-    key: "body"
+    tint: "bg-success/[0.05] group-hover:bg-success/[0.1]",
+    dot: "bg-success"
   },
   {
     match: /content|writing|open source|portfolio|build|ship|startup/i,
     bar: "bg-warning",
-    fill: "bg-warning/[0.08] group-hover:bg-warning/[0.14]",
-    key: "make"
+    tint: "bg-warning/[0.05] group-hover:bg-warning/[0.1]",
+    dot: "bg-warning"
   }
 ] as const;
 
 const UPKEEP = {
-  bar: "bg-matrix-dim/50",
-  fill: "bg-bg-panel group-hover:bg-matrix/[0.06]",
-  key: "upkeep"
+  bar: "bg-matrix-dim/40",
+  tint: "bg-transparent group-hover:bg-matrix/[0.04]",
+  dot: "bg-matrix-dim/50"
 } as const;
-
-const LEGEND = [
-  { key: "focus", label: "FOCUS", dot: "bg-matrix" },
-  { key: "body", label: "BODY", dot: "bg-success" },
-  { key: "make", label: "MAKE", dot: "bg-warning" }
-];
 
 function toneFor(label: string) {
   return TONES.find((t) => t.match.test(label)) ?? UPKEEP;
@@ -141,18 +115,40 @@ function shiftDate(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+const URL_IN_TEXT = /https?:\/\/[^\s<>"')\]]+/g;
+
 /**
- * Fill in anything an older backend did not send.
+ * Same work, written twice.
  *
- * A Worker deploy goes live well before the container behind it restarts, so
- * for a few minutes the page can be served new while the API is still old.
- * Deriving the end from the duration — the same rule the backend uses — keeps
- * the timeline drawable across that window instead of collapsing every block
- * to a NaN height.
+ * One side is a task line with its url already split off; the other is the
+ * commitment title derived from that same line, url still attached. Comparing
+ * the raw text therefore never matches — strip urls from both first, and allow
+ * one to be a prefix of the other, because a title is sometimes the task line
+ * plus a trailing clause.
+ */
+function sameWork(a: string, b: string): boolean {
+  const n = (s: string) =>
+    s.replace(URL_IN_TEXT, " ").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const x = n(a);
+  const y = n(b);
+  // Short strings collide by accident — "break" is a block label and a task.
+  if (x.length < 12 || y.length < 12) return x === y;
+  return x === y || x.startsWith(y) || y.startsWith(x);
+}
+
+function linksIn(...parts: (string | null | undefined)[]): string[] {
+  const found = parts.join(" ").match(URL_IN_TEXT) ?? [];
+  return [...new Set(found.map((u) => u.replace(/[.,;)]+$/, "")))];
+}
+
+/**
+ * Fill in anything an older backend did not send. A Worker deploy goes live
+ * well before the container behind it restarts, so for a few minutes the page
+ * can be served new while the API is still old.
  */
 function normalize(blocks: DayBlock[]): DayBlock[] {
   return blocks.map((b, i) => {
-    if (b.end && Number.isFinite(b.minutes)) return b;
+    if (b.end && Number.isFinite(b.minutes)) return { ...b, plan: b.plan ?? [] };
     const start = toMinutes(b.start);
     const parsed = /(\d+(?:\.\d+)?)\s*(hour|hr|h|min)/i.exec(b.duration ?? "");
     let minutes = parsed
@@ -164,39 +160,6 @@ function normalize(blocks: DayBlock[]): DayBlock[] {
     }
     return { ...b, minutes, end: b.end || toHHMM(start + minutes), plan: b.plan ?? [] };
   });
-}
-
-/** Any link inside a commitment's own words. */
-const URL_IN_TEXT = /https?:\/\/[^\s<>"')\]]+/g;
-
-function linksIn(...parts: (string | null | undefined)[]): string[] {
-  const found = parts.join(" ").match(URL_IN_TEXT) ?? [];
-  return [...new Set(found.map((u) => u.replace(/[.,;)]+$/, "")))];
-}
-
-interface PlanLine {
-  kind: "head" | "item";
-  text: string;
-  url?: string | null;
-}
-
-/**
- * A block's plan, flattened into the lines a card can draw.
- *
- * The theme's name goes above its work, so a block carrying two strands —
- * the day's rotation and the week's cycled theme — reads as two groups rather
- * than one run-on list. The caller slices this to whatever the block's height
- * allows, which is why it is a flat list and not nested markup.
- */
-function planLines(block: DayBlock, withHeads = true): PlanLine[] {
-  const out: PlanLine[] = [];
-  for (const entry of block.plan ?? []) {
-    if (withHeads) out.push({ kind: "head", text: entry.label });
-    for (const item of entry.items ?? []) {
-      out.push({ kind: "item", text: item.text, url: item.url });
-    }
-  }
-  return out;
 }
 
 function readDensity(): Density {
@@ -212,61 +175,43 @@ interface Range {
   to: number;
 }
 
+/** A block with everything that belongs to it, already deduplicated. */
+interface BlockView {
+  block: DayBlock;
+  items: DayItem[];
+  strands: BlockPlan[];
+  /** Plan lines plus commitments — what the row's count means. */
+  count: number;
+}
+
 export default function DayPage() {
   const [date, setDate] = useState<string>("");
-  /**
-   * Which date the backend considers today, taken from a load with no date.
-   * The browser's own UTC date is a day out either side of midnight in your
-   * offset, and the now-line must not appear on the wrong day.
-   */
   const [todayIso, setTodayIso] = useState<string | null>(null);
   const [day, setDay] = useState<DayView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [density, setDensity] = useState<Density>("comfortable");
-  /** Starts at one so the server and the first client render agree. */
   const [columns, setColumns] = useState(1);
-  const [narrow, setNarrow] = useState(false);
   const [dragging, setDragging] = useState<string | null>(null);
-  const [dropAt, setDropAt] = useState<string | null>(null);
+  const [dropOn, setDropOn] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [addTime, setAddTime] = useState("");
   const [category, setCategory] = useState("study");
-  /**
-   * The block whose full plan is open. A card can only ever show as much as
-   * its duration leaves room for, and the long fellowship weeks do not fit —
-   * so the card is a preview and this is the whole of it, links and all.
-   */
-  const [opened, setOpened] = useState<DayBlock | null>(null);
-  /**
-   * The commitment whose detail is open. Same reason as the block dialog: a
-   * card in a 17rem lane shows two clamped lines, and the thing you need —
-   * what to study and the link to study it from — is in the part that was cut.
-   */
-  const [openedItem, setOpenedItem] = useState<DayItem | null>(null);
   const [artifact, setArtifact] = useState("");
   const [rejection, setRejection] = useState<string | null>(null);
+  const [opened, setOpened] = useState<BlockView | null>(null);
   const nowRef = useRef<HTMLDivElement | null>(null);
-  const laneRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   useEffect(() => setDensity(readDensity()), []);
 
   useEffect(() => {
     const wide = window.matchMedia(SPLIT_QUERY);
-    const phone = window.matchMedia(NARROW_QUERY);
-    const sync = () => {
-      setColumns(wide.matches ? 2 : 1);
-      setNarrow(phone.matches);
-    };
+    const sync = () => setColumns(wide.matches ? 2 : 1);
     sync();
     wide.addEventListener("change", sync);
-    phone.addEventListener("change", sync);
-    // Belt and braces: some environments change the viewport without
-    // dispatching the media-query event.
     window.addEventListener("resize", sync);
     return () => {
       wide.removeEventListener("change", sync);
-      phone.removeEventListener("change", sync);
       window.removeEventListener("resize", sync);
     };
   }, []);
@@ -288,7 +233,7 @@ export default function DayPage() {
   }, [load]);
 
   useEffect(() => {
-    const id = setInterval(() => date && load(date), 30000);
+    const id = setInterval(() => date && load(date), 60000);
     return () => clearInterval(id);
   }, [date, load]);
 
@@ -307,10 +252,38 @@ export default function DayPage() {
   };
 
   /**
-   * The window the timeline covers: the hours the day occupies, rounded out to
-   * whole hours, widened to hold any commitment outside the template so
-   * nothing is positioned off-canvas.
+   * Every block with its commitments folded in, and its plan deduplicated
+   * against them. Where the same work appears as both a plan line and a
+   * commitment the commitment wins, because that is the one you can close.
    */
+  const views = useMemo<BlockView[]>(() => {
+    const items = day?.items ?? [];
+    return blocks.map((block) => {
+      const from = toMinutes(block.start);
+      const to = toMinutes(block.end);
+      const mine = items.filter((i) => {
+        const at = toMinutes(i.local_time);
+        return at >= from && at < to;
+      });
+      const strands = block.plan
+        .map((strand) => ({
+          ...strand,
+          items: strand.items.filter(
+            (line) => !mine.some((i) => sameWork(i.title, line.text))
+          )
+        }))
+        .filter((s) => s.items.length > 0 || s.unavailable);
+      const planCount = strands.reduce((n, s) => n + s.items.length, 0);
+      return { block, items: mine, strands, count: planCount + mine.length };
+    });
+  }, [blocks, day]);
+
+  /** Commitments whose time falls in no block at all. */
+  const orphans = useMemo(() => {
+    const claimed = new Set(views.flatMap((v) => v.items.map((i) => i.id)));
+    return (day?.items ?? []).filter((i) => !claimed.has(i.id));
+  }, [views, day]);
+
   const bounds = useMemo(() => {
     let from = blocks.length
       ? Math.min(...blocks.map((b) => toMinutes(b.start)))
@@ -318,11 +291,6 @@ export default function DayPage() {
     let to = blocks.length
       ? Math.max(...blocks.map((b) => toMinutes(b.end)))
       : FALLBACK_BOUNDS.to;
-    for (const item of day?.items ?? []) {
-      const at = toMinutes(item.local_time);
-      from = Math.min(from, at);
-      to = Math.max(to, at + 30);
-    }
     if (isToday) {
       from = Math.min(from, nowMinutes);
       to = Math.max(to, nowMinutes + 15);
@@ -330,12 +298,9 @@ export default function DayPage() {
     from = Math.floor(from / 60) * 60;
     to = Math.ceil(to / 60) * 60;
     return { from, to, span: Math.max(to - from, 60) };
-  }, [blocks, day, isToday, nowMinutes]);
+  }, [blocks, isToday, nowMinutes]);
 
-  /**
-   * One range per column. The seam goes on the start of the first block past
-   * the midpoint, so a column break never lands inside a block.
-   */
+  /** One range per column, split on a block boundary so nothing is cut. */
   const ranges: Range[] = useMemo(() => {
     if (columns === 1 || bounds.span < MIN_SPLIT_MINUTES) {
       return [{ from: bounds.from, to: bounds.to }];
@@ -350,61 +315,36 @@ export default function DayPage() {
     ];
   }, [columns, bounds, blocks]);
 
-  /** Everything each column needs, already placed. */
-  const panes = useMemo(() => {
-    return ranges.map((range) => {
-      const within = blocks.filter((b) => {
-        const s = toMinutes(b.start);
-        return s >= range.from && s < range.to;
-      });
-
-      // Commitments that would land on top of each other are pushed down
-      // rather than squeezed side by side: six narrow columns is six
-      // unreadable ones, and the card carries its real time anyway.
-      let cursor = -Infinity;
-      const placed = (day?.items ?? [])
-        .filter((i) => {
-          const t = toMinutes(i.local_time);
-          return t >= range.from && t < range.to;
-        })
-        .sort((a, b) => a.local_time.localeCompare(b.local_time))
-        .map((item) => {
-          const at = (toMinutes(item.local_time) - range.from) * pxPerMin;
-          const top = Math.max(at, cursor);
-          cursor = top + ITEM_HEIGHT + ITEM_GAP;
-          return { item, top, nudged: top > at + 1 };
-        });
-
-      const hours: number[] = [];
-      for (let m = Math.ceil(range.from / 60) * 60; m <= range.to; m += 60) hours.push(m);
-
-      return {
-        range,
-        blocks: within,
-        placed,
-        hours,
-        bottom: placed.length ? cursor : 0
-      };
-    });
-  }, [ranges, blocks, day, pxPerMin]);
+  const panes = useMemo(
+    () =>
+      ranges.map((range) => {
+        const hours: number[] = [];
+        for (let m = Math.ceil(range.from / 60) * 60; m <= range.to; m += 60) hours.push(m);
+        return {
+          range,
+          hours,
+          views: views.filter((v) => {
+            const s = toMinutes(v.block.start);
+            return s >= range.from && s < range.to;
+          })
+        };
+      }),
+    [ranges, views]
+  );
 
   const paneHeight = useMemo(
-    () =>
-      Math.max(
-        ...panes.map((p) =>
-          Math.max((p.range.to - p.range.from) * pxPerMin, p.bottom)
-        )
-      ),
-    [panes, pxPerMin]
+    () => Math.max(...ranges.map((r) => (r.to - r.from) * pxPerMin)),
+    [ranges, pxPerMin]
   );
 
   const current = isToday
-    ? blocks.find(
-        (b) => nowMinutes >= toMinutes(b.start) && nowMinutes < toMinutes(b.end)
+    ? views.find(
+        (v) =>
+          nowMinutes >= toMinutes(v.block.start) && nowMinutes < toMinutes(v.block.end)
       )
     : undefined;
   const upNext = isToday
-    ? blocks.find((b) => toMinutes(b.start) > nowMinutes)
+    ? views.find((v) => toMinutes(v.block.start) > nowMinutes)
     : undefined;
 
   const progress = useMemo(() => {
@@ -413,7 +353,6 @@ export default function DayPage() {
     return { total, done, pct: total ? Math.round((done / total) * 100) : 0 };
   }, [blocks]);
 
-  /** The sheet rows the backend had to correct, so they can be fixed at source. */
   const corrected = blocks.filter(
     (b) => b.meridiem_corrected || b.shifted || b.duration_inferred
   );
@@ -422,26 +361,16 @@ export default function DayPage() {
     nowRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, [day?.date, density, columns]);
 
-  const timeAtY = (pane: number, clientY: number): string => {
-    const rect = laneRefs.current[pane]?.getBoundingClientRect();
-    const range = ranges[pane];
-    if (!rect || !range) return toHHMM(bounds.from);
-    const raw = range.from + (clientY - rect.top) / pxPerMin;
-    const snapped = Math.round(raw / SNAP_MINUTES) * SNAP_MINUTES;
-    return toHHMM(Math.min(Math.max(snapped, bounds.from), bounds.to));
-  };
+  // --- actions ------------------------------------------------------------
 
-  const drop = async (at: string) => {
-    if (!dragging || !day) return;
+  const act = async (fn: () => Promise<unknown>) => {
     setBusy(true);
-    setDropAt(null);
     try {
-      await api.moveDayItem(dragging, at, day.date);
-      await load(day.date);
+      await fn();
+      await load(day?.date);
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setDragging(null);
       setBusy(false);
     }
   };
@@ -449,8 +378,7 @@ export default function DayPage() {
   const toggleBlock = async (block: DayBlock) => {
     if (!day) return;
     setBusy(true);
-    // Optimistic: ticking a block is the fastest interaction on the page and
-    // should not wait on a round trip.
+    // Optimistic: ticking a block is the fastest interaction on the page.
     setDay({
       ...day,
       blocks: day.blocks.map((b) =>
@@ -465,6 +393,13 @@ export default function DayPage() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const drop = async (block: DayBlock) => {
+    if (!dragging || !day) return;
+    setDropOn(null);
+    await act(() => api.moveDayItem(dragging, block.start, day.date));
+    setDragging(null);
   };
 
   const add = async (e: React.FormEvent) => {
@@ -488,14 +423,14 @@ export default function DayPage() {
     }
   };
 
-  const close = async (item: DayItem) => {
+  const closeItem = async (item: DayItem) => {
     setBusy(true);
     setRejection(null);
     try {
       await api.completeCommitment(item.short_id, { artifact_text: artifact });
       setArtifact("");
-      setOpenedItem(null);
       await load(day?.date);
+      setOpened(null);
     } catch (e) {
       const err = e as ApiError;
       setRejection(err.status === 422 ? err.message : `Could not close: ${err.message}`);
@@ -504,82 +439,136 @@ export default function DayPage() {
     }
   };
 
-  const act = async (fn: () => Promise<unknown>) => {
-    setBusy(true);
-    try {
-      await fn();
-      await load(day?.date);
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const proposed = (day?.items ?? []).filter((i) => i.status === "proposed");
 
-  const renderItem = (
-    { item, top, nudged }: { item: DayItem; top: number; nudged: boolean },
-    positioned = true
-  ) => (
-    <div
-      key={item.id}
-      className={cn(positioned ? "absolute inset-x-0 z-10" : "relative")}
-      style={positioned ? { top } : undefined}
-    >
+  // --- pieces -------------------------------------------------------------
+
+  /** The strand tags on a row: what this hour is for, without the content. */
+  const tags = (view: BlockView) => {
+    const names = view.strands.map((s) => s.label.split(" · ")[0]);
+    for (const i of view.items) {
+      const n = i.source.replace(/-/g, " ");
+      if (!names.some((x) => x.toLowerCase().startsWith(n.slice(0, 6)))) names.push(n);
+    }
+    return [...new Set(names)].slice(0, 2);
+  };
+
+  const planItemRow = (line: PlanItem, i: number, muted = false) => (
+    <li key={i} className={cn("border-l pl-3", muted ? "border-danger/40" : "border-matrix/25")}>
+      <p className={cn("text-xs leading-relaxed", muted && "text-danger")}>{line.text}</p>
+      {line.url && (
+        <a
+          href={line.url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-0.5 inline-block break-all text-[11px] text-matrix underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
+        >
+          {line.url}
+        </a>
+      )}
+    </li>
+  );
+
+  const itemCard = (item: DayItem, draggable = false) => {
+    const links = linksIn(item.title, item.detail);
+    return (
       <div
-        draggable
-        onDragStart={() => setDragging(item.short_id)}
-        onDragEnd={() => {
-          setDragging(null);
-          setDropAt(null);
-        }}
-        onClick={() => setOpenedItem(item)}
-        title={`${item.title} — click for the detail`}
-        style={{ height: positioned ? ITEM_HEIGHT - ITEM_GAP : undefined }}
+        key={item.id}
+        draggable={draggable}
+        onDragStart={draggable ? () => setDragging(item.short_id) : undefined}
+        onDragEnd={draggable ? () => { setDragging(null); setDropOn(null); } : undefined}
         className={cn(
-          "cursor-pointer overflow-hidden rounded-md border border-bg-border border-l-2 bg-bg px-2.5 py-1.5 text-xs shadow-sm transition-colors hover:border-matrix/50 active:cursor-grabbing",
-          SOURCE_TONE[item.source] ?? "border-l-matrix/40",
-          dragging === item.short_id && "opacity-40",
-          item.status === "done" && "opacity-50 line-through",
-          item.overdue_sec > 0 && item.status === "open" && "border-danger/50"
+          "rounded-md border border-bg-border border-l-2 bg-bg/60 p-3",
+          item.status === "done" && "opacity-50",
+          item.overdue_sec > 0 && item.status === "open" && "border-l-danger",
+          item.status === "proposed" ? "border-l-warning" : "border-l-matrix/50",
+          draggable && "cursor-grab active:cursor-grabbing"
         )}
       >
         <div className="flex items-start justify-between gap-2">
-          <span className={cn("min-w-0 leading-snug", positioned && "line-clamp-2")}>
+          <p className={cn("text-xs leading-relaxed", item.status === "done" && "line-through")}>
             {item.title}
-          </span>
-          <span className="flex shrink-0 items-center gap-1.5">
-            {item.status === "proposed" && <Badge variant="warning">PROPOSED</Badge>}
-            {item.status === "done" && <Badge variant="success">DONE</Badge>}
-          </span>
+          </p>
+          <Badge
+            variant={
+              item.status === "done"
+                ? "success"
+                : item.status === "proposed"
+                  ? "warning"
+                  : "default"
+            }
+          >
+            {item.status.toUpperCase()}
+          </Badge>
         </div>
-        <div className="truncate text-[9px] font-mono text-matrix-dim/70 tabular-nums">
+        <p className="mt-1 font-mono text-[10px] text-matrix-dim tabular-nums">
           {item.local_time}
-          {nudged && (
-            <span title="Shown below its slot so it is not hidden behind another card">
-              {" "}
-              ↓
-            </span>
-          )}
-          {linksIn(item.title, item.detail).length > 0 && (
-            <span className="text-matrix" title="Has links — open it to follow them">
-              {" "}
-              ↗
-            </span>
-          )}
           {item.detail && <span className="font-sans"> · {item.detail}</span>}
+        </p>
+        {links.map((url) => (
+          <a
+            key={url}
+            href={url}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 block break-all text-[11px] text-matrix underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
+          >
+            {url}
+          </a>
+        ))}
+
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {item.status === "proposed" && (
+            <Button
+              size="sm"
+              variant="matrix"
+              disabled={busy}
+              onClick={() => act(() => api.approveCommitment(item.short_id))}
+            >
+              ✓ APPROVE
+            </Button>
+          )}
+          {item.status === "open" && (
+            <>
+              <Button
+                size="sm"
+                variant="matrix"
+                disabled={busy || !artifact.trim()}
+                onClick={() => closeItem(item)}
+              >
+                ✓ CLOSE
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => act(() => api.snoozeCommitment(item.short_id, 30))}
+              >
+                😴 30M
+              </Button>
+            </>
+          )}
+          {item.status !== "done" && (
+            <Button
+              size="sm"
+              variant="destructive"
+              disabled={busy}
+              onClick={() => act(() => api.dropCommitment(item.short_id))}
+            >
+              DROP
+            </Button>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-wider glow-text">⟨ THE DAY ⟩</h1>
-          <p className="text-xs text-matrix-dim mt-1 tracking-widest">
+          <p className="mt-1 text-xs tracking-widest text-matrix-dim">
             {day ? `${day.weekday.toUpperCase()} · ${day.date}` : "LOADING…"}
             {isToday && day && ` · ${day.now_local}`}
           </p>
@@ -608,49 +597,56 @@ export default function DayPage() {
       </div>
 
       {error && (
-        <div className="text-xs text-danger border border-danger/40 bg-danger/10 rounded px-4 py-2.5">
+        <div className="rounded border border-danger/40 bg-danger/10 px-4 py-2.5 text-xs text-danger">
           {error}
         </div>
       )}
       {day?.block_error && (
-        <div className="text-[11px] text-matrix-dim border border-matrix/20 rounded px-4 py-2">
+        <div className="rounded border border-matrix/20 px-4 py-2 text-[11px] text-matrix-dim">
           Your timetable shape isn&apos;t showing: {day.block_error}. Items still work.
         </div>
       )}
 
-      {/* Where you are right now, which is the only thing worth reading first. */}
       {isToday && (current || upNext) && (
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-matrix/30 bg-matrix/[0.04] rounded px-4 py-3">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded border border-matrix/30 bg-matrix/[0.04] px-4 py-3">
           {current ? (
             <div className="min-w-0">
-              <div className="text-[10px] text-matrix-dim tracking-widest">NOW</div>
-              <div className="text-sm truncate">
-                {current.label}
-                <span className="text-matrix-dim text-xs">
+              <div className="text-[10px] tracking-widest text-matrix-dim">NOW</div>
+              <button
+                type="button"
+                onClick={() => setOpened(current)}
+                className="truncate text-left text-sm hover:text-matrix"
+              >
+                {current.block.label}
+                <span className="text-xs text-matrix-dim">
                   {" "}
-                  · {Math.max(0, toMinutes(current.end) - nowMinutes)}m left
+                  · {Math.max(0, toMinutes(current.block.end) - nowMinutes)}m left
                 </span>
-              </div>
+              </button>
             </div>
           ) : (
             <div className="text-xs text-matrix-dim">Nothing scheduled right now.</div>
           )}
           {upNext && (
             <div className="min-w-0">
-              <div className="text-[10px] text-matrix-dim tracking-widest">NEXT</div>
-              <div className="text-sm truncate">
-                {upNext.start} {upNext.label}
-              </div>
+              <div className="text-[10px] tracking-widest text-matrix-dim">NEXT</div>
+              <button
+                type="button"
+                onClick={() => setOpened(upNext)}
+                className="truncate text-left text-sm hover:text-matrix"
+              >
+                {upNext.block.start} {upNext.block.label}
+              </button>
             </div>
           )}
           <div className="ml-auto flex items-center gap-3">
-            <div className="h-1.5 w-28 rounded-full bg-bg-border overflow-hidden">
+            <div className="h-1.5 w-28 overflow-hidden rounded-full bg-bg-border">
               <div
                 className="h-full bg-matrix transition-[width] duration-500"
                 style={{ width: `${progress.pct}%` }}
               />
             </div>
-            <span className="text-[10px] text-matrix-dim tabular-nums tracking-wider">
+            <span className="text-[10px] tracking-wider text-matrix-dim tabular-nums">
               {progress.pct}% · {Math.round(progress.done / 60)}h of{" "}
               {Math.round(progress.total / 60)}h
             </span>
@@ -658,25 +654,10 @@ export default function DayPage() {
         </div>
       )}
 
-      {day?.themes?.cycled && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border border-matrix/25 rounded px-4 py-2.5 text-xs">
-          <span className="text-matrix-dim tracking-widest text-[10px]">TODAY</span>
-          {day.themes.daily.map((t) => (
-            <Badge key={t} variant="success">
-              {t.toUpperCase()} · DAILY
-            </Badge>
-          ))}
-          <Badge variant="default">{day.themes.cycled.toUpperCase()}</Badge>
-          <span className="text-[10px] text-matrix-dim tracking-wider ml-auto">
-            next: {day.themes.upcoming.map((u) => u.theme).join(" → ")}
-          </span>
-        </div>
-      )}
-
       {proposed.length > 0 && (
-        <div className="flex items-center justify-between gap-3 flex-wrap border border-warning/40 bg-warning/5 rounded px-4 py-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded border border-warning/40 bg-warning/5 px-4 py-2.5">
           <span className="text-xs">
-            <b>{proposed.length}</b> waiting on your go-ahead — nothing is chasing you yet
+            <b>{proposed.length}</b> waiting on your go-ahead — nothing is chasing you
           </span>
           <Button
             size="sm"
@@ -698,23 +679,23 @@ export default function DayPage() {
           <CardTitle className="text-sm tracking-widest">ADD TO THIS DAY</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={add} className="flex flex-col lg:flex-row gap-3">
+          <form onSubmit={add} className="flex flex-col gap-3 lg:flex-row">
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Apply to Zelus Analytics · 2 DSA problems · ship the README"
-              className="flex-1 bg-bg/50 border border-matrix/30 rounded px-3 py-2 text-sm focus:border-matrix focus:outline-none placeholder:text-matrix-dim/50"
+              className="flex-1 rounded border border-matrix/30 bg-bg/50 px-3 py-2 text-sm placeholder:text-matrix-dim/50 focus:border-matrix focus:outline-none"
             />
             <input
               value={addTime}
               onChange={(e) => setAddTime(e.target.value)}
               placeholder="14:30"
-              className="lg:w-28 bg-bg/50 border border-matrix/30 rounded px-3 py-2 text-sm focus:border-matrix focus:outline-none placeholder:text-matrix-dim/50"
+              className="rounded border border-matrix/30 bg-bg/50 px-3 py-2 text-sm placeholder:text-matrix-dim/50 focus:border-matrix focus:outline-none lg:w-28"
             />
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value)}
-              className="lg:w-32 bg-bg/50 border border-matrix/30 rounded px-3 py-2 text-xs tracking-widest focus:border-matrix focus:outline-none"
+              className="rounded border border-matrix/30 bg-bg/50 px-3 py-2 text-xs tracking-widest focus:border-matrix focus:outline-none lg:w-32"
             >
               {CATEGORIES.map((c) => (
                 <option key={c.key} value={c.key}>
@@ -726,9 +707,6 @@ export default function DayPage() {
               ⟶ ADD
             </Button>
           </form>
-          <p className="text-[10px] text-matrix-dim mt-2 tracking-wider">
-            Leave the time blank to drop it at now, then drag it where it belongs.
-          </p>
         </CardContent>
       </Card>
 
@@ -736,43 +714,40 @@ export default function DayPage() {
         <CardContent className="p-0">
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 border-b border-bg-border/60 px-4 py-2.5 text-[10px] tracking-widest text-matrix-dim">
             <span className="text-matrix">TIMETABLE</span>
-            {LEGEND.map((l) => (
-              <span key={l.key} className="flex items-center gap-1.5">
-                <i className={cn("h-2 w-2 rounded-[2px] not-italic", l.dot)} />
-                {l.label}
-              </span>
-            ))}
+            <span className="flex items-center gap-1.5">
+              <i className="h-2 w-2 rounded-[2px] bg-matrix not-italic" /> FOCUS
+            </span>
+            <span className="flex items-center gap-1.5">
+              <i className="h-2 w-2 rounded-[2px] bg-success not-italic" /> BODY
+            </span>
+            <span className="flex items-center gap-1.5">
+              <i className="h-2 w-2 rounded-[2px] bg-warning not-italic" /> MAKE
+            </span>
             <span className="ml-auto tabular-nums">
-              {toHHMM(bounds.from)}–{toHHMM(bounds.to)} · {blocks.length} BLOCKS
+              {toHHMM(bounds.from)}–{toHHMM(bounds.to)} · CLICK A BLOCK FOR THE DETAIL
             </span>
           </div>
 
           <div className="px-3 py-4">
             <div
               className={cn(
-                "mx-auto grid gap-x-8",
-                panes.length === 2 ? "grid-cols-2 max-w-[1600px]" : "max-w-[900px] grid-cols-1"
+                "mx-auto grid gap-x-10",
+                panes.length === 2
+                  ? "max-w-[1500px] grid-cols-2"
+                  : "max-w-[760px] grid-cols-1"
               )}
             >
               {panes.map((pane, paneIndex) => {
                 const showsNow =
-                  isToday &&
-                  nowMinutes >= pane.range.from &&
-                  nowMinutes <= pane.range.to;
+                  isToday && nowMinutes >= pane.range.from && nowMinutes <= pane.range.to;
                 const offset = (m: number) => (m - pane.range.from) * pxPerMin;
-                const hasItems = !narrow && pane.placed.length > 0;
 
                 return (
-                  <div
-                    key={paneIndex}
-                    className="relative min-w-0"
-                    style={{ height: paneHeight }}
-                  >
-                    {/* Hour rules, behind everything, stopping at the column edge. */}
+                  <div key={paneIndex} className="relative min-w-0" style={{ height: paneHeight }}>
                     {pane.hours.map((m) => (
                       <div
                         key={m}
-                        className="absolute left-10 right-0 border-t border-bg-border/35"
+                        className="absolute left-11 right-0 border-t border-bg-border/30"
                         style={{ top: offset(m) }}
                       />
                     ))}
@@ -780,43 +755,22 @@ export default function DayPage() {
                     {showsNow && (
                       <div
                         ref={nowRef}
-                        className="absolute left-10 right-0 z-20 pointer-events-none"
+                        className="pointer-events-none absolute left-11 right-0 z-20"
                         style={{ top: offset(nowMinutes) }}
                       >
                         <div className="h-px bg-danger shadow-[0_0_6px_var(--theme-danger)]" />
-                        <span className="absolute -top-[7px] -left-10 text-[9px] font-mono text-danger bg-bg pr-1">
+                        <span className="absolute -top-[7px] -left-11 bg-bg pr-1 font-mono text-[9px] text-danger">
                           {day?.now_local}
                         </span>
                       </div>
                     )}
 
-                    {dropAt &&
-                      toMinutes(dropAt) >= pane.range.from &&
-                      toMinutes(dropAt) <= pane.range.to && (
-                        <div
-                          className="absolute left-10 right-0 z-20 pointer-events-none"
-                          style={{ top: offset(toMinutes(dropAt)) }}
-                        >
-                          <div className="h-px bg-matrix" />
-                          <span className="absolute -top-[7px] right-0 text-[9px] font-mono text-matrix bg-bg px-1">
-                            {dropAt}
-                          </span>
-                        </div>
-                      )}
-
-                    <div
-                      className={cn(
-                        "relative grid h-full gap-x-3",
-                        hasItems
-                          ? "grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,17rem)]"
-                          : "grid-cols-[2.5rem_minmax(0,1fr)]"
-                      )}
-                    >
+                    <div className="relative grid h-full grid-cols-[2.75rem_minmax(0,1fr)] gap-x-2">
                       <div className="relative">
                         {pane.hours.map((m) => (
                           <div
                             key={m}
-                            className="absolute right-1 -translate-y-1/2 text-[10px] font-mono text-matrix-dim/60 tabular-nums"
+                            className="absolute right-0 -translate-y-1/2 font-mono text-[10px] tabular-nums text-matrix-dim/60"
                             style={{ top: offset(m) }}
                           >
                             {toHHMM(m)}
@@ -824,488 +778,241 @@ export default function DayPage() {
                         ))}
                       </div>
 
-                      {/*
-                        The blocks column doubles as the drop target. Dropping
-                        onto the time you are looking at is the obvious
-                        gesture, and it works whether or not this column
-                        currently has a commitments lane.
-                      */}
-                      <div
-                        ref={(el) => {
-                          laneRefs.current[paneIndex] = el;
-                        }}
-                        className={cn(
-                          "relative rounded transition-colors",
-                          dragging && "bg-matrix/[0.04] outline-dashed outline-1 outline-matrix/25"
-                        )}
-                        onDragOver={(e) => {
-                          e.preventDefault();
-                          setDropAt(timeAtY(paneIndex, e.clientY));
-                        }}
-                        onDragLeave={() => setDropAt(null)}
-                        onDrop={(e) => drop(timeAtY(paneIndex, e.clientY))}
-                      >
-                        {pane.blocks.map((b) => {
+                      <div className="relative">
+                        {pane.views.map((view) => {
+                          const b = view.block;
                           const tone = toneFor(b.label);
-                          const height = Math.max(b.minutes * pxPerMin - 3, 10);
-                          // What fits. A quarter hour at the tighter scale is
-                          // thirteen pixels, less than one line of text, so it
-                          // becomes a bare band and leans on its tooltip.
-                          const tier =
-                            height >= 40 ? "full" : height >= 20 ? "row" : "band";
-                          const isCurrent = current === b;
-                          // The plan lines carry links, and an anchor cannot
-                          // live inside a button — so the block is a div and
-                          // only its header row toggles done.
-                          let lines = planLines(b);
-                          // A half-hour block is 43px: a label, a time and
-                          // nothing else. Book Reading is exactly that, and
-                          // what to read is the whole point of it — so when
-                          // the choice is the clock or the work, the clock
-                          // goes. It is still in the tooltip and the gutter.
-                          let room = Math.max(0, Math.floor((height - 34) / 14));
-                          const showTime = lines.length === 0 || room > 0;
-                          if (!showTime) room = Math.max(0, Math.floor((height - 21) / 14));
-                          // Headings name the strand; items are the work. When
-                          // the two will not both fit, the heading goes — a
-                          // block reading only "FELLOWSHIP WEEK 6 · PAPER",
-                          // with the paper itself cut, says nothing at all.
-                          if (room < lines.length) lines = planLines(b, false);
-                          const shown = lines.slice(0, room);
-                          const hidden = lines.length - shown.length;
+                          const height = Math.max(b.minutes * pxPerMin - 3, 11);
+                          const tier = height >= 42 ? "full" : height >= 22 ? "row" : "band";
+                          const isCurrent = current?.block === b;
+                          const isTarget = dropOn === b.start;
+                          const unavailable = view.strands.some((s) => s.unavailable);
+
                           return (
                             <div
                               key={`${b.start}-${b.label}`}
                               role="button"
                               tabIndex={0}
-                              onClick={() => setOpened(b)}
+                              onClick={() => setOpened(view)}
                               onKeyDown={(e) => {
                                 if (e.key === "Enter" || e.key === " ") {
                                   e.preventDefault();
-                                  setOpened(b);
+                                  setOpened(view);
                                 }
                               }}
-                              title={`${b.start}–${b.end} · ${b.minutes}m · open the full plan`}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                setDropOn(b.start);
+                              }}
+                              onDragLeave={() =>
+                                setDropOn((s) => (s === b.start ? null : s))
+                              }
+                              onDrop={() => drop(b)}
+                              title={`${b.start}–${b.end} · ${b.minutes}m — open for the detail`}
                               style={{ top: offset(toMinutes(b.start)), height }}
                               className={cn(
-                                "group absolute inset-x-0 flex cursor-pointer overflow-hidden rounded-md border border-bg-border/70 bg-bg text-left transition-colors hover:border-matrix/50",
-                                isCurrent && "border-matrix/60 ring-1 ring-matrix/40",
+                                "group absolute inset-x-0 flex cursor-pointer overflow-hidden rounded-md border bg-bg text-left transition-colors",
+                                isCurrent
+                                  ? "border-matrix/60 ring-1 ring-matrix/30"
+                                  : "border-bg-border/60 hover:border-matrix/40",
+                                isTarget && "border-matrix ring-1 ring-matrix/50",
                                 b.done && "opacity-40"
                               )}
                             >
                               <span
                                 aria-hidden
-                                className={cn("absolute inset-0 transition-colors", tone.fill)}
+                                className={cn("absolute inset-0 transition-colors", tone.tint)}
                               />
                               <span
                                 aria-hidden
-                                className={cn("relative w-[3px] shrink-0 rounded-l", tone.bar)}
+                                className={cn("relative w-[3px] shrink-0", tone.bar)}
                               />
-                              {tier !== "band" && (
-                                <button
-                                  type="button"
-                                  disabled={busy}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleBlock(b);
-                                  }}
-                                  title={b.done ? "Done — click to undo" : "Tick this block off"}
-                                  aria-label={b.done ? "Mark not done" : "Mark done"}
-                                  className="relative z-10 shrink-0 self-start px-1.5 pt-1.5 text-[11px] leading-none text-matrix-dim hover:text-matrix"
-                                >
-                                  {b.done ? "☑" : "☐"}
-                                </button>
-                              )}
-                              <div className="relative min-w-0 flex-1">
-                                <div
-                                  className={cn(
-                                    "block w-full text-left",
-                                    tier === "band"
-                                      ? "px-2"
-                                      : tier === "row"
-                                        ? "px-2.5 py-[3px]"
-                                        : "px-2.5 pt-1.5"
-                                  )}
-                                >
-                                  {tier === "band" ? (
-                                    <span className="block truncate text-[9px] leading-[10px] text-matrix-dim">
+
+                              {tier === "band" ? (
+                                <span className="relative flex-1 truncate px-2 text-[9px] leading-[11px] text-matrix-dim">
+                                  {b.label}
+                                </span>
+                              ) : (
+                                <div className="relative flex min-w-0 flex-1 items-start gap-2 px-2.5 py-1.5">
+                                  <div className="min-w-0 flex-1">
+                                    <div
+                                      className={cn(
+                                        "truncate text-[12.5px] leading-tight",
+                                        b.done && "line-through"
+                                      )}
+                                    >
                                       {b.label}
-                                    </span>
-                                  ) : tier === "row" ? (
-                                    <span className="flex items-center justify-between gap-2">
-                                      <span
-                                        className={cn(
-                                          "truncate text-[11px]",
-                                          b.done && "line-through"
-                                        )}
-                                      >
-                                        {b.label}
-                                      </span>
-                                      <span className="shrink-0 text-[9px] font-mono text-matrix-dim/70 tabular-nums">
-                                        {b.minutes}m
-                                      </span>
-                                    </span>
-                                  ) : (
-                                    <>
-                                      <span
-                                        className={cn(
-                                          "block truncate text-[12px] leading-snug",
-                                          b.done && "line-through"
-                                        )}
-                                      >
-                                        {b.label}
-                                      </span>
-                                      <span
-                                        className={cn(
-                                          "block text-[10px] font-mono text-matrix-dim/70 tabular-nums",
-                                          !showTime && "hidden"
-                                        )}
-                                      >
-                                        {b.start}–{b.end} · {b.minutes}m
-                                        {(b.meridiem_corrected || b.shifted) && (
+                                    </div>
+                                    {tier === "full" && (
+                                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1">
+                                        <span className="font-mono text-[10px] tabular-nums text-matrix-dim/70">
+                                          {b.start}–{b.end}
+                                        </span>
+                                        {tags(view).map((t) => (
                                           <span
-                                            className="text-warning"
-                                            title={
-                                              b.meridiem_corrected
-                                                ? `The sheet says ${b.raw_time}; read as morning to keep the rows in order.`
-                                                : "Moved later: the sheet had this overlapping the block before it."
-                                            }
+                                            key={t}
+                                            className="rounded-sm bg-matrix/10 px-1.5 py-px text-[9px] uppercase tracking-wider text-matrix/80"
                                           >
-                                            {" "}
-                                            ✎
+                                            {t}
+                                          </span>
+                                        ))}
+                                        {unavailable && (
+                                          <span className="text-[9px] uppercase tracking-wider text-danger">
+                                            unavailable
                                           </span>
                                         )}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-
-                                {tier === "full" && shown.length > 0 && (
-                                  <div className="mt-1 space-y-[1px] px-2.5 pb-1">
-                                    {shown.map((line, i) =>
-                                      line.kind === "head" ? (
-                                        <div
-                                          key={i}
-                                          className="truncate text-[9px] uppercase tracking-wider text-matrix/70"
-                                        >
-                                          {line.text}
-                                        </div>
-                                      ) : (
-                                        <div key={i} className="truncate text-[10px] leading-[13px]">
-                                          <span className="text-matrix-dim/50">· </span>
-                                          {line.url ? (
-                                            <a
-                                              href={line.url}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              onClick={(e) => e.stopPropagation()}
-                                              title={`${line.text} — ${line.url}`}
-                                              className="underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
-                                            >
-                                              {line.text}
-                                            </a>
-                                          ) : (
-                                            <span title={line.text}>{line.text}</span>
-                                          )}
-                                        </div>
-                                      )
-                                    )}
-                                    {hidden > 0 && room >= 2 && (
-                                      <div className="text-[9px] text-matrix-dim/60">
-                                        +{hidden} more
                                       </div>
                                     )}
                                   </div>
-                                )}
-                              </div>
+
+                                  <div className="flex shrink-0 items-center gap-1.5">
+                                    {view.count > 0 && (
+                                      <span className="rounded-full border border-matrix/30 px-1.5 text-[10px] leading-4 tabular-nums text-matrix/80">
+                                        {view.count}
+                                      </span>
+                                    )}
+                                    <span className="font-mono text-[10px] tabular-nums text-matrix-dim/60">
+                                      {b.minutes}m
+                                    </span>
+                                    <button
+                                      type="button"
+                                      disabled={busy}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleBlock(b);
+                                      }}
+                                      aria-label={b.done ? "Mark not done" : "Mark done"}
+                                      title={b.done ? "Done — click to undo" : "Tick off"}
+                                      className="text-[11px] leading-none text-matrix-dim hover:text-matrix"
+                                    >
+                                      {b.done ? "☑" : "☐"}
+                                    </button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
                       </div>
-
-                      {hasItems && (
-                        <div className="relative">
-                          {pane.placed.map((placement) => renderItem(placement))}
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
               })}
             </div>
-
-            {narrow && (day?.items ?? []).length > 0 && (
-              <div className="mt-5 border-t border-bg-border/60 pt-4">
-                <div className="mb-2 text-[10px] tracking-widest text-matrix-dim">
-                  COMMITMENTS · {(day?.items ?? []).length}
-                </div>
-                <div className="space-y-1.5">
-                  {panes
-                    .flatMap((p) => p.placed)
-                    .map((placement) => renderItem(placement, false))}
-                </div>
-              </div>
-            )}
-
-            {(day?.items ?? []).length === 0 && (
-              <p className="mt-4 text-center text-[11px] text-matrix-dim/60">
-                Nothing committed to this day yet — the shape above is your template.
-              </p>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      {/*
-        The whole plan, untruncated. A card can only show what its duration
-        leaves room for — a ninety-minute fellowship week has six lines and
-        fits five — so everything is reachable here, links included.
-      */}
-      <Dialog open={opened !== null} onOpenChange={(o) => !o && setOpened(null)}>
-        <DialogContent className="max-w-2xl">
-          {opened && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-base tracking-wider">
-                  {opened.label}
-                </DialogTitle>
-                <p className="text-[11px] font-mono text-matrix-dim tabular-nums">
-                  {opened.start}–{opened.end} · {opened.minutes}m
-                  {opened.meridiem_corrected &&
-                    ` · read as morning; the sheet says ${opened.raw_time}`}
-                  {opened.shifted && " · moved later to clear the block before it"}
-                </p>
-              </DialogHeader>
-
-              <div className="max-h-[60vh] space-y-4 overflow-y-auto pr-1">
-                {(opened.plan ?? []).length === 0 && (
-                  <p className="text-xs text-matrix-dim">
-                    Nothing is scheduled against this block — it is yours.
-                  </p>
-                )}
-                {(opened.plan ?? []).map((entry, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-[11px] uppercase tracking-widest text-matrix">
-                        {entry.label}
-                      </h3>
-                      <Badge variant={entry.unavailable ? "error" : "default"}>
-                        {entry.unavailable ? "UNAVAILABLE" : entry.kind.toUpperCase()}
-                      </Badge>
-                    </div>
-                    <ul className="space-y-2">
-                      {entry.items.map((item, j) => (
-                        <li
-                          key={j}
-                          className={cn(
-                            "border-l pl-3",
-                            entry.unavailable ? "border-danger/40" : "border-matrix/25"
-                          )}
-                        >
-                          <p
-                            className={cn(
-                              "text-xs leading-relaxed",
-                              entry.unavailable && "text-danger"
-                            )}
-                          >
-                            {item.text}
-                          </p>
-                          {item.url && (
-                            <a
-                              href={item.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="mt-1 inline-block break-all text-[11px] text-matrix underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
-                            >
-                              {item.url}
-                            </a>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex flex-wrap gap-2 border-t border-bg-border/60 pt-3">
-                <Button
-                  size="sm"
-                  variant={opened.done ? "ghost" : "matrix"}
-                  disabled={busy}
-                  onClick={() => {
-                    toggleBlock(opened);
-                    setOpened({ ...opened, done: !opened.done });
-                  }}
-                >
-                  {opened.done ? "↩ NOT DONE" : "✓ TICK OFF"}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setOpened(null)}>
-                  CLOSE
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {orphans.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm tracking-widest">
+              NOT ON THE TIMETABLE · {orphans.length}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-[11px] text-matrix-dim">
+              These fall outside every block. Drag one onto a block to move it there.
+            </p>
+            <div className="grid gap-2 md:grid-cols-2">
+              {orphans.map((i) => itemCard(i, true))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/*
-        A commitment's own detail. The lane is 17rem wide and the card shows
-        two clamped lines, so the link and the instruction are exactly the part
-        that gets cut. Everything it carries is here, and the actions moved
-        here too rather than living in a panel that pushed the lane around.
+        The whole of one block. The row says what the hour is for and how much
+        is in it; everything else — the full text, the links, the actions —
+        lives here, which is what keeps the row readable.
       */}
       <Dialog
-        open={openedItem !== null}
+        open={opened !== null}
         onOpenChange={(o) => {
           if (!o) {
-            setOpenedItem(null);
+            setOpened(null);
             setRejection(null);
             setArtifact("");
           }
         }}
       >
         <DialogContent className="max-w-2xl">
-          {openedItem && (
+          {opened && (
             <>
               <DialogHeader>
-                <DialogTitle className="text-base leading-snug tracking-wide">
-                  {openedItem.title}
+                <DialogTitle className="text-base tracking-wide">
+                  {opened.block.label}
                 </DialogTitle>
-                <div className="flex flex-wrap items-center gap-2 pt-1">
-                  <span className="font-mono text-[11px] text-matrix-dim tabular-nums">
-                    {openedItem.local_time}
-                  </span>
-                  <Badge
-                    variant={
-                      openedItem.status === "done"
-                        ? "success"
-                        : openedItem.status === "proposed"
-                          ? "warning"
-                          : "default"
-                    }
-                  >
-                    {openedItem.status.toUpperCase()}
-                  </Badge>
-                  <Badge variant="default">{openedItem.source.toUpperCase()}</Badge>
-                  {openedItem.overdue_sec > 0 && openedItem.status === "open" && (
-                    <Badge variant="error">
-                      {Math.floor(openedItem.overdue_sec / 3600)}h OVERDUE
-                    </Badge>
-                  )}
-                </div>
+                <p className="font-mono text-[11px] tabular-nums text-matrix-dim">
+                  {opened.block.start}–{opened.block.end} · {opened.block.minutes}m
+                  {opened.block.meridiem_corrected &&
+                    ` · read as morning; the sheet says ${opened.block.raw_time}`}
+                  {opened.block.shifted && " · moved later to clear the block before it"}
+                </p>
               </DialogHeader>
 
-              <div className="max-h-[55vh] space-y-4 overflow-y-auto pr-1">
-                {openedItem.detail && (
-                  <p className="whitespace-pre-wrap break-words text-xs leading-relaxed text-matrix-dim">
-                    {openedItem.detail}
-                  </p>
-                )}
-
-                {linksIn(openedItem.title, openedItem.detail).length > 0 && (
-                  <div className="space-y-1.5">
-                    <h3 className="text-[10px] uppercase tracking-widest text-matrix">
-                      Links
-                    </h3>
-                    {linksIn(openedItem.title, openedItem.detail).map((url) => (
-                      <a
-                        key={url}
-                        href={url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block break-all border-l border-matrix/25 pl-3 text-[11px] text-matrix underline decoration-matrix/30 underline-offset-2 hover:decoration-matrix"
-                      >
-                        {url}
-                      </a>
-                    ))}
+              <div className="max-h-[58vh] space-y-5 overflow-y-auto pr-1">
+                {opened.strands.map((strand, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-[11px] uppercase tracking-widest text-matrix">
+                        {strand.label}
+                      </h3>
+                      <Badge variant={strand.unavailable ? "error" : "default"}>
+                        {strand.unavailable ? "UNAVAILABLE" : strand.kind.toUpperCase()}
+                      </Badge>
+                    </div>
+                    <ul className="space-y-2">
+                      {strand.items.map((line, j) =>
+                        planItemRow(line, j, Boolean(strand.unavailable))
+                      )}
+                    </ul>
                   </div>
-                )}
+                ))}
 
-                {openedItem.status === "done" && openedItem.artifact_text && (
-                  <div className="space-y-1">
-                    <h3 className="text-[10px] uppercase tracking-widest text-matrix">
-                      What closed it
-                    </h3>
-                    <p className="whitespace-pre-wrap break-words border-l border-success/40 pl-3 text-[11px] text-matrix-dim">
-                      {openedItem.artifact_text}
-                    </p>
-                  </div>
-                )}
-
-                {openedItem.status === "open" && (
+                {opened.items.length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="text-[10px] uppercase tracking-widest text-matrix">
-                      Close it with an artifact
+                    <h3 className="text-[11px] uppercase tracking-widest text-matrix">
+                      Tracked here · {opened.items.length}
                     </h3>
-                    <textarea
-                      value={artifact}
-                      onChange={(e) => setArtifact(e.target.value)}
-                      placeholder="Paste the link, or 40+ characters of what you made…"
-                      className="h-20 w-full resize-none rounded border border-matrix/30 bg-bg/50 p-2 text-[11px] placeholder:text-matrix-dim/50 focus:border-matrix focus:outline-none"
-                    />
-                    {rejection && (
-                      <p className="whitespace-pre-wrap text-[10px] text-danger">
-                        {rejection}
-                      </p>
+                    {opened.items.some((i) => i.status === "open") && (
+                      <textarea
+                        value={artifact}
+                        onChange={(e) => setArtifact(e.target.value)}
+                        placeholder="Paste the link, or 40+ characters of what you made…"
+                        className="h-16 w-full resize-none rounded border border-matrix/30 bg-bg/50 p-2 text-[11px] placeholder:text-matrix-dim/50 focus:border-matrix focus:outline-none"
+                      />
                     )}
+                    {rejection && (
+                      <p className="whitespace-pre-wrap text-[10px] text-danger">{rejection}</p>
+                    )}
+                    <div className="space-y-2">{opened.items.map((i) => itemCard(i))}</div>
                   </div>
+                )}
+
+                {opened.strands.length === 0 && opened.items.length === 0 && (
+                  <p className="text-xs text-matrix-dim">
+                    Nothing is scheduled against this block — it is yours.
+                  </p>
                 )}
               </div>
 
               <div className="flex flex-wrap gap-2 border-t border-bg-border/60 pt-3">
-                {openedItem.status === "proposed" && (
-                  <Button
-                    size="sm"
-                    variant="matrix"
-                    disabled={busy}
-                    onClick={() =>
-                      act(() => api.approveCommitment(openedItem.short_id)).then(() =>
-                        setOpenedItem(null)
-                      )
-                    }
-                  >
-                    ✓ APPROVE
-                  </Button>
-                )}
-                {openedItem.status === "open" && (
-                  <>
-                    <Button
-                      size="sm"
-                      variant="matrix"
-                      disabled={busy || !artifact.trim()}
-                      onClick={() => close(openedItem)}
-                    >
-                      ✓ CLOSE
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      disabled={busy}
-                      onClick={() =>
-                        act(() => api.snoozeCommitment(openedItem.short_id, 30)).then(
-                          () => setOpenedItem(null)
-                        )
-                      }
-                    >
-                      😴 30M
-                    </Button>
-                  </>
-                )}
-                {openedItem.status !== "done" && (
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={busy}
-                    onClick={() =>
-                      act(() => api.dropCommitment(openedItem.short_id)).then(() =>
-                        setOpenedItem(null)
-                      )
-                    }
-                  >
-                    DROP
-                  </Button>
-                )}
-                <Button size="sm" variant="ghost" onClick={() => setOpenedItem(null)}>
+                <Button
+                  size="sm"
+                  variant={opened.block.done ? "ghost" : "matrix"}
+                  disabled={busy}
+                  onClick={() => {
+                    toggleBlock(opened.block);
+                    setOpened({
+                      ...opened,
+                      block: { ...opened.block, done: !opened.block.done }
+                    });
+                  }}
+                >
+                  {opened.block.done ? "↩ NOT DONE" : "✓ TICK OFF"}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setOpened(null)}>
                   BACK
                 </Button>
               </div>
@@ -1315,7 +1022,7 @@ export default function DayPage() {
       </Dialog>
 
       {corrected.length > 0 && (
-        <details className="text-[10px] text-matrix-dim border border-matrix/15 rounded px-4 py-2">
+        <details className="rounded border border-matrix/15 px-4 py-2 text-[10px] text-matrix-dim">
           <summary className="cursor-pointer tracking-wider">
             {corrected.length} row{corrected.length > 1 ? "s" : ""} read differently from
             the sheet
@@ -1334,13 +1041,11 @@ export default function DayPage() {
         </details>
       )}
 
-      <p className="text-[10px] text-matrix-dim tracking-wider">
-        Blocks are drawn to scale, so height is real time. Click one to tick it off —
-        recorded for this date only, never written back to the shared sheet. Commitments
-        sit beside the block they fall in: drag one onto the timeline to move it to the
-        quarter hour you drop it on, click to close it with an artifact. Nothing here
-        reminds you: the day is yours to read, not a thing that chases you. Open
-        work stays on this page until you close it.
+      <p className="text-[10px] tracking-wider text-matrix-dim">
+        Height is real time. A row shows what the hour is for and how much is in it;
+        open it for the whole thing — links, commitments and all. The tick marks a block
+        done for this date only and is never written back to the shared sheet. Nothing
+        here reminds you.
       </p>
     </div>
   );

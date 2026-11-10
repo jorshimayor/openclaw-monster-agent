@@ -171,7 +171,7 @@ async def get_day(date: Optional[str] = None) -> Dict[str, Any]:
     # blocks are the template and stay read-only; this only annotates them.
     from ...agents.daily_plan import attach
 
-    attach(day, blocks, themes=picked)
+    await attach(day, blocks, themes=picked)
 
     start_utc, end_utc = _local_bounds(day)
 

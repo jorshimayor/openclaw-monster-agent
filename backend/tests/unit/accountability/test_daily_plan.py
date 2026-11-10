@@ -2,8 +2,16 @@
 
 from datetime import date
 
-from src.agents.daily_plan import attach, split_resource
+import asyncio
+
+from src.agents.daily_plan import attach as _attach, split_resource
 from src.agents.rotation import runs_on
+
+
+def attach(*a, **kw):
+    """attach is async now — the day route awaits an ordered track rather than
+    letting rotation hand it to a thread with its own event loop."""
+    return asyncio.run(_attach(*a, **kw))
 
 
 def block(start, end, label):
@@ -150,7 +158,7 @@ def test_a_hooked_theme_that_loaded_nothing_says_so():
     blocks = attach(
         date(2026, 10, 28), fresh(),
         themes={"daily": [{**theme("RareSkills", "90 min Deep Block 1"),
-                           "plan": "track:rareskills", "tasks": []}], "cycled": None},
+                           "plan": "track:no-such-track", "tasks": []}], "cycled": None},
         fellowship={},
     )
     entry = next(b for b in blocks if "Deep Block 1" in b["label"])["plan"][0]
@@ -196,3 +204,35 @@ def test_attaching_twice_does_not_double_the_plan():
     deep_one = next(b for b in blocks if "Deep Block 1" in b["label"])
     assert len(deep_one["plan"]) == 1
     assert len(deep_one["plan"][0]["items"]) == 1
+
+
+def test_a_track_plan_is_awaited_rather_than_threaded():
+    """rotation._expand_track hands the work to a thread with its own event
+    loop. The database engine belongs to the request's loop, so that query
+    raises and the theme arrives empty — which rendered "could not load" on a
+    block while /api/study/track answered the same question fine. This route
+    is async and awaits instead."""
+    blocks = attach(
+        date(2026, 10, 28), fresh(),
+        themes={"daily": [{**theme("RareSkills", "90 min Deep Block 1"),
+                           "plan": "track:rareskills", "tasks": []}], "cycled": None},
+        fellowship={},
+    )
+    entry = next(b for b in blocks if "Deep Block 1" in b["label"])["plan"][0]
+    assert "unavailable" not in entry, entry
+    assert entry["items"], "the track resolved to nothing"
+    assert "RareSkills" in entry["items"][0]["text"]
+
+
+def test_tasks_already_present_are_not_replaced_by_the_track():
+    """Only an empty hook is backfilled; a theme that already carries its
+    tasks must be left exactly as the rotation resolved it."""
+    blocks = attach(
+        date(2026, 10, 28), fresh(),
+        themes={"daily": [{**theme("RareSkills", "90 min Deep Block 1",
+                                   tasks=["Already resolved — https://x.dev"]),
+                           "plan": "track:rareskills"}], "cycled": None},
+        fellowship={},
+    )
+    entry = next(b for b in blocks if "Deep Block 1" in b["label"])["plan"][0]
+    assert [i["text"] for i in entry["items"]] == ["Already resolved"]

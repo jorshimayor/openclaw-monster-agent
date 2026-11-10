@@ -118,7 +118,32 @@ def _entry(
     return entry
 
 
-def attach(
+async def _track_tasks(theme_get) -> List[str]:
+    """Resolve an ordered track by awaiting it, here, in the request's loop.
+
+    rotation._expand_track reaches into async from a sync call site: with a
+    loop already running it hands the work to a thread and calls asyncio.run
+    there, which builds a second event loop. The database engine belongs to
+    the first one, so the query raises, the exception is swallowed, and the
+    theme arrives with no tasks — the block then renders "could not load"
+    while /api/study/track/<key> answers the same question perfectly well.
+
+    This route is async, so it can simply await. The sync path stays for the
+    sync callers that filing runs from.
+    """
+    plan = str(theme_get("plan", "") or "")
+    if not plan.startswith("track:") or (theme_get("tasks", []) or []):
+        return []
+    from .track import tasks_for
+
+    try:
+        return await tasks_for(plan.split(":", 1)[1])
+    except Exception as exc:
+        logger.warning("track_await_failed", plan=plan, error=str(exc))
+        return []
+
+
+async def attach(
     day: date_cls,
     blocks: List[Dict[str, Any]],
     themes: Optional[Dict[str, Any]] = None,
@@ -155,11 +180,12 @@ def attach(
             index = _match_by_clock(blocks, get("due_time", "") or "")
         if index is None:
             continue
+        tasks = list(get("tasks", []) or []) or await _track_tasks(get)
         blocks[index]["plan"].append(
             _entry(
                 label=get("label", "") or get("theme", "") or "Study",
                 theme=get("base", "") or get("theme", "") or "study",
-                tasks=list(get("tasks", []) or []),
+                tasks=tasks,
                 kind="daily" if theme is not themes.get("cycled") else "cycled",
                 hooked=bool(get("plan", "")),
             )
