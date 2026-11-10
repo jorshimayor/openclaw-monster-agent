@@ -794,7 +794,7 @@
         "theme": "flow-fellowship",
         "block": "90 min Deep Block 3",
         "label": "Flow fellowship",
-        "due_time": "18:30",
+        "due_time": "19:00",
         "plan": "fellowship",
         "remind": true,
         "tasks": [
@@ -972,7 +972,7 @@
           "saturday"
         ],
         "label": "Chain interview practice",
-        "due_time": "14:00",
+        "due_time": "13:00",
         "remind": false,
         "variants": [
           {
@@ -1046,7 +1046,7 @@
         "theme": "football",
         "block": "Project Execution Block",
         "label": "Football",
-        "due_time": "15:00",
+        "due_time": "14:00",
         "sources": [
           "football-calendar"
         ],
@@ -1064,7 +1064,7 @@
         "theme": "video",
         "block": "Content Creation",
         "label": "Video",
-        "due_time": "16:00",
+        "due_time": "15:30",
         "tasks": [
           "Record one short: a thing you learned this week, 90 seconds"
         ],
@@ -1079,7 +1079,7 @@
         "theme": "articles",
         "block": "Content Creation",
         "label": "Writing",
-        "due_time": "16:00",
+        "due_time": "15:30",
         "tasks": [
           "Draft or ship one article section — no new outlines"
         ],
@@ -1094,7 +1094,7 @@
         "theme": "code-review",
         "block": "Learning Application",
         "label": "Code review",
-        "due_time": "14:00",
+        "due_time": "13:00",
         "tasks": [
           "Review one open PR, or reread one of your own modules critically",
           "One audit checklist section applied to your own code — https://github.com/Cyfrin/audit-checklist"
@@ -1110,7 +1110,7 @@
         "theme": "interview-prep",
         "block": "Learning Application",
         "label": "Interview prep",
-        "due_time": "14:00",
+        "due_time": "13:00",
         "sources": [
           "ai-tracker"
         ],
@@ -1129,7 +1129,7 @@
         "theme": "job-applications",
         "block": "Buffer / light admin",
         "label": "Job applications",
-        "due_time": "16:45",
+        "due_time": "16:30",
         "tasks": [
           "Send two applications with a tailored first line",
           "Follow up on anything sent more than a week ago"
