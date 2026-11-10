@@ -31,14 +31,22 @@ def test_item_keys_are_unique_so_the_cursor_is_unambiguous():
         assert len(keys) == len(set(keys)), keys
 
 
-def test_it_files_before_the_rest_of_the_morning():
-    """It is meant to open the day, so it has to be due before web3-bounty."""
+def test_rareskills_opens_the_working_day():
+    """The sheet's own Core Rule: Deep Block 1 always prioritises RareSkills.
+
+    Asserted on due times rather than list position. Morning reading is filed
+    earlier — it is half an hour of political books before the day starts, not
+    work competing with the priorities — so being first in the list stopped
+    meaning anything."""
     from src.agents.rotation import load_rotation
 
     daily = load_rotation()["daily"]
     by_theme = {t["theme"]: t for t in daily}
+    work = {k: v for k, v in by_theme.items() if k != "political-reading"}
+    earliest = min(work.values(), key=lambda t: t["due_time"])
+    assert earliest["theme"] == "rareskills", earliest["theme"]
     assert by_theme["rareskills"]["due_time"] < by_theme["web3-bounty"]["due_time"]
-    assert daily[0]["theme"] == "rareskills"
+    assert by_theme["political-reading"]["due_time"] < by_theme["rareskills"]["due_time"]
 
 
 @pytest.mark.asyncio

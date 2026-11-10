@@ -5,9 +5,9 @@
     "STUDY_SOURCES_PATH env var, or a JSON list in STUDY_SOURCES.",
     "",
     "kind:",
-    "  backlog \u2014 a flat list of topics/questions/projects. Each sync picks the",
+    "  backlog — a flat list of topics/questions/projects. Each sync picks the",
     "            next `daily_count` rows you have not been given yet.",
-    "  weekly  \u2014 one row per week, keyed by a date column. Picks the row for the",
+    "  weekly  — one row per week, keyed by a date column. Picks the row for the",
     "            current week and emits `item_columns` from it.",
     "",
     "due_time is local (24h). Items land in the block of your day where that kind",
@@ -94,126 +94,126 @@
   "resource_tabs": [
     {
       "key": "sd-books",
-      "group": "System design \u00b7 books & docs",
+      "group": "System design · books & docs",
       "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
       "range": "Books & Docs!A1:H80",
       "enabled": true
     },
     {
       "key": "sd-courses",
-      "group": "System design \u00b7 free courses",
+      "group": "System design · free courses",
       "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
       "range": "Free Courses!A1:H80",
       "enabled": true
     },
     {
       "key": "sd-github",
-      "group": "System design \u00b7 repos to read",
+      "group": "System design · repos to read",
       "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
       "range": "GitHub Resources!A1:H80",
       "enabled": true
     },
     {
       "key": "sd-blogs",
-      "group": "System design \u00b7 engineering blogs",
+      "group": "System design · engineering blogs",
       "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
       "range": "Engineering Blogs!A1:H80",
       "enabled": true
     },
     {
       "key": "sd-youtube",
-      "group": "System design \u00b7 video",
+      "group": "System design · video",
       "sheet_id": "1LK6EIjtHbF42qYxT_jj-C1rGOyX0dG96O2ogfQDih2o",
       "range": "YouTube!A1:H80",
       "enabled": false
     },
     {
       "key": "ai-papers",
-      "group": "AI \u00b7 research papers",
+      "group": "AI · research papers",
       "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
       "range": "Research Papers!A1:H80",
       "enabled": true
     },
     {
       "key": "ai-tools",
-      "group": "AI \u00b7 tools & frameworks",
+      "group": "AI · tools & frameworks",
       "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
       "range": "Tools & Frameworks!A1:H80",
       "enabled": true
     },
     {
       "key": "ai-books",
-      "group": "AI \u00b7 books & docs",
+      "group": "AI · books & docs",
       "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
       "range": "Books & Docs!A1:H80",
       "enabled": true
     },
     {
       "key": "ai-repos",
-      "group": "AI \u00b7 repos to read",
+      "group": "AI · repos to read",
       "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
       "range": "GitHub Repos!A1:H80",
       "enabled": true
     },
     {
       "key": "ai-datasets",
-      "group": "AI \u00b7 datasets & practice",
+      "group": "AI · datasets & practice",
       "sheet_id": "1zLYcW2R2hrIFdnKAXA52Ury3oXo3w0PtiofIV8vRftQ",
       "range": "Datasets & Practice!A1:H80",
       "enabled": true
     },
     {
       "key": "fb-sources",
-      "group": "Football \u00b7 data sources",
+      "group": "Football · data sources",
       "sheet_id": "1uhoFxYf9XvjbsTO5DVU9-uI4xl34WvXE7O0slO9ThSU",
       "range": "Sources!A1:H80",
       "enabled": true
     },
     {
       "key": "inv-signals",
-      "group": "Investing \u00b7 signals to watch",
+      "group": "Investing · signals to watch",
       "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
       "range": "Signals!A1:H40",
       "enabled": true
     },
     {
       "key": "inv-sources",
-      "group": "Investing \u00b7 sources",
+      "group": "Investing · sources",
       "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
       "range": "Sources!A1:H40",
       "enabled": true
     },
     {
       "key": "inv-platforms",
-      "group": "Investing \u00b7 platforms",
+      "group": "Investing · platforms",
       "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
       "range": "Platforms!A1:H30",
       "enabled": true
     },
     {
       "key": "inv-redflags",
-      "group": "Investing \u00b7 red flags",
+      "group": "Investing · red flags",
       "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
       "range": "Red Flags!A1:H30",
       "enabled": true
     },
     {
       "key": "inv-portfolio",
-      "group": "Investing \u00b7 holdings & watchlist",
+      "group": "Investing · holdings & watchlist",
       "sheet_id": "1sts-S_krmOaoEvUEsG8hTcpucYncmwPqM1OEeW46hdY",
       "range": "Portfolio Tracker!A5:L40",
       "enabled": true
     },
     {
       "key": "stk-local",
-      "group": "Stocks 2026 \u00b7 NGX shortlist",
+      "group": "Stocks 2026 · NGX shortlist",
       "sheet_id": "10CgdkVooD8XnOZ--FgJEmOuptnE7xhTA686WGIMVeDY",
       "range": "Local!B2:J30",
       "enabled": true
     },
     {
       "key": "stk-intl",
-      "group": "Stocks 2026 \u00b7 international",
+      "group": "Stocks 2026 · international",
       "sheet_id": "10CgdkVooD8XnOZ--FgJEmOuptnE7xhTA686WGIMVeDY",
       "range": "International Stocks!B2:J30",
       "enabled": true
@@ -228,7 +228,7 @@
   "curated": [
     {
       "key": "fellowship",
-      "group": "Flow fellowship \u00b7 Applied AI Engineering",
+      "group": "Flow fellowship · Applied AI Engineering",
       "items": [
         {
           "title": "Knowledge Base",
@@ -236,7 +236,7 @@
           "note": "Where cohort material and assignments land."
         },
         {
-          "title": "Flow Research \u2014 GitHub",
+          "title": "Flow Research — GitHub",
           "url": "https://github.com/Flow-Research",
           "note": "The team's code. Read it before proposing anything at week 25."
         },
@@ -253,7 +253,7 @@
         {
           "title": "AI Agents That Matter",
           "url": "https://arxiv.org/abs/2407.01502",
-          "note": "Week 4. What rigorous means at small sample sizes \u2014 the paper behind the whole eval pillar."
+          "note": "Week 4. What rigorous means at small sample sizes — the paper behind the whole eval pillar."
         },
         {
           "title": "Your AI Product Needs Evals",
@@ -299,66 +299,66 @@
         "CKS cannot be attempted before CKA has been passed."
       ],
       "key": "certifications",
-      "group": "Certifications \u00b7 web2 ladder \u00b7 $2,789 exam-only",
+      "group": "Certifications · web2 ladder · $2,789 exam-only",
       "items": [
         {
-          "title": "1. AWS Solutions Architect \u2013 Associate \u2014 $150",
+          "title": "1. AWS Solutions Architect – Associate — $150",
           "url": "https://aws.amazon.com/certification/certified-solutions-architect-associate/",
           "note": "130 min, 65 questions, valid 3 years. Take it first: cheapest by a factor of three, and OffSec discount Learn One up to 20% for existing holders."
         },
         {
-          "title": "2. CKA \u2014 $445, or $645 with the LFS258 course",
+          "title": "2. CKA — $445, or $645 with the LFS258 course",
           "url": "https://training.linuxfoundation.org/certification/certified-kubernetes-administrator-cka/",
           "note": "Valid 2 years. One retake and two Killer.sh attempts included, 12 months to schedule. Skip the course upgrade if you already operate clusters. Gates CKS."
         },
         {
-          "title": "3. CKS \u2014 $445, or $645 with the LFS260 course",
+          "title": "3. CKS — $445, or $645 with the LFS260 course",
           "url": "https://training.linuxfoundation.org/certification/certified-kubernetes-security-specialist/",
-          "note": "Requires a passed CKA first \u2014 the only hard ordering constraint. Valid 2 years. The course upgrade is worth it here in a way it is not for CKA."
+          "note": "Requires a passed CKA first — the only hard ordering constraint. Valid 2 years. The course upgrade is worth it here in a way it is not for CKA."
         },
         {
-          "title": "4. OSCP \u2014 $1,749 bundle, or $2,749/yr Learn One",
+          "title": "4. OSCP — $1,749 bundle, or $2,749/yr Learn One",
           "url": "https://www.offsec.com/pricing/",
           "note": "Lifetime. The bundle is 90 days of lab access and ONE exam attempt; Learn One gives two attempts and a year, which beats failing and rebuying."
         },
         {
           "title": "The ladder, and why this order",
           "url": "https://github.com/jorshimayor/openclaw-monster-agent/blob/main/docs/certifications.md",
-          "note": "$2,789 exam-only, $3,189 with both Linux Foundation courses. None of these help with auditing \u2014 that market reads public findings, not certificates."
+          "note": "$2,789 exam-only, $3,189 with both Linux Foundation courses. None of these help with auditing — that market reads public findings, not certificates."
         }
       ]
     },
     {
       "key": "yborg-security",
-      "group": "yBorg prep \u00b7 security",
+      "group": "yBorg prep · security",
       "items": [
         {
-          "title": "yAudit \u2014 Common Web3 Security Issues",
+          "title": "yAudit — Common Web3 Security Issues",
           "url": "https://github.com/yAudit/CommonWeb3SecurityIssues",
           "note": "Start here. The issue classes you are expected to already know."
         },
         {
-          "title": "yAudit \u2014 DeFi Fork Bugs",
+          "title": "yAudit — DeFi Fork Bugs",
           "url": "https://github.com/yAudit/defi-fork-bugs",
           "note": "What breaks when a protocol is forked and the assumptions are not. Rich invariant source."
         },
         {
-          "title": "yAudit \u2014 audit reports",
+          "title": "yAudit — audit reports",
           "url": "https://reports.yaudit.dev/",
           "note": "Read the finding before the fix. Predict severity, then check."
         },
         {
-          "title": "yAudit \u2014 fellowship audits",
+          "title": "yAudit — fellowship audits",
           "url": "https://github.com/yAudit/fellowship-audits",
           "note": "What the work actually looks like at their standard."
         },
         {
-          "title": "yAudit \u2014 Solidity Proxy Playground",
+          "title": "yAudit — Solidity Proxy Playground",
           "url": "https://github.com/yAudit/Solidity-Proxy-Playground",
           "note": "Storage collisions and delegatecall, hands on. Pairs with the RareSkills proxy chapter."
         },
         {
-          "title": "Cyfrin Updraft \u2014 Smart Contract Security",
+          "title": "Cyfrin Updraft — Smart Contract Security",
           "url": "https://updraft.cyfrin.io/courses/security",
           "note": "The structured course. Longest item on this shelf; treat it as a track, not a link."
         },
@@ -368,7 +368,7 @@
           "note": "Watch before applying, not after."
         },
         {
-          "title": "Secureum \u2014 Smart Contract Security 101",
+          "title": "Secureum — Smart Contract Security 101",
           "url": "https://secureum.substack.com/p/smart-contract-security-101-secureum",
           "note": "The canonical checklist reading."
         },
@@ -381,12 +381,12 @@
     },
     {
       "key": "yborg-ai-agents",
-      "group": "yBorg prep \u00b7 AI and agents",
+      "group": "yBorg prep · AI and agents",
       "items": [
         {
           "title": "Harnesses in AI, A Deep Dive",
           "url": "https://www.youtube.com/watch?v=C_GG5g38vLU",
-          "note": "Harness design \u2014 the same problem the fellowship's Path A and auditor/ both circle."
+          "note": "Harness design — the same problem the fellowship's Path A and auditor/ both circle."
         },
         {
           "title": "The Harness Playbook",
@@ -399,12 +399,12 @@
           "note": "Thread."
         },
         {
-          "title": "Hugging Face \u2014 Intro to LLMs",
+          "title": "Hugging Face — Intro to LLMs",
           "url": "https://huggingface.co/learn/llm-course/en/chapter1/1",
           "note": "Overlaps fellowship weeks 1-2. Do whichever explains it better to you."
         },
         {
-          "title": "Hugging Face \u2014 Agents Course",
+          "title": "Hugging Face — Agents Course",
           "url": "https://huggingface.co/learn/agents-course/en/unit0/introduction",
           "note": "Overlaps fellowship weeks 3 and 9-11."
         },
@@ -417,7 +417,7 @@
     },
     {
       "key": "yborg-ai-security",
-      "group": "yBorg prep \u00b7 AI and security",
+      "group": "yBorg prep · AI and security",
       "items": [
         {
           "title": "Technical Review (@Kritt_AI)",
@@ -427,7 +427,7 @@
         {
           "title": "AI Auditing Methodology, Pt I (@xy9301)",
           "url": "https://x.com/xy9301/status/2033186266649640980",
-          "note": "Read all three against auditor/ \u2014 this is the same problem you are already building."
+          "note": "Read all three against auditor/ — this is the same problem you are already building."
         },
         {
           "title": "AI Auditing Methodology, Pt II (@xy9301)",
@@ -443,10 +443,10 @@
     },
     {
       "key": "chain-evm",
-      "group": "EVM \u00b7 study & interview",
+      "group": "EVM · study & interview",
       "items": [
         {
-          "title": "RareSkills \u2014 Learn Solidity",
+          "title": "RareSkills — Learn Solidity",
           "url": "https://rareskills.io/learn-solidity",
           "note": "The rigorous track, in order. The spine of EVM prep."
         },
@@ -456,9 +456,9 @@
           "note": "Every opcode with gas cost. Interviewers ask about these directly."
         },
         {
-          "title": "RareSkills \u2014 Proxy patterns",
+          "title": "RareSkills — Proxy patterns",
           "url": "https://rareskills.io/proxy-patterns",
-          "note": "Storage collisions and delegatecall \u2014 a standard interview trap."
+          "note": "Storage collisions and delegatecall — a standard interview trap."
         },
         {
           "title": "Ethernaut",
@@ -471,12 +471,12 @@
           "note": "Canonical reference when a concept is fuzzy."
         },
         {
-          "title": "RareSkills \u2014 Uniswap V3 book",
+          "title": "RareSkills — Uniswap V3 book",
           "url": "https://rareskills.io/uniswap-v3-book",
           "note": "Each chapter is also an article seed."
         },
         {
-          "title": "RareSkills \u2014 ZK book",
+          "title": "RareSkills — ZK book",
           "url": "https://rareskills.io/zk-book",
           "note": "One chapter a week during a ZK phase."
         }
@@ -484,12 +484,12 @@
     },
     {
       "key": "chain-solana",
-      "group": "Solana \u00b7 study & interview",
+      "group": "Solana · study & interview",
       "items": [
         {
           "title": "Solana docs",
           "url": "https://solana.com/docs",
-          "note": "Accounts, rent, CPI, compute budget \u2014 the interview vocabulary."
+          "note": "Accounts, rent, CPI, compute budget — the interview vocabulary."
         },
         {
           "title": "Solana Cookbook",
@@ -507,7 +507,7 @@
           "note": "Whole programs, short enough to read end to end."
         },
         {
-          "title": "RareSkills \u2014 Solana course",
+          "title": "RareSkills — Solana course",
           "url": "https://rareskills.io/post/solana-developer",
           "note": "Written for someone who already knows the EVM."
         }
@@ -515,12 +515,12 @@
     },
     {
       "key": "chain-cosmos",
-      "group": "Cosmos \u00b7 study & interview",
+      "group": "Cosmos · study & interview",
       "items": [
         {
           "title": "Cosmos SDK docs",
           "url": "https://docs.cosmos.network/",
-          "note": "Modules and keepers \u2014 narrate one from memory."
+          "note": "Modules and keepers — narrate one from memory."
         },
         {
           "title": "Cosmos developer tutorials",
@@ -536,12 +536,12 @@
     },
     {
       "key": "chain-infra",
-      "group": "Infra & RPC \u00b7 Alchemy",
+      "group": "Infra & RPC · Alchemy",
       "items": [
         {
           "title": "Alchemy docs",
           "url": "https://docs.alchemy.com/",
-          "note": "RPC methods, webhooks, indexing \u2014 infra-role interview ground."
+          "note": "RPC methods, webhooks, indexing — infra-role interview ground."
         },
         {
           "title": "Alchemy University",
@@ -557,7 +557,7 @@
         {
           "title": "Damn Vulnerable DeFi",
           "url": "https://www.damnvulnerabledefi.xyz/",
-          "note": "Publish every solve \u2014 it doubles as content."
+          "note": "Publish every solve — it doubles as content."
         },
         {
           "title": "Solodit",
@@ -573,10 +573,10 @@
     },
     {
       "key": "chain-daily-loop",
-      "group": "Daily loop \u00b7 where to start",
+      "group": "Daily loop · where to start",
       "items": [
         {
-          "title": "Solodit \u2014 findings feed",
+          "title": "Solodit — findings feed",
           "url": "https://solodit.cyfrin.io/",
           "note": "6-10 a day. Predict root cause and severity before you read the answer."
         },
@@ -588,7 +588,7 @@
         {
           "title": "protocol-vulnerabilities-index",
           "url": "https://github.com/kadenzipfel/protocol-vulnerabilities-index",
-          "note": "460+ vulns indexed by protocol type \u2014 read by the type you are auditing."
+          "note": "460+ vulns indexed by protocol type — read by the type you are auditing."
         },
         {
           "title": "Cyfrin audit-checklist",
@@ -608,7 +608,7 @@
         {
           "title": "all-things-reentrancy",
           "url": "https://github.com/jcsec-security/all-things-reentrancy",
-          "note": "Workshop on every reentrancy variant \u2014 the most-asked EVM question."
+          "note": "Workshop on every reentrancy variant — the most-asked EVM question."
         },
         {
           "title": "learn-yul",
@@ -618,7 +618,7 @@
         {
           "title": "evm-fuzzing-resources",
           "url": "https://github.com/perimetersec/evm-fuzzing-resources",
-          "note": "Invariant testing \u2014 what a protocol team will ask you to design."
+          "note": "Invariant testing — what a protocol team will ask you to design."
         },
         {
           "title": "Web3-Security-Library",
@@ -629,7 +629,7 @@
     },
     {
       "key": "chain-move",
-      "group": "Move \u00b7 Sui & Aptos",
+      "group": "Move · Sui & Aptos",
       "items": [
         {
           "title": "The Move Book",
@@ -639,15 +639,15 @@
         {
           "title": "MystenLabs/move-book",
           "url": "https://github.com/MystenLabs/move-book",
-          "note": "Your star \u2014 the book plus the Move Reference, readable offline."
+          "note": "Your star — the book plus the Move Reference, readable offline."
         },
         {
           "title": "Sui docs",
           "url": "https://docs.sui.io/",
-          "note": "Object ownership and the transaction model \u2014 where Sui diverges from Aptos."
+          "note": "Object ownership and the transaction model — where Sui diverges from Aptos."
         },
         {
-          "title": "Sui \u2014 your first app",
+          "title": "Sui — your first app",
           "url": "https://docs.sui.io/guides/developer/first-app",
           "note": "Ship something small before reading further."
         },
@@ -659,26 +659,26 @@
         {
           "title": "aptos-labs/aptos-core",
           "url": "https://github.com/aptos-labs/aptos-core",
-          "note": "Your star \u2014 read the framework modules, not the node."
+          "note": "Your star — read the framework modules, not the node."
         },
         {
           "title": "Move-Audit-Resources",
           "url": "https://github.com/0xriazaka/Move-Audit-Resources",
-          "note": "Your star \u2014 Move-specific bug classes, which are not the EVM's."
+          "note": "Your star — Move-specific bug classes, which are not the EVM's."
         },
         {
           "title": "axelar-cgp-sui",
           "url": "https://github.com/axelarnetwork/axelar-cgp-sui",
-          "note": "Your star \u2014 real cross-chain Move in production."
+          "note": "Your star — real cross-chain Move in production."
         }
       ]
     },
     {
       "key": "bounty-agent",
-      "group": "Bounty agent \u00b7 build & benchmark",
+      "group": "Bounty agent · build & benchmark",
       "items": [
         {
-          "title": "auditor \u2014 your scaffold",
+          "title": "auditor — your scaffold",
           "url": "https://github.com/jorshimayor/openclaw-monster-agent/tree/main/auditor",
           "note": "Phases 0-3. Start with `python3 -m auditor doctor`."
         },
@@ -688,12 +688,12 @@
           "note": "Solve by hand first. These are also the benchmark targets."
         },
         {
-          "title": "Foundry Book \u2014 invariant testing",
+          "title": "Foundry Book — invariant testing",
           "url": "https://book.getfoundry.sh/forge/invariant-testing",
           "note": "The mechanics of every PoC the agent writes."
         },
         {
-          "title": "Trail of Bits \u2014 building-secure-contracts",
+          "title": "Trail of Bits — building-secure-contracts",
           "url": "https://github.com/crytic/building-secure-contracts",
           "note": "Authoritative Echidna and Medusa patterns. The fuzzing layer is still unbuilt."
         },
@@ -731,14 +731,28 @@
       "web3-study and chain-interviews are both daily and share a variant order, so the chain you study in the morning is the one you are questioned on in the afternoon.",
       "",
       "Priority, set 2026-10-20: RareSkills first, then the Flow fellowship.",
-      "Those two chase. Everything else is filed and visible but silent \u2014 it gets",
+      "Those two chase. Everything else is filed and visible but silent — it gets",
       "done when there is room. Flip remind back on per theme to change that."
     ],
     "enabled": true,
     "daily": [
       {
         "_comment": [
-          "An ordered track, not a rotation \u2014 see `tracks` at the top level. One",
+          "The half hour that opens the day. Not technical: the three priorities",
+          "own the deep blocks, and reading something unrelated first is what",
+          "stops the morning becoming an extension of yesterday's work."
+        ],
+        "theme": "political-reading",
+        "block": "Book Reading",
+        "label": "Morning reading",
+        "due_time": "05:00",
+        "plan": "track:political-reading",
+        "remind": false,
+        "tasks": []
+      },
+      {
+        "_comment": [
+          "An ordered track, not a rotation — see `tracks` at the top level. One",
           "item is filed at a time and it stays filed until you advance the cursor:",
           "  curl -X POST .../api/study/track/rareskills/advance",
           "05:30 so it lands before the web3 bounty at 07:30."
@@ -762,14 +776,15 @@
         "theme": "aws-saa",
         "block": "90 min Deep Block 2",
         "label": "AWS SAA",
-        "due_time": "09:15",
+        "due_time": "08:30",
         "plan": "track:aws-saa",
         "remind": false,
         "tasks": []
-      },      {
+      },
+      {
         "_comment": [
           "Tasks come from backend/config/fellowship.json via the plan hook, not",
-          "from here \u2014 48 dated weeks do not cycle. The standing tasks below run",
+          "from here — 48 dated weeks do not cycle. The standing tasks below run",
           "alongside whatever this week resolves to.",
           "",
           "due_time is the evening block deliberately: the mornings are already",
@@ -777,25 +792,29 @@
           "than whatever is left over."
         ],
         "theme": "flow-fellowship",
-        "block": "Startup Checklist Progress",
+        "block": "90 min Deep Block 3",
         "label": "Flow fellowship",
-        "due_time": "18:00",
+        "due_time": "18:30",
         "plan": "fellowship",
         "remind": true,
         "tasks": [
-          "Log one paragraph of thought on what you read today \u2014 what surprised you, what you did not believe \u2014 python3 -m fellowship note"
+          "Log one paragraph of thought on what you read today — what surprised you, what you did not believe — python3 -m fellowship note"
         ],
         "pausable": false
       },
       {
         "theme": "web3-bounty",
         "block": "Daily Bug Bounty Session",
-        "days": ["monday", "wednesday", "friday"],
+        "days": [
+          "monday",
+          "wednesday",
+          "friday"
+        ],
         "label": "Web3 bounty",
-        "due_time": "07:30",
+        "due_time": "10:15",
         "tasks": [
-          "6-10 Solodit findings \u2014 predict root cause and severity BEFORE reading \u2014 https://solodit.cyfrin.io/",
-          "One entry from smart-contract-vulnerabilities, explained from memory \u2014 https://github.com/kadenzipfel/smart-contract-vulnerabilities"
+          "6-10 Solodit findings — predict root cause and severity BEFORE reading — https://solodit.cyfrin.io/",
+          "One entry from smart-contract-vulnerabilities, explained from memory — https://github.com/kadenzipfel/smart-contract-vulnerabilities"
         ],
         "remind": false,
         "_comment": [
@@ -804,7 +823,7 @@
           "separate project that never ships.",
           "",
           "Hand-solve appears twice on purpose. The rotation weights, it does not",
-          "sequence \u2014 and the build guide is explicit that you solve challenges by",
+          "sequence — and the build guide is explicit that you solve challenges by",
           "hand BEFORE automating, because otherwise you cannot tell whether the",
           "agent is missing bugs or your prompts are bad. Drop the second entry once",
           "you have five hand-written PoCs.",
@@ -822,36 +841,36 @@
           {
             "name": "Gate",
             "tasks": [
-              "Open the last run's discard pile in auditor/reports/report.json \u2014 for each, was it correctly discarded, or did the PoC prompt fail? \u2014 https://github.com/jorshimayor/openclaw-monster-agent/blob/main/auditor/src/auditor/agents/poc.py",
-              "One tuning change justified by a specific discard \u2014 artifact is the commit. Without this the gate stays at whatever the first prompt happened to do \u2014 https://github.com/jorshimayor/openclaw-monster-agent/tree/main/auditor"
+              "Open the last run's discard pile in auditor/reports/report.json — for each, was it correctly discarded, or did the PoC prompt fail? — https://github.com/jorshimayor/openclaw-monster-agent/blob/main/auditor/src/auditor/agents/poc.py",
+              "One tuning change justified by a specific discard — artifact is the commit. Without this the gate stays at whatever the first prompt happened to do — https://github.com/jorshimayor/openclaw-monster-agent/tree/main/auditor"
             ]
           },
           {
             "name": "Hand-solve",
             "tasks": [
-              "One Damn Vulnerable DeFi or Ethernaut level in Foundry, BY HAND, no agent \u2014 artifact is the passing test \u2014 https://www.damnvulnerabledefi.xyz/",
+              "One Damn Vulnerable DeFi or Ethernaut level in Foundry, BY HAND, no agent — artifact is the passing test — https://www.damnvulnerabledefi.xyz/",
               "Write the invariant it broke in one sentence before you write the exploit"
             ]
           },
           {
             "name": "Hand-solve",
             "tasks": [
-              "One Damn Vulnerable DeFi or Ethernaut level in Foundry, BY HAND, no agent \u2014 artifact is the passing test \u2014 https://www.damnvulnerabledefi.xyz/",
+              "One Damn Vulnerable DeFi or Ethernaut level in Foundry, BY HAND, no agent — artifact is the passing test — https://www.damnvulnerabledefi.xyz/",
               "Explain from memory afterwards why the fix works, not just what it is"
             ]
           },
           {
             "name": "Library",
             "tasks": [
-              "One Solodit finding \u2014 turn it into an invariant in auditor/src/auditor/knowledge/<vertical>.yaml \u2014 artifact is the diff \u2014 https://solodit.cyfrin.io/",
+              "One Solodit finding — turn it into an invariant in auditor/src/auditor/knowledge/<vertical>.yaml — artifact is the diff — https://solodit.cyfrin.io/",
               "State it as an assertion, not a topic. 'totalBorrows + cash == totalSupplied - reserves', not 'accounting should be correct'"
             ]
           },
           {
             "name": "Benchmark",
             "tasks": [
-              "Run the agent at a target you already solved by hand: python3 -m auditor audit <target> --vertical <v> \u2014 https://github.com/jorshimayor/openclaw-monster-agent/tree/main/auditor",
-              "Record what it found, what it missed, and what it discarded wrongly. That table IS the Phase 6 eval harness \u2014 artifact is the numbers"
+              "Run the agent at a target you already solved by hand: python3 -m auditor audit <target> --vertical <v> — https://github.com/jorshimayor/openclaw-monster-agent/tree/main/auditor",
+              "Record what it found, what it missed, and what it discarded wrongly. That table IS the Phase 6 eval harness — artifact is the numbers"
             ]
           }
         ],
@@ -861,38 +880,42 @@
             "with the extension running through Sunday. Nineteen items, so it is a",
             "nineteen-week shelf. Mirrors curated/yborg-* on /study."
           ],
-          "prefix": "yBorg prep \u2014 one item this week",
+          "prefix": "yBorg prep — one item this week",
           "due": [
             "friday",
             "20:00"
           ],
           "rotate": [
-            "yAudit \u2014 Common Web3 Security Issues \u2014 https://github.com/yAudit/CommonWeb3SecurityIssues",
-            "yAudit \u2014 DeFi Fork Bugs \u2014 https://github.com/yAudit/defi-fork-bugs",
-            "yAudit \u2014 audit reports \u2014 https://reports.yaudit.dev/",
-            "yAudit \u2014 fellowship audits \u2014 https://github.com/yAudit/fellowship-audits",
-            "yAudit \u2014 Solidity Proxy Playground \u2014 https://github.com/yAudit/Solidity-Proxy-Playground",
-            "Cyfrin Updraft \u2014 Smart Contract Security \u2014 https://updraft.cyfrin.io/courses/security",
-            "Things I Wish I Knew Before Starting yAcademy (@devtooligan) \u2014 https://www.youtube.com/watch?v=QeNDS2Vk4zI",
-            "Secureum \u2014 Smart Contract Security 101 \u2014 https://secureum.substack.com/p/smart-contract-security-101-secureum",
-            "OWASP Smart Contract Security \u2014 https://scs.owasp.org/",
-            "Harnesses in AI, A Deep Dive \u2014 https://www.youtube.com/watch?v=C_GG5g38vLU",
-            "The Harness Playbook \u2014 https://stencil.so/blog/harness-playbook",
-            "AI and agents (@iiiichigo_chan) \u2014 https://x.com/iiiichigo_chan/status/2095911936579805682",
-            "Hugging Face \u2014 Intro to LLMs \u2014 https://huggingface.co/learn/llm-course/en/chapter1/1",
-            "Hugging Face \u2014 Agents Course \u2014 https://huggingface.co/learn/agents-course/en/unit0/introduction",
-            "Learn how agents work \u2014 https://twotimespi.dev/",
-            "Technical Review (@Kritt_AI) \u2014 https://kritt.ai/technical-review/",
-            "AI Auditing Methodology, Pt I (@xy9301) \u2014 https://x.com/xy9301/status/2033186266649640980",
-            "AI Auditing Methodology, Pt II (@xy9301) \u2014 https://x.com/xy9301/status/2036017855381340269",
-            "AI Auditing Methodology, Pt III (@xy9301) \u2014 https://x.com/xy9301/status/2071845290018284002"
+            "yAudit — Common Web3 Security Issues — https://github.com/yAudit/CommonWeb3SecurityIssues",
+            "yAudit — DeFi Fork Bugs — https://github.com/yAudit/defi-fork-bugs",
+            "yAudit — audit reports — https://reports.yaudit.dev/",
+            "yAudit — fellowship audits — https://github.com/yAudit/fellowship-audits",
+            "yAudit — Solidity Proxy Playground — https://github.com/yAudit/Solidity-Proxy-Playground",
+            "Cyfrin Updraft — Smart Contract Security — https://updraft.cyfrin.io/courses/security",
+            "Things I Wish I Knew Before Starting yAcademy (@devtooligan) — https://www.youtube.com/watch?v=QeNDS2Vk4zI",
+            "Secureum — Smart Contract Security 101 — https://secureum.substack.com/p/smart-contract-security-101-secureum",
+            "OWASP Smart Contract Security — https://scs.owasp.org/",
+            "Harnesses in AI, A Deep Dive — https://www.youtube.com/watch?v=C_GG5g38vLU",
+            "The Harness Playbook — https://stencil.so/blog/harness-playbook",
+            "AI and agents (@iiiichigo_chan) — https://x.com/iiiichigo_chan/status/2095911936579805682",
+            "Hugging Face — Intro to LLMs — https://huggingface.co/learn/llm-course/en/chapter1/1",
+            "Hugging Face — Agents Course — https://huggingface.co/learn/agents-course/en/unit0/introduction",
+            "Learn how agents work — https://twotimespi.dev/",
+            "Technical Review (@Kritt_AI) — https://kritt.ai/technical-review/",
+            "AI Auditing Methodology, Pt I (@xy9301) — https://x.com/xy9301/status/2033186266649640980",
+            "AI Auditing Methodology, Pt II (@xy9301) — https://x.com/xy9301/status/2036017855381340269",
+            "AI Auditing Methodology, Pt III (@xy9301) — https://x.com/xy9301/status/2071845290018284002"
           ]
         }
       },
       {
         "theme": "web3-study",
         "block": "Daily Study Session",
-        "days": ["tuesday", "thursday", "saturday"],
+        "days": [
+          "tuesday",
+          "thursday",
+          "saturday"
+        ],
         "label": "Web3 study",
         "due_time": "11:00",
         "tasks": [],
@@ -901,36 +924,36 @@
           {
             "name": "EVM",
             "tasks": [
-              "RareSkills: one chapter, notes written as you go \u2014 https://rareskills.io/learn-solidity",
-              "Read one opcode's semantics on evm.codes and explain gas cost aloud \u2014 https://www.evm.codes/"
+              "RareSkills: one chapter, notes written as you go — https://rareskills.io/learn-solidity",
+              "Read one opcode's semantics on evm.codes and explain gas cost aloud — https://www.evm.codes/"
             ]
           },
           {
             "name": "Solana",
             "tasks": [
-              "One Solana Cookbook recipe, typed out not copied \u2014 https://solanacookbook.com/",
-              "Read one program-examples repo end to end \u2014 https://github.com/solana-developers/program-examples"
+              "One Solana Cookbook recipe, typed out not copied — https://solanacookbook.com/",
+              "Read one program-examples repo end to end — https://github.com/solana-developers/program-examples"
             ]
           },
           {
             "name": "Cosmos",
             "tasks": [
-              "One Cosmos SDK tutorial module, built locally \u2014 https://tutorials.cosmos.network/",
-              "Explain IBC packet flow from memory, then check \u2014 https://ibc.cosmos.network/"
+              "One Cosmos SDK tutorial module, built locally — https://tutorials.cosmos.network/",
+              "Explain IBC packet flow from memory, then check — https://ibc.cosmos.network/"
             ]
           },
           {
             "name": "Move",
             "tasks": [
-              "The Move Book: one chapter, typed out \u2014 https://move-book.com/",
-              "Sui or Aptos docs: one concept explained back from memory \u2014 https://docs.sui.io/"
+              "The Move Book: one chapter, typed out — https://move-book.com/",
+              "Sui or Aptos docs: one concept explained back from memory — https://docs.sui.io/"
             ]
           },
           {
             "name": "Infra",
             "tasks": [
-              "One Alchemy docs topic: RPC methods, webhooks or indexing \u2014 https://docs.alchemy.com/",
-              "Alchemy University: one lesson, exercises done \u2014 https://www.alchemy.com/university"
+              "One Alchemy docs topic: RPC methods, webhooks or indexing — https://docs.alchemy.com/",
+              "Alchemy University: one lesson, exercises done — https://www.alchemy.com/university"
             ]
           }
         ],
@@ -943,49 +966,53 @@
       {
         "theme": "chain-interviews",
         "block": "Learning Application",
-        "days": ["tuesday", "thursday", "saturday"],
+        "days": [
+          "tuesday",
+          "thursday",
+          "saturday"
+        ],
         "label": "Chain interview practice",
-        "due_time": "14:30",
+        "due_time": "14:00",
         "remind": false,
         "variants": [
           {
             "name": "EVM",
             "tasks": [
               "Answer aloud: storage vs memory vs calldata, delegatecall risks, proxy storage collisions",
-              "One Ethernaut level, then write why it broke \u2014 https://ethernaut.openzeppelin.com/",
-              "One Yul snippet, explained line by line \u2014 https://github.com/andreitoma8/learn-yul"
+              "One Ethernaut level, then write why it broke — https://ethernaut.openzeppelin.com/",
+              "One Yul snippet, explained line by line — https://github.com/andreitoma8/learn-yul"
             ]
           },
           {
             "name": "Solana",
             "tasks": [
               "Answer aloud: accounts model vs EVM, PDAs, rent, CPI, compute budget",
-              "Anchor: explain a program's account constraints line by line \u2014 https://www.anchor-lang.com/",
-              "Read a real indexer's hot path \u2014 https://github.com/Luganodes/Solana-Indexer"
+              "Anchor: explain a program's account constraints line by line — https://www.anchor-lang.com/",
+              "Read a real indexer's hot path — https://github.com/Luganodes/Solana-Indexer"
             ]
           },
           {
             "name": "Cosmos",
             "tasks": [
               "Answer aloud: ABCI, modules, keepers, IBC light clients, validator set changes",
-              "Read one Cosmos SDK module's keeper and narrate it \u2014 https://docs.cosmos.network/",
-              "Contrast with Move's resource model \u2014 https://github.com/MystenLabs/move-book"
+              "Read one Cosmos SDK module's keeper and narrate it — https://docs.cosmos.network/",
+              "Contrast with Move's resource model — https://github.com/MystenLabs/move-book"
             ]
           },
           {
             "name": "Move",
             "tasks": [
               "Answer aloud: resources vs accounts, abilities (key/store/copy/drop), object ownership on Sui",
-              "Read one module and narrate its ability constraints \u2014 https://github.com/MystenLabs/move-book",
-              "One Move audit finding, restated as a bug class \u2014 https://github.com/0xriazaka/Move-Audit-Resources"
+              "Read one module and narrate its ability constraints — https://github.com/MystenLabs/move-book",
+              "One Move audit finding, restated as a bug class — https://github.com/0xriazaka/Move-Audit-Resources"
             ]
           },
           {
             "name": "Security",
             "tasks": [
-              "One Damn Vulnerable DeFi challenge, write the exploit up \u2014 https://www.damnvulnerabledefi.xyz/",
-              "One Solodit finding: restate the bug class in your own words \u2014 https://solodit.cyfrin.io/",
-              "One reentrancy variant from the workshop \u2014 https://github.com/jcsec-security/all-things-reentrancy"
+              "One Damn Vulnerable DeFi challenge, write the exploit up — https://www.damnvulnerabledefi.xyz/",
+              "One Solodit finding: restate the bug class in your own words — https://solodit.cyfrin.io/",
+              "One reentrancy variant from the workshop — https://github.com/jcsec-security/all-things-reentrancy"
             ]
           }
         ],
@@ -1006,7 +1033,7 @@
           "sysdesign-interview"
         ],
         "tasks": [
-          "One system-design narration, 35 minutes, out loud \u2014 https://github.com/liquidslr/system-design-notes"
+          "One system-design narration, 35 minutes, out loud — https://github.com/liquidslr/system-design-notes"
         ],
         "remind": false,
         "_comment": [
@@ -1017,9 +1044,9 @@
       },
       {
         "theme": "football",
-        "block": "Startup Checklist Progress",
+        "block": "Project Execution Block",
         "label": "Football",
-        "due_time": "19:00",
+        "due_time": "15:00",
         "sources": [
           "football-calendar"
         ],
@@ -1054,7 +1081,7 @@
         "label": "Writing",
         "due_time": "16:00",
         "tasks": [
-          "Draft or ship one article section \u2014 no new outlines"
+          "Draft or ship one article section — no new outlines"
         ],
         "remind": false,
         "_comment": [
@@ -1067,10 +1094,10 @@
         "theme": "code-review",
         "block": "Learning Application",
         "label": "Code review",
-        "due_time": "14:30",
+        "due_time": "14:00",
         "tasks": [
           "Review one open PR, or reread one of your own modules critically",
-          "One audit checklist section applied to your own code \u2014 https://github.com/Cyfrin/audit-checklist"
+          "One audit checklist section applied to your own code — https://github.com/Cyfrin/audit-checklist"
         ],
         "remind": false,
         "_comment": [
@@ -1083,12 +1110,12 @@
         "theme": "interview-prep",
         "block": "Learning Application",
         "label": "Interview prep",
-        "due_time": "14:30",
+        "due_time": "14:00",
         "sources": [
           "ai-tracker"
         ],
         "tasks": [
-          "Two DSA problems, timed, narrated out loud \u2014 https://github.com/krishnadey30/LeetCode-Questions-CompanyWise",
+          "Two DSA problems, timed, narrated out loud — https://github.com/krishnadey30/LeetCode-Questions-CompanyWise",
           "Three STAR stories aloud from the bank"
         ],
         "remind": false,
@@ -1102,7 +1129,7 @@
         "theme": "job-applications",
         "block": "Buffer / light admin",
         "label": "Job applications",
-        "due_time": "17:00",
+        "due_time": "16:45",
         "tasks": [
           "Send two applications with a tailored first line",
           "Follow up on anything sent more than a week ago"
@@ -1118,7 +1145,7 @@
     "pause": {
       "_comment": [
         "Solana Village all of the week commencing 2026-10-05, then a week back",
-        "before the load resumes. Carries its own end date so it lifts itself \u2014",
+        "before the load resumes. Carries its own end date so it lifts itself —",
         "a pause you have to remember to end becomes permanent.",
         "",
         "Set `until` to 2026-10-12 to come back a week sooner."
@@ -1133,6 +1160,95 @@
     "limit": 150
   },
   "tracks": [
+    {
+      "_comment": [
+        "Morning reading, 05:00. Political rather than technical on purpose:",
+        "the three priorities already own the deep blocks, and the half hour",
+        "that opens the day is the one reliably quiet slot there is.",
+        "",
+        "A starting list, not a prescription — swap any of it. One book stays",
+        "filed until you advance the cursor, which at thirty minutes a day is",
+        "roughly a fortnight each."
+      ],
+      "key": "political-reading",
+      "label": "Morning reading",
+      "due_time": "05:00",
+      "start_at": "dictators-handbook",
+      "items": [
+        {
+          "key": "dictators-handbook",
+          "title": "The Dictator's Handbook — Bueno de Mesquita & Smith",
+          "url": "https://www.google.com/search?q=The+Dictator%27s+Handbook+Bueno+de+Mesquita",
+          "note": "Power as a coalition problem. The clearest model of why institutions behave as they do, and it transfers directly to how organisations work."
+        },
+        {
+          "key": "why-nations-fail",
+          "title": "Why Nations Fail — Acemoglu & Robinson",
+          "url": "https://www.google.com/search?q=Why+Nations+Fail+Acemoglu+Robinson",
+          "note": "Extractive versus inclusive institutions. The book most often cited badly — read it so you can tell."
+        },
+        {
+          "key": "seeing-like-a-state",
+          "title": "Seeing Like a State — James C. Scott",
+          "url": "https://www.google.com/search?q=Seeing+Like+a+State+James+Scott",
+          "note": "Why top-down schemes to improve things fail. The most useful book on this list for an engineer."
+        },
+        {
+          "key": "the-prince",
+          "title": "The Prince — Machiavelli",
+          "url": "https://www.gutenberg.org/ebooks/1232",
+          "note": "Short, free, and almost nothing like its reputation. Read the text rather than the quotes."
+        },
+        {
+          "key": "origins-political-order",
+          "title": "The Origins of Political Order — Fukuyama",
+          "url": "https://www.google.com/search?q=The+Origins+of+Political+Order+Fukuyama",
+          "note": "How states, rule of law and accountability actually arose. Long; a fortnight at this pace is optimistic."
+        },
+        {
+          "key": "narrow-corridor",
+          "title": "The Narrow Corridor — Acemoglu & Robinson",
+          "url": "https://www.google.com/search?q=The+Narrow+Corridor+Acemoglu+Robinson",
+          "note": "The sequel argument: liberty as a balance between state and society rather than an end state."
+        },
+        {
+          "key": "how-democracies-die",
+          "title": "How Democracies Die — Levitsky & Ziblatt",
+          "url": "https://www.google.com/search?q=How+Democracies+Die+Levitsky+Ziblatt",
+          "note": "The slow, procedural version of collapse rather than the dramatic one."
+        },
+        {
+          "key": "on-tyranny",
+          "title": "On Tyranny — Timothy Snyder",
+          "url": "https://www.google.com/search?q=On+Tyranny+Timothy+Snyder",
+          "note": "Twenty short lessons. Two or three mornings total — a good palate cleanser between the long ones."
+        },
+        {
+          "key": "open-society",
+          "title": "The Open Society and Its Enemies — Popper",
+          "url": "https://www.google.com/search?q=The+Open+Society+and+Its+Enemies+Popper",
+          "note": "The case against historical inevitability, and the best argument for falsifiability outside science."
+        },
+        {
+          "key": "power-broker",
+          "title": "The Power Broker — Robert Caro",
+          "url": "https://www.google.com/search?q=The+Power+Broker+Robert+Caro",
+          "note": "One man, unelected, reshaping a city. The finest case study of informal power ever written. Very long."
+        },
+        {
+          "key": "political-order-decay",
+          "title": "Political Order and Political Decay — Fukuyama",
+          "url": "https://www.google.com/search?q=Political+Order+and+Political+Decay+Fukuyama",
+          "note": "The modern half: how functioning institutions rot."
+        },
+        {
+          "key": "rules-for-radicals",
+          "title": "Rules for Radicals — Saul Alinsky",
+          "url": "https://www.google.com/search?q=Rules+for+Radicals+Saul+Alinsky",
+          "note": "Organising from the outside. Read alongside the Dictator's Handbook — same mechanics, opposite vantage point."
+        }
+      ]
+    },
     {
       "_comment": [
         "Four weeks to SAA-C03, in the order the exam rewards.",
@@ -1150,7 +1266,7 @@
       ],
       "key": "aws-saa",
       "label": "AWS SAA",
-      "due_time": "09:15",
+      "due_time": "08:30",
       "start_at": "voucher-check",
       "items": [
         {
@@ -1290,13 +1406,13 @@
     {
       "_comment": [
         "An ordered curriculum, not a rotation. The cursor moves when an item is",
-        "finished, not when the date changes \u2014 that is the whole difference.",
+        "finished, not when the date changes — that is the whole difference.",
         "",
         "The cursor lives in the database, not here, because progress is state and",
         "a container restart would lose it. This file holds the order; the order",
         "is the opinion and belongs in git.",
         "",
-        "Due at 05:45 \u2014 Deep Block 1, the first real block of the day. This has",
+        "Due at 05:45 — Deep Block 1, the first real block of the day. This has",
         "to match the rotation entry's due_time: the rotation decides when it is",
         "filed, this is what /api/study/track reports, and two answers to the",
         "same question is how you end up trusting the wrong one.",
@@ -1318,7 +1434,7 @@
           "key": "function-clashing",
           "title": "Beware of the proxy: function clashing (OpenZeppelin)",
           "url": "https://forum.openzeppelin.com/t/beware-of-the-proxy-learn-how-to-exploit-function-clashing/1070",
-          "note": "Read immediately after proxy patterns \u2014 it is the exploit the chapter sets up."
+          "note": "Read immediately after proxy patterns — it is the exploit the chapter sets up."
         },
         {
           "key": "learn-solidity",
@@ -1360,7 +1476,7 @@
           "key": "compound-v3",
           "title": "Compound V3 book",
           "url": "https://rareskills.io/compound-v3-book",
-          "note": "Lending mechanics end to end \u2014 pairs with your lending invariant library."
+          "note": "Lending mechanics end to end — pairs with your lending invariant library."
         },
         {
           "key": "curve",
@@ -1402,7 +1518,7 @@
           "key": "zk-book",
           "title": "ZK book, in full",
           "url": "https://rareskills.io/zk-book",
-          "note": "Last on purpose, and taken whole rather than skimmed \u2014 your words."
+          "note": "Last on purpose, and taken whole rather than skimmed — your words."
         }
       ]
     }

@@ -191,18 +191,52 @@ async def attach(
             )
         )
 
-    _attach_fellowship(day, blocks, fellowship)
+    _attach_fellowship(day, blocks, fellowship, _fellowship_block(themes))
     return blocks
 
 
-def _attach_fellowship(
-    day: date_cls, blocks: List[Dict[str, Any]], summary: Optional[Dict[str, Any]]
-) -> None:
-    """The week's reading goes on the reading block, the lab on its own block.
+def _fellowship_block(themes: Optional[Dict[str, Any]]) -> str:
+    """Where the fellowship sits today, from the rotation rather than a guess."""
+    for theme in (themes or {}).get("daily") or []:
+        get = theme.get if isinstance(theme, dict) else lambda k, d=None: getattr(theme, k, d)
+        if str(get("base", "") or get("theme", "")).startswith("flow-fellowship"):
+            return str(get("block", "") or "")
+    return ""
 
-    The fellowship is the one strand with an outside deadline, and its week
-    carries two different kinds of work. Filing both against one slot buries
-    the reading, which is the part that has to happen early to be any use.
+
+def _already_there(block: Dict[str, Any], text: str) -> bool:
+    """Whether this block's plan already says the same thing.
+
+    The fellowship's own strand carries the week's anchor reading and book
+    chapter as task lines. These entries are a tidier rendering of the same
+    two things, so without this they appear twice on one block — which is the
+    duplication the day page was just rebuilt to remove.
+    """
+    key = _squash(text)
+    for strand in block.get("plan", []):
+        for item in strand.get("items", []):
+            other = _squash(item.get("text", ""))
+            if key and other and (key.startswith(other) or other.startswith(key)):
+                return True
+    return False
+
+
+def _squash(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", _URL.sub(" ", str(text or "")).lower()).strip()[:60]
+
+
+def _attach_fellowship(
+    day: date_cls,
+    blocks: List[Dict[str, Any]],
+    summary: Optional[Dict[str, Any]],
+    block_label: str = "",
+) -> None:
+    """The week's paper and set-book chapter, on the fellowship's own block.
+
+    This used to be hardcoded to "book reading" — which was right while that
+    block held the fellowship's reading, and wrong the moment the morning half
+    hour became political books. The rotation already says where the
+    fellowship sits; ask it rather than assume.
     """
     if summary is None:
         from .fellowship import summary as fellowship_summary
@@ -216,8 +250,9 @@ def _attach_fellowship(
     readings = raw_reading if isinstance(raw_reading, list) else [raw_reading]
     tasks = [t for t in (_as_task(r) for r in readings) if t]
     if tasks:
-        index = _match_by_label(blocks, "book reading")
-        if index is not None:
+        index = _match_by_label(blocks, block_label) if block_label else None
+        tasks = [t for t in tasks if index is None or not _already_there(blocks[index], t)]
+        if index is not None and tasks:
             blocks[index]["plan"].append(
                 _entry(
                     label=f"Fellowship week {week} · paper",
@@ -235,8 +270,10 @@ def _attach_fellowship(
         logger.warning("fellowship_books_failed", error=str(exc))
         chapters = []
     if chapters:
-        index = _match_by_label(blocks, "book reading")
-        if index is not None:
+        index = _match_by_label(blocks, block_label) if block_label else None
+        chapters = [c for c in chapters
+                    if index is None or not _already_there(blocks[index], str(c))]
+        if index is not None and chapters:
             blocks[index]["plan"].append(
                 _entry(
                     label="This week's chapter",

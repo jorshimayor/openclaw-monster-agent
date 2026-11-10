@@ -106,10 +106,17 @@ def test_two_strands_can_share_one_block():
     assert [p["label"] for p in deep_two["plan"]] == ["Web3 study", "Web2 / systems"]
 
 
-def test_the_weeks_paper_goes_on_the_reading_block():
-    """`reading` is {title, cite, url}; stringifying it printed a Python dict."""
+def test_the_weeks_paper_goes_on_the_fellowship_block():
+    """`reading` is {title, cite, url}; stringifying it printed a Python dict.
+
+    It lands on whichever block the rotation gives the fellowship — it used to
+    be hardcoded to "book reading", which went wrong the morning that half
+    hour became political reading."""
     blocks = attach(
-        date(2026, 10, 28), fresh(), themes={"daily": [], "cycled": None},
+        date(2026, 10, 28), fresh(),
+        themes={"daily": [{**theme("Flow fellowship", "Book Reading"),
+                           "base": "flow-fellowship", "theme": "flow-fellowship"}],
+                "cycled": None},
         fellowship={"enabled": True, "started": True, "week": 6,
                     "reading": {"title": "Toolformer", "cite": "Schick et al., 2023",
                                 "url": "https://arxiv.org/abs/2302.04761"}},
@@ -123,10 +130,16 @@ def test_the_weeks_paper_goes_on_the_reading_block():
 
 def test_nothing_is_filed_before_the_fellowship_starts():
     blocks = attach(
-        date(2026, 10, 28), fresh(), themes={"daily": [], "cycled": None},
+        date(2026, 10, 28), fresh(),
+        themes={"daily": [{**theme("Flow fellowship", "Book Reading"),
+                           "base": "flow-fellowship", "theme": "flow-fellowship"}],
+                "cycled": None},
         fellowship={"enabled": True, "started": False, "week": 0, "reading": {"title": "x"}},
     )
-    assert all(b["plan"] == [] for b in blocks)
+    # The theme itself still gives the block a strand; what must not appear is
+    # anything derived from a programme that has not begun.
+    kinds = [p["kind"] for b in blocks for p in b["plan"]]
+    assert "fellowship" not in kinds and "weekly" not in kinds, kinds
 
 
 # --- the weekly cadence ----------------------------------------------------
